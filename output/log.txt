@@ -1,0 +1,21 @@
+Starting Vamb version 3.0.3
+	Date and time is 2022-02-23 10:42:02.818356
+
+Loading TNF
+	Minimum sequence length: 100
+	Loading data from FASTA file Dataset/edges.fasta
+
+	Kept 171284029 bases in 1150 sequences
+	Processed TNF in 17.51 seconds
+
+Loading RPKM
+	Reference hash: 0d1360e5dded6238816b7daf27b5bfcf
+	Parsing 1 BAM files with 1 subprocesses
+	Min alignment score: None
+	Min identity: None
+	Min contig length: 100
+	
+Order of columns is:
+	Dataset/edges_depth.bam
+
+	ERROR WHEN PROCESSING: Dataset/edges_depth.bam
