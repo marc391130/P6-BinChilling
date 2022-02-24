@@ -23,7 +23,7 @@ with open("log.txt", 'x') as file:
     count = 0
     for key, value in d1.items():
         if d1[key].contig_length != d2[key].contig_length:
-            file.write(f"Contig {key} does not have the same ContigLen as its string. string length: {d1[key].contig_length:08d} edges_depth file ContigLen: {d2[key].contig_length:08d} differnce: {(d1[key].contig_length - d2[key].contig_length):08d}\n")
+            file.write(f"Contig {key.rjust(10)} does not have the same ContigLen as its string. string length: {str(d1[key].contig_length).rjust(10)} edges_depth file ContigLen: {str(d2[key].contig_length).rjust(10)} differnce: {str((d1[key].contig_length - d2[key].contig_length)).rjust(10)}\n")
             print(f"{key} does not have the same length d1: {d1[key].contig_length:08d} d2: {d2[key].contig_length:08d} differnce: {(d1[key].contig_length - d2[key].contig_length):08d}")
             count += 1
 
