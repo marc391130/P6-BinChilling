@@ -1,5 +1,5 @@
 import Constants as const
-from typing import Dict, List
+from typing import Dict, List, TypeVar
 
 class Composition(Dict[str, float]):
     def __init__(self):
@@ -34,9 +34,9 @@ class Composition(Dict[str, float]):
         self[key] += 1
 
     def AsNormalized(self) -> Dict[str, float]:
-        total = sum(self.values()) 
+        total = sum([self[k] for k in self]) 
         dic = {} 
-        for key, value in self:
+        for key, value in self.items():
             dic[key] = value / total
         return dic
 
