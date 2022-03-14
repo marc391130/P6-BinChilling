@@ -1,7 +1,11 @@
 from __future__ import annotations
 from typing import Dict, List, Generic, TypeVar, Tuple
 from math import sqrt
+from typing_extensions import Self
 import Assertions as Assert
+import sys
+
+sys.setrecursionlimit(10**6)
 
 T = TypeVar("T")
 
@@ -35,6 +39,9 @@ class Cluster(List[T]):
             if x not in result:
                 result.append(x)
         return result
+
+    def __hash__(self) -> int:
+        return id(self)
 
     @staticmethod
     def membership_similarity(cluster_lst: List[Cluster[T]], object: T) -> int:
@@ -99,7 +106,9 @@ class PartitionSet(List[Partition[T]]):
 
 
     def __similarity_measure_cluster__(self, cluster1: Cluster, cluster2: Cluster) -> float:
-        counter = len(cluster1.intersection(cluster2)) - ((len(cluster1) * len(cluster2)) / self.total_elements)
+        cluster_intersection = cluster1.intersection(cluster2)
+
+        counter = len(cluster_intersection) - ((len(cluster1) * len(cluster2)) / self.total_elements)
         divisor = sqrt(len(cluster1) * len(cluster2) * (1 - (len(cluster1) / self.total_elements)) * (1 - (len(cluster2) / self.total_elements)))
         return counter / divisor
 
@@ -117,5 +126,8 @@ class PartitionSet(List[Partition[T]]):
             result[item] = i if item not in result else result[item]
             i += 1
         return result
+
+    def mean_cluster(self) -> float:
+        return len(self.get_all_clusters()) / len(self)
     
     

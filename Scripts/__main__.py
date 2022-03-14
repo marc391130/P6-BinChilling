@@ -7,25 +7,22 @@ from AdaptiveEnsembler import AdaptiveClusterEnsembler
 from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
 
-ensembler = AdaptiveClusterEnsembler()
+ensembler = AdaptiveClusterEnsembler(0.25)
 
-def dummy_data() -> PartitionSet:
-    data = [random() for x in tqdm(range(1000))]
+def dummy_data(partitions = 4, clusters_per_partition = 10, elements_in_data=1000) -> PartitionSet:
+    data = [random() for x in tqdm(range(elements_in_data))]
 
     partition_set = PartitionSet()
-    for x in range(4):
+    for x in range(partitions):
         partition_set.append(Partition(data))
 
-    for x in tqdm(data):
-        rnd = randrange(0, 16)
-
-        partition = int(rnd / 4)
-        cluster = (int(rnd) % 4)
-
-        partition_set[partition].add(str(cluster), x)
+    for partition in range(len(partition_set)):
+        for x in data:
+            cluster = int(randrange(0,clusters_per_partition))
+            partition_set[partition].add(str(cluster), x)
     return partition_set
 
-ensembler.ensemble(dummy_data())
+ensembler.ensemble(dummy_data(partitions=10, clusters_per_partition=10, elements_in_data=100))
 
 
 
