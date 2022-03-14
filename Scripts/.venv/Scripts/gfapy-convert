@@ -1,0 +1,28 @@
+#!c:\users\patrick\documents\github\p6\scripts\.venv\scripts\python.exe
+"""
+Convert a GFA file to the other specification version
+"""
+
+import sys
+import os
+import gfapy
+import argparse
+
+op = argparse.ArgumentParser(description=__doc__)
+op.add_argument("filename")
+op.add_argument('--version', action='version', version='%(prog)s 1.0')
+opts = op.parse_args()
+
+gfa = gfapy.Gfa.from_file(opts.filename)
+try:
+  for line in gfa.lines:
+    if gfa.version == "gfa1":
+      print(line.to_gfa2_s())
+    else:
+      converted_line = line.to_gfa1_s()
+      if (converted_line):
+        print(converted_line)
+except gfapy.Error as err:
+  sys.stderr.write(str(err))
+  sys.exit(1)
+

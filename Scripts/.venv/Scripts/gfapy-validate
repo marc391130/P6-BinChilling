@@ -1,0 +1,21 @@
+#!c:\users\patrick\documents\github\p6\scripts\.venv\scripts\python.exe
+"""
+Validate a GFA file
+"""
+
+import sys
+import os
+import gfapy
+import argparse
+
+op = argparse.ArgumentParser(description=__doc__)
+op.add_argument("filename")
+op.add_argument('--version', action='version', version='%(prog)s 1.0')
+opts = op.parse_args()
+
+try:
+  gfa = gfapy.Gfa.from_file(opts.filename)
+  gfa.validate()
+except gfapy.Error as err:
+  sys.stderr.write(str(err)+"\n")
+  sys.exit(1)
