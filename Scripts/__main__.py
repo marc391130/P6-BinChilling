@@ -2,13 +2,14 @@
 # Created: 23-02-2022
 # Intended purpose: To get data from fasta files
 
-from random import randrange, random
+from random import randrange, random, seed
 from AdaptiveEnsembler import AdaptiveClusterEnsembler
 from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
 
-ensembler = AdaptiveClusterEnsembler(0.25)
+ensembler = AdaptiveClusterEnsembler(0.25, 0.05, 0.2)
 
+seed(1)
 def dummy_data(partitions = 4, clusters_per_partition = 10, elements_in_data=1000) -> PartitionSet:
     data = [random() for x in tqdm(range(elements_in_data))]
 

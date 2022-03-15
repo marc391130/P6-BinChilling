@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Dict, List, Generic, TypeVar, Tuple
 from math import sqrt
-from typing_extensions import Self
 import Assertions as Assert
 import sys
 
@@ -129,5 +128,9 @@ class PartitionSet(List[Partition[T]]):
 
     def mean_cluster(self) -> float:
         return len(self.get_all_clusters()) / len(self)
+
+    def maximal_partition_clusters(self) -> int:
+        return max([len(partition) for partition in self])
+        
     
     
