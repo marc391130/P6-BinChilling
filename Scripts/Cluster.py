@@ -1,4 +1,5 @@
 from __future__ import annotations
+from sre_constants import ASSERT
 from typing import Dict, List, Generic, TypeVar, Tuple
 from math import sqrt
 import Assertions as Assert
@@ -13,8 +14,12 @@ class Contig:
         self.name = name
         self.vector = vector
 
-
 class Cluster(List[T]):
+    def __init__(self, cluster1: Cluster = None, cluster2: Cluster = None):
+        Assert.assert_new_cluster(cluster1, cluster2)
+        
+        self.__children_lst__ = [cluster1, cluster2] if cluster1 is not None else []
+
     def append(self, __object: T) -> None:
         if __object in self:
             raise Exception(f"Item {str(__object)} already in cluster")
@@ -31,7 +36,7 @@ class Cluster(List[T]):
         return item in self
 
     def merge(self, other: Cluster[T]) -> Cluster[T]:
-        result = Cluster()
+        result = Cluster(self, other)
         for x in self:
             result.append(x)
         for x in other:
@@ -39,16 +44,34 @@ class Cluster(List[T]):
                 result.append(x)
         return result
 
+    def calc_membership(self, item: T) -> int:
+        result = 0
+        for el in self.__get_leaf_clusters__():
+            if item in el:
+                result += 1
+        return result
+
+    def __get_leaf_clusters__(self) -> List[Cluster]:
+        result = []
+        
+        if len(self.__children_lst__) == 0:
+            return [self]
+
+        for child in self.__children_lst__:
+            result += child.__get_leaf_clusters__()
+        
+        return result
+
     def __hash__(self) -> int:
         return id(self)
 
-    @staticmethod
-    def membership_similarity(cluster_lst: List[Cluster[T]], object: T) -> int:
-        result = 0
-        for cluster in cluster_lst:
-            if cluster.contains(object):
-                result += 1
-        return result
+    # @staticmethod
+    # def membership_similarity(cluster_lst: List[Cluster[T]], object: T) -> int:
+    #     result = 0
+    #     for cluster in cluster_lst:
+    #         if cluster.contains(object):
+    #             result += 1
+    #     return result
     
 # Do not use normal set item of this dict, use add instead
 class Partition(Dict[str, Cluster[T]], Generic[T]):

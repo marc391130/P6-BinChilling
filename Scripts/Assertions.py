@@ -21,3 +21,12 @@ def assert_partion_set_content(partition_set: List[Dict]) -> None:
 
         if partition.__data__ is not raf:
             raise Exception("Data is not the same in partitionset and partition")
+
+def assert_new_cluster(object1, object2) -> None:
+    if object1 is None and object2 is not None:
+        raise Exception("Object1 is none, while object2 is not")
+    elif object1 is not None and object2 is None:
+        raise Exception("Object2 is none, while object1 is not")
+    elif object1 is not None and object1 is object2:
+        raise Exception("Trying to make a new cluster, with two of the same references, not allowed!")
+

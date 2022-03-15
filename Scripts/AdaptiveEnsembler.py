@@ -3,7 +3,7 @@ from unittest import result
 from Cluster import Cluster, Contig, Partition, PartitionSet
 import numpy as np
 from tqdm import tqdm
-import itertools
+from itertools import islice
 
 MERGED_CLUSTER = -1
 
@@ -12,10 +12,11 @@ class Ensembler:
         pass
 
 class AdaptiveClusterEnsembler(Ensembler):
-    def __init__(self, initial_alpha1_thredshold: float = 0.8, initial_delta_aplha: float = 0.1, alpha1_min: float = 0.6):
+    def __init__(self, initial_alpha1_thredshold: float = 0.8, initial_delta_aplha: float = 0.1, alpha1_min: float = 0.6, alpha2: float = 0.2):
         self.alpha1_thredshold = initial_alpha1_thredshold
         self.delta_alpha = initial_delta_aplha
         self.aplha1_min = alpha1_min
+        self.alpha2 = alpha2
 
     def bit_matrix_transform(self, gamma: PartitionSet) -> np.matrix:
         matrix = self.__setup_bit_matrix(gamma)
@@ -58,7 +59,7 @@ class AdaptiveClusterEnsembler(Ensembler):
                 dct_info[value] = partition_idx
         return dct_info
 
-    def __stage2__(self, gamma: PartitionSet, bit_matrix: np.matrix) -> Dict[Cluster, int]:
+    def __stage2__(self, gamma: PartitionSet, bit_matrix: np.matrix) -> Tuple[List[Cluster], List[Cluster]]:
         initial_clusters = self.__map_clusters__(gamma)
         target_clusters = gamma.maximal_partition_clusters()
         similarity_matrix = self.__similarity_matrix__(gamma, initial_clusters)
@@ -74,6 +75,7 @@ class AdaptiveClusterEnsembler(Ensembler):
                 self.alpha1_thredshold += self.delta_alpha
 
         while lambda_len >= target_clusters:
+
             similarity_matrix = self.__similarity_matrix__(gamma, merged_clusters)
             self.alpha1_thredshold = similarity_matrix.max()
             if self.alpha1_thredshold < self.aplha1_min:
@@ -81,8 +83,67 @@ class AdaptiveClusterEnsembler(Ensembler):
             else:
                 merged_clusters = self.__merge_cls__(similarity_matrix, merged_clusters)
                 lambda_len = len(merged_clusters)
+
+        certain_clusters = self.__find_all_clusters_with_atleast_one_certain_cluster__(merged_clusters)
+
+        candidate_clusters = []
+        non_candidate_clusters = []
+
+        if len(certain_clusters) == target_clusters:
+            candidate_clusters = certain_clusters
+            non_candidate_clusters = [k for k,v in merged_clusters.items() if k not in certain_clusters]
+        else:
+            cluster_certainty_lst = [(k, v, self.__mean_membership_similarity_measure__(k, merged_clusters)) for k, v in merged_clusters.items()]
+            cluster_certainty_lst = list(sorted(cluster_certainty_lst, key = lambda item: item[2], reverse=True))
+            candidate_clusters = [x[0] for x in islice(cluster_certainty_lst, target_clusters)]
+            self.alpha2 = self.__max_membership_similarity_measure__(candidate_clusters[len(candidate_clusters) - 1], merged_clusters)
+            non_candidate_clusters = [x[0] for x in islice(cluster_certainty_lst, target_clusters, None)]
+
+        return (candidate_clusters, non_candidate_clusters)
             
+    def __find_all_clusters_with_atleast_one_certain_cluster__(self, cluster_dct: Dict[Cluster, int]) -> List[Cluster]:
+        result = []
+
+        all_merged_cluster = dict(filter(lambda x: x[1] == MERGED_CLUSTER, cluster_dct.items()))
+        
+        for cluster, partition_idx in all_merged_cluster.items():
+            for item in cluster:
+                membership_measure = self.__membership_similarity_measure__(item, cluster, all_merged_cluster)
+                if membership_measure > self.alpha2:
+                    result.append(cluster)
+                    break
+
+        return result
+
+    def __max_membership_similarity_measure__(self, cluster: Cluster, cluster_dct: Dict[Cluster, int]) -> float:
+        result = 0
+
+        for item in cluster:
+            result = max(self.__membership_similarity_measure__(item, cluster, cluster_dct), result)
+        
+        return result
+
+    def __mean_membership_similarity_measure__(self, cluster: Cluster, cluster_dct: Dict[Cluster, int]) -> float:
+        result = 0
+
+        for item in cluster:
+            result += self.__membership_similarity_measure__(item, cluster, cluster_dct)
+        
+        return result / len(cluster)
+
             
+    def __membership_similarity_measure__(self, item, cluster: Cluster, cluster_dct: Dict[Cluster, int]) -> float:
+        all_merged_cluster = dict(filter(lambda x: x[1] == MERGED_CLUSTER, cluster_dct.items()))
+
+        max_value = 0
+        for key, value in all_merged_cluster.items():
+            max_value = max(key.calc_membership(item), max_value)
+
+        if max_value == 0:
+            raise Exception(f"The item {str(item)} does not exist in the dataset")
+
+        return cluster.calc_membership(item) / max_value
+
     def __similarity_matrix__(self, gamma: PartitionSet, cluster_dct: Dict[Cluster, int]) -> np.matrix:
         matrix = np.empty_like(0, shape = (len(cluster_dct), len(cluster_dct))).astype(np.float32)
         matrix.fill(0)
@@ -98,10 +159,11 @@ class AdaptiveClusterEnsembler(Ensembler):
                     continue
 
                 if cluster2 in done_set:
-                    matrix[i,j] = matrix[j,i]
                     continue
                 
-                matrix[i,j] = gamma.__similarity_measure_cluster__(cluster1, cluster2)
+                similarity = gamma.__similarity_measure_cluster__(cluster1, cluster2)
+                matrix[i,j] = similarity
+                matrix[j,i] = similarity
 
                 j += 1
             i += 1
@@ -149,31 +211,37 @@ class AdaptiveClusterEnsembler(Ensembler):
     def ensemble(self, gamma: PartitionSet[Contig]) -> None:
         data = self.bit_matrix_transform(gamma)
         print(data, data.shape)
-        merged = self.__stage2__(gamma, data)
-        print(merged, len(merged))
+        candidate_clusters, non_candidate_clusters = self.__stage2__(gamma, data)
+        print(len(candidate_clusters), len(non_candidate_clusters), self.alpha2, gamma.maximal_partition_clusters())
 
     def __merge_cls__(self, similarity_matrix: np.matrix, dct_info: Dict[Cluster, int]) -> Dict[Cluster, int]:
         result_dct = {}
         done_set = set()
         list_info = list(dct_info.items())
+        merges = 0
 
         for i in range(len(list_info)):
+            add_to_results = True
             if list_info[i][0] in done_set:
                 continue
 
-            for j in range(len(list_info)):
+            for j in range(i, len(list_info)):
+
                 if list_info[i][0] is list_info[j][0] or self.__is_same_partition__(list_info[i][1], list_info[j][1]) or list_info[j][0] in done_set:
                     continue
-
-                if similarity_matrix[i,j] >= self.alpha1_thredshold:
+                    
+                if similarity_matrix[i][j] >= self.alpha1_thredshold:
+                    merges += 1
                     new_cluster = list_info[i][0].merge(list_info[j][0])
                     result_dct[new_cluster] = MERGED_CLUSTER
                     done_set.add(list_info[i][0])
                     done_set.add(list_info[j][0])
+                    add_to_results = False
                     break
             
-            if list_info[i][0] not in done_set:
-                result_dct[list_info[i][0]] = dct_info[list_info[i][0]]
+            if add_to_results:
+                key = list_info[i][0]
+                result_dct[key] = dct_info[key]
 
         return result_dct
 

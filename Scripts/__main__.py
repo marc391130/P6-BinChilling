@@ -7,7 +7,7 @@ from AdaptiveEnsembler import AdaptiveClusterEnsembler
 from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
 
-ensembler = AdaptiveClusterEnsembler(0.25, 0.05, 0.2)
+ensembler = AdaptiveClusterEnsembler(0.25, 0.05, 0.1, 0.2)
 
 seed(1)
 def dummy_data(partitions = 4, clusters_per_partition = 10, elements_in_data=1000) -> PartitionSet:
