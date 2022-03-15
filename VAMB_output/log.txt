@@ -1,17 +1,17 @@
 Starting Vamb version 3.0.3
-	Date and time is 2022-03-02 10:31:00.938538
+	Date and time is 2022-02-24 15:32:42.234729
 
 Loading TNF
 	Minimum sequence length: 100
-	Loading data from FASTA file Dataset/edges.fasta
+	Loading data from FASTA file ./Dataset/edges.fasta
 
 	Kept 171284029 bases in 1150 sequences
-	Processed TNF in 21.83 seconds
+	Processed TNF in 7.41 seconds
 
 Loading RPKM
 	Reference hash: 0d1360e5dded6238816b7daf27b5bfcf
-	Loading RPKM from JGI file Dataset/edges_depth.txt
-	Processed RPKM in 0.03 seconds
+	Loading RPKM from JGI file ./Dataset/edges_depth.txt
+	Processed RPKM in 0.01 seconds
 
 Creating and training VAE
 	Created VAE
@@ -537,7 +537,7 @@ Creating and training VAE
 	Epoch: 500	Loss: 0.060691	CE: 0.0086368	SSE: 8.818497	KLD: 86.8092	Batchsize: 1024
 
 	Encoding to latent representation
-	Trained VAE and encoded in 85.09 seconds
+	Trained VAE and encoded in 48.44 seconds
 
 Clustering
 	Windowsize: 200
@@ -548,6 +548,6 @@ Clustering
 	Separator: None
 
 	Clustered 1150 contigs in 422 bins
-	Clustered contigs in 2.75 seconds
+	Clustered contigs in 1.37 seconds
 
-Completed Vamb in 109.72 seconds
+Completed Vamb in 57.23 seconds
