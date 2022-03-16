@@ -132,6 +132,8 @@ class PartitionSet(List[Partition[T]]):
 
         counter = len(cluster_intersection) - ((len(cluster1) * len(cluster2)) / self.total_elements)
         divisor = sqrt(len(cluster1) * len(cluster2) * (1 - (len(cluster1) / self.total_elements)) * (1 - (len(cluster2) / self.total_elements)))
+        if divisor == 0:
+            return 0
         return counter / divisor
 
     def get_all_clusters(self) -> List[Cluster[T]]:

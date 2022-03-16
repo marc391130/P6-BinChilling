@@ -66,6 +66,19 @@ class AdaptiveClusterEnsembler(Ensembler):
         merged_clusters = None
         lambda_len = 0
 
+        def find_max_in_matrix(matrix: np.matrix, info_dct: Dict[Cluster, int]) -> Tuple[float, float]:
+            result = 0
+            lst = list(info_dct.items())
+            for i in range(len(matrix)):
+                for j in range(len(matrix)):
+                    if not self.__is_same_partition__(lst[i][1], lst[j][1]):
+                        if matrix[i][j] > result:
+                            result = matrix[i][j]
+                    
+            return (result, matrix.max())
+
+
+        print("Started 2.1")
         while True:
             merged_clusters = self.__merge_cls__(similarity_matrix, initial_clusters)
             lambda_len = len(merged_clusters)
@@ -74,16 +87,25 @@ class AdaptiveClusterEnsembler(Ensembler):
             else:
                 self.alpha1_thredshold += self.delta_alpha
 
+        print("Started 2.2")
+        i = 0
         while lambda_len >= target_clusters:
 
+            if i % 1 == 0:
+                print("Current Loop", i, self.alpha1_thredshold, lambda_len, target_clusters)
+            i += 1
+
             similarity_matrix = self.__similarity_matrix__(gamma, merged_clusters)
-            self.alpha1_thredshold = similarity_matrix.max()
+            self.alpha1_thredshold = find_max_in_matrix(similarity_matrix, merged_clusters)[1]
             if self.alpha1_thredshold < self.aplha1_min:
                 break
             else:
-                merged_clusters = self.__merge_cls__(similarity_matrix, merged_clusters)
+                merged_clusters = self.__merge_cls__(similarity_matrix, merged_clusters, True)
                 lambda_len = len(merged_clusters)
+            
 
+
+        print("Started 2.3")
         certain_clusters = self.__find_all_clusters_with_atleast_one_certain_cluster__(merged_clusters)
 
         candidate_clusters = []
@@ -140,33 +162,50 @@ class AdaptiveClusterEnsembler(Ensembler):
             max_value = max(key.calc_membership(item), max_value)
 
         if max_value == 0:
-            raise Exception(f"The item {str(item)} does not exist in the dataset")
+            return 0
+            #raise Exception(f"The item {str(item)} does not exist in the dataset")
 
         return cluster.calc_membership(item) / max_value
 
     def __similarity_matrix__(self, gamma: PartitionSet, cluster_dct: Dict[Cluster, int]) -> np.matrix:
         matrix = np.empty_like(0, shape = (len(cluster_dct), len(cluster_dct))).astype(np.float32)
         matrix.fill(0)
+        lst_data = list(cluster_dct.items())
         done_set = set()
-        i = 0
 
-        for cluster1, partition1_idx in cluster_dct.items():
-            j = 0
-
-            for cluster2, partition2_idx in cluster_dct.items():
+        for i in range(len(lst_data)):
+            for j in range(len(lst_data)):
                 # Also catches if cluster1 == cluster 2, as they are in same partition
-                if self.__is_same_partition__(partition1_idx, partition2_idx) or i == j:
+                if self.__is_same_partition__(lst_data[i][1], lst_data[j][1]) or i == j:
                     continue
 
-                if cluster2 in done_set:
+                if lst_data[j][0] in done_set:
                     continue
                 
-                similarity = gamma.__similarity_measure_cluster__(cluster1, cluster2)
+                similarity = gamma.__similarity_measure_cluster__(lst_data[i][0], lst_data[j][0])
                 matrix[i,j] = similarity
                 matrix[j,i] = similarity
 
-                j += 1
-            i += 1
+        # for cluster1, partition1_idx in cluster_dct.items():
+        #     j = 0
+
+        #     for cluster2, partition2_idx in cluster_dct.items():
+        #         # Also catches if cluster1 == cluster 2, as they are in same partition
+        #         if self.__is_same_partition__(partition1_idx, partition2_idx) or i == j:
+        #             continue
+
+        #         if cluster2 in done_set:
+        #             continue
+                
+        #         similarity = gamma.__similarity_measure_cluster__(cluster1, cluster2)
+        #         matrix[i,j] = similarity
+        #         matrix[j,i] = similarity
+
+        #         # if (similarity >= matrix.max()):
+        #         #     print(matrix.max(), i, j)
+
+        #         j += 1
+        #     i += 1
 
         return matrix
 
@@ -204,9 +243,6 @@ class AdaptiveClusterEnsembler(Ensembler):
         else:
             return self.__merge_similar_clsuters__(gamma, result_dct, done_dct)
 
-    def __membership_similarity__(self, bit_matrix: np.matrix, item, cluster: Cluster, merged_lst: List[Cluster]) -> None:
-        pass
-
 
     def ensemble(self, gamma: PartitionSet[Contig]) -> None:
         data = self.bit_matrix_transform(gamma)
@@ -214,7 +250,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         candidate_clusters, non_candidate_clusters = self.__stage2__(gamma, data)
         print(len(candidate_clusters), len(non_candidate_clusters), self.alpha2, gamma.maximal_partition_clusters())
 
-    def __merge_cls__(self, similarity_matrix: np.matrix, dct_info: Dict[Cluster, int]) -> Dict[Cluster, int]:
+    def __merge_cls__(self, similarity_matrix: np.matrix, dct_info: Dict[Cluster, int], debug:bool = False) -> Dict[Cluster, int]:
         result_dct = {}
         done_set = set()
         list_info = list(dct_info.items())

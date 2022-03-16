@@ -45,6 +45,12 @@ class ContigReader:
                 else:
                     temp_string = temp_string + lines[i]
         return result
+
+    def read_contig_names(self, file_path: str) -> List[str]:
+        with open(file_path, 'r') as file:
+            return [line.split('>')[1].strip('\n') for line in file.readlines() if line.startswith('>')]
+
+
     
     def __assert_contig_length_equal__(self, depth_len:int, contig:str, name:str) -> None:
 
