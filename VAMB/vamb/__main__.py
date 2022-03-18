@@ -10,6 +10,7 @@ import torch
 import datetime
 import time
 import shutil
+import copy
 
 DEFAULT_PROCESSES = min(os.cpu_count(), 8)
 
@@ -181,7 +182,8 @@ def cluster(outdir, latent, contignames, windowsize, minsuccesses, maxclusters,
     seed = randomseed
     
     for i in range(result_amount):
-        it = vamb.cluster.cluster(latent, randomseed = seed, labels=contignames, destroy=True, windowsize=windowsize,
+        clustertimestart = time.time()
+        it = vamb.cluster.cluster(copy.deepcopy(latent), randomseed = seed, labels=contignames, destroy=True, windowsize=windowsize,
                                 normalized=False, minsuccesses=minsuccesses, cuda=cuda)
 
         renamed = ((str(i+1), c) for (i, (n,c)) in enumerate(it))
@@ -196,10 +198,11 @@ def cluster(outdir, latent, contignames, windowsize, minsuccesses, maxclusters,
                                             min_size=minclustersize, rename=False)
         seed += 1
     
-    clusternumber, ncontigs = _
+        clusternumber, ncontigs = _ 
 
-    print('', file=logfile)
-    log('Clustered {} contigs in {} bins'.format(ncontigs, clusternumber), logfile, 1)
+        print('', file=logfile)
+        clustserelapsed = round(time.time() - clustertimestart, 2)
+        log('Clustered {} contigs in {} bins as run nr. {} in {} seconds.'.format(ncontigs, clusternumber, i, clustserelapsed), logfile, 1)
 
     elapsed = round(time.time() - begintime, 2)
     log('Clustered contigs in {} seconds'.format(elapsed), logfile, 1)

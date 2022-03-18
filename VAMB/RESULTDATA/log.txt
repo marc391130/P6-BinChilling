@@ -1,12 +1,12 @@
 Starting Vamb version 3.0.3
-	Date and time is 2022-03-15 09:58:26.174234
+	Date and time is 2022-03-18 09:43:49.972759
 
 Loading TNF
 	Minimum sequence length: 100
 	Loading data from FASTA file ../../Dataset/edges.fasta
 
 	Kept 171284029 bases in 1150 sequences
-	Processed TNF in 8.03 seconds
+	Processed TNF in 17.92 seconds
 
 Loading RPKM
 	Reference hash: 0d1360e5dded6238816b7daf27b5bfcf
@@ -537,7 +537,7 @@ Creating and training VAE
 	Epoch: 500	Loss: 0.060195	CE: 0.0082908	SSE: 8.763419	KLD: 86.4571	Batchsize: 1024
 
 	Encoding to latent representation
-	Trained VAE and encoded in 52.81 seconds
+	Trained VAE and encoded in 72.72 seconds
 
 Clustering
 	Windowsize: 200
@@ -547,7 +547,55 @@ Clustering
 	Use CUDA for clustering: False
 	Separator: None
 
-	Clustered 1150 contigs in 1 bins
-	Clustered contigs in 16.19 seconds
+	Clustered 1150 contigs in 386 bins as run nr. 0 in 1.85 seconds.
 
-Completed Vamb in 77.04 seconds
+	Clustered 1150 contigs in 365 bins as run nr. 1 in 1.9 seconds.
+
+	Clustered 1150 contigs in 398 bins as run nr. 2 in 2.28 seconds.
+
+	Clustered 1150 contigs in 393 bins as run nr. 3 in 2.21 seconds.
+
+	Clustered 1150 contigs in 359 bins as run nr. 4 in 2.07 seconds.
+
+	Clustered 1150 contigs in 388 bins as run nr. 5 in 1.98 seconds.
+
+	Clustered 1150 contigs in 367 bins as run nr. 6 in 1.76 seconds.
+
+	Clustered 1150 contigs in 379 bins as run nr. 7 in 2.19 seconds.
+
+	Clustered 1150 contigs in 375 bins as run nr. 8 in 1.73 seconds.
+
+	Clustered 1150 contigs in 393 bins as run nr. 9 in 2.04 seconds.
+
+	Clustered 1150 contigs in 390 bins as run nr. 10 in 2.1 seconds.
+
+	Clustered 1150 contigs in 389 bins as run nr. 11 in 1.63 seconds.
+
+	Clustered 1150 contigs in 386 bins as run nr. 12 in 2.21 seconds.
+
+	Clustered 1150 contigs in 379 bins as run nr. 13 in 1.6 seconds.
+
+	Clustered 1150 contigs in 379 bins as run nr. 14 in 2.05 seconds.
+
+	Clustered 1150 contigs in 366 bins as run nr. 15 in 2.02 seconds.
+
+	Clustered 1150 contigs in 394 bins as run nr. 16 in 1.93 seconds.
+
+	Clustered 1150 contigs in 379 bins as run nr. 17 in 1.96 seconds.
+
+	Clustered 1150 contigs in 365 bins as run nr. 18 in 1.9 seconds.
+
+	Clustered 1150 contigs in 365 bins as run nr. 19 in 1.89 seconds.
+
+	Clustered 1150 contigs in 346 bins as run nr. 20 in 1.86 seconds.
+
+	Clustered 1150 contigs in 380 bins as run nr. 21 in 2.13 seconds.
+
+	Clustered 1150 contigs in 385 bins as run nr. 22 in 2.16 seconds.
+
+	Clustered 1150 contigs in 388 bins as run nr. 23 in 1.97 seconds.
+
+	Clustered 1150 contigs in 373 bins as run nr. 24 in 2.02 seconds.
+	Clustered contigs in 49.44 seconds
+
+Completed Vamb in 140.09 seconds
