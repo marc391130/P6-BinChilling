@@ -1,5 +1,5 @@
-from os import listdir
-from os.path import join
+from os import listdir, getcwd
+from os.path import join, exists
 import string
 from typing import Callable, List, Dict
 import Constants as CONSTANT
@@ -70,6 +70,8 @@ class fasta_writer:
         
         
     def work(self, showClusters: bool = True):
+        
+        print(join(getcwd(), self.output_path))
         clusters = self.read_clusters()
         contigs = self.read_fasta()
         result = {}
@@ -81,8 +83,8 @@ class fasta_writer:
         self.write_fasta(result)
         if showClusters:
             print(">Clusters:")
-            print(clusters)
-                
+            for x in clusters.items():
+                print(x)                
                 
 if __name__ == '__main__':
     print(sys.argv)
