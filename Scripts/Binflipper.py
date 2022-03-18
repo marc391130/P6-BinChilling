@@ -35,5 +35,5 @@ class bin_flipper:
 if __name__ == '__main__':
     print(sys.argv[1], sys.argv[2])
     flipper = bin_flipper(sys.argv[1], sys.argv[2], \
-        lambda x: x.startswith(sys.argv[3]) , lambda x,y : y.replace('.tsv', '') + ':' + x)
+        lambda x: x.startswith('cluster') , lambda x,y : y.replace('.tsv', '') + ':' + x)
     flipper.work()
