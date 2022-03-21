@@ -60,7 +60,6 @@ class bin_writer:
     #key of values is binned contigname and value is dna string
     def write_fasta(self, outputpath: str, values: Dict[str, str]):
         n = 80 #how many chars per line
-        print('writing new fasta file...')
         outputpath = outputpath if outputpath.endswith(".fasta") else outputpath + ".fasta"
         
         with open(outputpath, 'x') as f:
