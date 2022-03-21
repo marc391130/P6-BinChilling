@@ -1,0 +1,6 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=1195;seqhdr="edge_977"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="32|Orientia_tsutsugamushi_Boryong|B|30.5|11|1";gc_cont=30.50;transl_table=11;uses_sd=1
+edge_977	Prodigal_v2.6.3	CDS	599	802	9.3	-	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.328;conf=91.35;score=10.25;cscore=5.31;sscore=4.95;rscore=-1.36;uscore=3.09;tscore=2.22;
+edge_977	Prodigal_v2.6.3	CDS	828	938	0.3	-	0	ID=1_2;partial=00;start_type=GTG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.198;conf=55.96;score=1.04;cscore=0.10;sscore=0.94;rscore=2.38;uscore=0.53;tscore=-2.72;
+edge_977	Prodigal_v2.6.3	CDS	987	1193	7.0	-	0	ID=1_3;partial=01;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.353;conf=83.36;score=7.01;cscore=3.79;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;

@@ -1,0 +1,21 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=15138;seqhdr="edge_529"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="47|Xenorhabdus_nematophila_ATCC_19061|B|44.1|11|1";gc_cont=44.20;transl_table=11;uses_sd=1
+edge_529	Prodigal_v2.6.3	CDS	163	1209	63.8	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.494;conf=100.00;score=63.81;cscore=48.67;sscore=15.13;rscore=11.01;uscore=0.14;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	1485	2819	109.7	+	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.433;conf=100.00;score=109.03;cscore=93.25;sscore=15.78;rscore=11.01;uscore=1.44;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	2803	3408	19.0	+	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=3-4bp;gc_cont=0.429;conf=99.03;score=20.13;cscore=23.13;sscore=-3.00;rscore=-6.19;uscore=-1.96;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	3510	4604	53.5	-	0	ID=1_4;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.387;conf=100.00;score=54.40;cscore=54.85;sscore=-0.45;rscore=-7.00;uscore=1.64;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	4637	5641	72.9	-	0	ID=1_5;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.385;conf=100.00;score=72.24;cscore=57.89;sscore=14.36;rscore=9.79;uscore=1.23;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	6280	7134	83.8	-	0	ID=1_6;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.510;conf=100.00;score=83.82;cscore=76.89;sscore=6.93;rscore=3.02;uscore=-0.07;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	7232	10117	243.5	-	0	ID=1_7;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.597;conf=99.99;score=247.01;cscore=230.72;sscore=16.29;rscore=11.01;uscore=-2.25;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	10114	10386	17.7	-	0	ID=1_8;partial=00;start_type=ATG;rbs_motif=AGxAGG/AGGxGG;rbs_spacer=5-10bp;gc_cont=0.560;conf=99.04;score=20.17;cscore=11.24;sscore=8.92;rscore=3.64;uscore=-1.15;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	10383	10664	22.7	-	0	ID=1_9;partial=00;start_type=ATG;rbs_motif=AGxAGG/AGGxGG;rbs_spacer=5-10bp;gc_cont=0.592;conf=99.79;score=26.90;cscore=17.98;sscore=8.92;rscore=3.64;uscore=-2.93;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	10661	10819	15.8	-	0	ID=1_10;partial=00;start_type=ATG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.623;conf=97.04;score=15.18;cscore=5.16;sscore=10.02;rscore=9.22;uscore=-1.03;tscore=2.49;
+edge_529	Prodigal_v2.6.3	CDS	11196	11501	18.3	-	0	ID=1_11;partial=00;start_type=GTG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.578;conf=99.54;score=23.38;cscore=13.31;sscore=10.07;rscore=14.77;uscore=-3.77;tscore=-5.99;
+edge_529	Prodigal_v2.6.3	CDS	11498	12106	38.0	-	0	ID=1_12;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.558;conf=100.00;score=44.20;cscore=27.91;sscore=16.29;rscore=11.01;uscore=-4.87;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	12103	12372	29.7	-	0	ID=1_13;partial=00;start_type=ATG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.567;conf=99.96;score=34.15;cscore=14.09;sscore=20.06;rscore=14.77;uscore=-3.15;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	12369	12617	15.7	-	0	ID=1_14;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.606;conf=97.39;score=15.75;cscore=1.06;sscore=14.69;rscore=9.64;uscore=1.13;tscore=3.93;
+edge_529	Prodigal_v2.6.3	CDS	12715	13077	17.0	-	0	ID=1_15;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.534;conf=97.74;score=16.39;cscore=2.81;sscore=13.58;rscore=11.01;uscore=-0.76;tscore=3.99;
+edge_529	Prodigal_v2.6.3	CDS	13302	13829	38.3	-	0	ID=1_16;partial=00;start_type=TTG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.424;conf=99.99;score=38.32;cscore=39.70;sscore=-1.38;rscore=9.79;uscore=1.30;tscore=-12.48;
+edge_529	Prodigal_v2.6.3	CDS	13950	14807	51.3	-	0	ID=1_17;partial=00;start_type=TTG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.499;conf=100.00;score=52.57;cscore=53.90;sscore=-1.33;rscore=11.01;uscore=-1.11;tscore=-12.48;
+edge_529	Prodigal_v2.6.3	CDS	14800	15138	0.4	-	0	ID=1_18;partial=01;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.534;conf=52.41;score=0.42;cscore=-2.30;sscore=2.72;rscore=0.00;uscore=0.00;tscore=3.22;

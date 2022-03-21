@@ -1,0 +1,18 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+edge_665_56          -            172 B5                   PF03484.10    70   1.4e-06   20.5   0.1   1   2   7.5e-05    0.0052    9.1   0.0     7    40     2    36     1    50 0.83 # 44328 # 44843 # -1 # ID=1_56;partial=00;start_type=GTG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.349
+edge_665_56          -            172 B5                   PF03484.10    70   1.4e-06   20.5   0.1   2   2   5.7e-05    0.0039    9.5   0.0    16    69    87   154    75   155 0.73 # 44328 # 44843 # -1 # ID=1_56;partial=00;start_type=GTG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.349
+edge_665_69          -            167 Ribosomal_S2         PF00318.15   211     0.054    5.0   9.6   1   2   0.00024     0.016    6.7   0.5   104   141    42    79    34    84 0.89 # 54866 # 55366 # 1 # ID=1_69;partial=01;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.353
+edge_665_69          -            167 Ribosomal_S2         PF00318.15   211     0.054    5.0   9.6   2   2    0.0049      0.34    2.4   2.9    99   138   124   159    86   166 0.65 # 54866 # 55366 # 1 # ID=1_69;partial=01;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.353
+edge_665_22          -            116 SSB                  PF00436.20   104   1.5e-12   39.8   0.1   1   1   2.6e-14   1.8e-12   39.5   0.1     5   102     7   104     3   105 0.91 # 18607 # 18954 # 1 # ID=1_22;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.319
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/67c33bc5-9dc3-4296-8fa0-2c175b323db5
+# Target file:     output/bins/bin_65/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_65/hmmer.analyze.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/67c33bc5-9dc3-4296-8fa0-2c175b323db5 output/bins/bin_65/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 13:17:59 2022
+# [ok]

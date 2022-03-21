@@ -1,0 +1,6 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=1995;seqhdr="edge_717"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="6|Anaplasma_phagocytophilum_HZ|B|41.6|11|1";gc_cont=41.60;transl_table=11;uses_sd=1
+edge_717	Prodigal_v2.6.3	CDS	22	399	43.3	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.429;conf=100.00;score=43.33;cscore=36.15;sscore=7.18;rscore=7.65;uscore=-3.24;tscore=2.78;
+edge_717	Prodigal_v2.6.3	CDS	424	1125	47.1	+	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.407;conf=100.00;score=48.14;cscore=47.22;sscore=0.92;rscore=-2.53;uscore=-0.34;tscore=2.78;
+edge_717	Prodigal_v2.6.3	CDS	1143	1739	48.0	+	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.335;conf=100.00;score=49.05;cscore=36.48;sscore=12.57;rscore=7.65;uscore=1.06;tscore=2.78;

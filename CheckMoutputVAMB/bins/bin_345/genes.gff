@@ -1,0 +1,6 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=1182;seqhdr="edge_714"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="5|Anaplasma_marginale_Maries|B|49.8|11|1";gc_cont=49.80;transl_table=11;uses_sd=1
+edge_714	Prodigal_v2.6.3	CDS	3	158	2.5	+	0	ID=1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.519;conf=64.03;score=2.51;cscore=-0.71;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;
+edge_714	Prodigal_v2.6.3	CDS	125	1006	64.1	-	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.483;conf=100.00;score=64.09;cscore=52.00;sscore=12.09;rscore=6.85;uscore=1.56;tscore=3.68;
+edge_714	Prodigal_v2.6.3	CDS	1082	1180	3.5	-	0	ID=1_3;partial=01;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.455;conf=69.26;score=3.53;cscore=0.31;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;

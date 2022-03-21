@@ -1,0 +1,14 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+edge_1026_28         -            225 Ribosomal_S5         PF00333.15    67    0.0013   12.6   0.2   1   1     1e-05    0.0024   11.8   0.2    28    60   167   199   156   206 0.80 # 30496 # 31170 # -1 # ID=5_28;partial=00;start_type=ATG;rbs_motif=4Base/6BMM;rbs_spacer=13-15bp;gc_cont=0.705
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/afc3a023-4bee-4d78-9ec4-cb0a161109d8
+# Target file:     output/bins/bin_292/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_292/hmmer.tree.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/afc3a023-4bee-4d78-9ec4-cb0a161109d8 output/bins/bin_292/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 12:23:12 2022
+# [ok]

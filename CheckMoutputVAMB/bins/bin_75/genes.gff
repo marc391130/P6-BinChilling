@@ -1,0 +1,6 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=1488;seqhdr="edge_874"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="15|Chlorobium_phaeobacteroides_BS1|B|48.9|11|0";gc_cont=48.90;transl_table=11;uses_sd=0
+edge_874	Prodigal_v2.6.3	CDS	503	628	7.5	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=AAA;rbs_spacer=15bp;gc_cont=0.421;conf=84.83;score=7.49;cscore=3.87;sscore=3.62;rscore=1.83;uscore=0.17;tscore=1.62;
+edge_874	Prodigal_v2.6.3	CDS	679	981	5.2	+	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.568;conf=79.70;score=5.95;cscore=3.39;sscore=2.56;rscore=-0.28;uscore=-1.19;tscore=3.30;
+edge_874	Prodigal_v2.6.3	CDS	1039	1488	26.3	+	0	ID=1_3;partial=01;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.527;conf=99.79;score=26.91;cscore=36.08;sscore=-9.17;rscore=-0.28;uscore=-4.01;tscore=-5.53;

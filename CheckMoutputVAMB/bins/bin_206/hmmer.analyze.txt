@@ -1,0 +1,13 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/b7d5e03a-c086-41db-bbb9-6db651516d66
+# Target file:     output/bins/bin_206/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_206/hmmer.analyze.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/b7d5e03a-c086-41db-bbb9-6db651516d66 output/bins/bin_206/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 12:53:08 2022
+# [ok]

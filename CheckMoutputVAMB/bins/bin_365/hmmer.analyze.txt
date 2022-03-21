@@ -1,0 +1,15 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+edge_385_22          -            572 RNA_pol_Rpb8         PF03870.10   138   0.00014   13.2   4.7   1   2   0.00064     0.017    6.4   0.1    16    77   297   359   291   374 0.75 # 18814 # 20529 # -1 # ID=1_22;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.319
+edge_385_22          -            572 RNA_pol_Rpb8         PF03870.10   138   0.00014   13.2   4.7   2   2   0.00022    0.0061    7.8   0.2    65   130   473   542   457   546 0.76 # 18814 # 20529 # -1 # ID=1_22;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.319
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/ee33d2f5-0ffc-4dcd-8e9b-5c6030f83593
+# Target file:     output/bins/bin_365/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_365/hmmer.analyze.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/ee33d2f5-0ffc-4dcd-8e9b-5c6030f83593 output/bins/bin_365/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 13:11:38 2022
+# [ok]

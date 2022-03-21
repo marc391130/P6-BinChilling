@@ -1,0 +1,18 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=17416;seqhdr="edge_377"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="11|Candidatus_Amoebophilus_asiaticus_5a2|B|35.0|11|0";gc_cont=35.00;transl_table=11;uses_sd=0
+edge_377	Prodigal_v2.6.3	CDS	1	69	5.3	+	0	ID=1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.522;conf=77.34;score=5.34;cscore=2.12;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;
+edge_377	Prodigal_v2.6.3	CDS	424	1005	51.9	+	0	ID=1_2;partial=00;start_type=GTG;rbs_motif=AATAA;rbs_spacer=9bp;gc_cont=0.366;conf=100.00;score=51.27;cscore=53.42;sscore=-2.15;rscore=5.00;uscore=-1.54;tscore=-4.96;
+edge_377	Prodigal_v2.6.3	CDS	1040	1738	94.3	+	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=AATAA;rbs_spacer=10bp;gc_cont=0.386;conf=100.00;score=95.18;cscore=83.43;sscore=11.76;rscore=5.00;uscore=2.39;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	1765	3183	58.9	+	0	ID=1_4;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.396;conf=100.00;score=59.91;cscore=57.00;sscore=2.91;rscore=-4.87;uscore=3.33;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	3207	4238	127.3	+	0	ID=1_5;partial=00;start_type=ATG;rbs_motif=TAA;rbs_spacer=12bp;gc_cont=0.404;conf=100.00;score=128.37;cscore=114.60;sscore=13.77;rscore=6.07;uscore=3.21;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	4567	5514	65.5	+	0	ID=1_6;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.323;conf=100.00;score=64.83;cscore=66.52;sscore=-1.69;rscore=-4.87;uscore=0.36;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	5738	6193	1.0	-	0	ID=1_7;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.518;conf=52.16;score=0.38;cscore=6.55;sscore=-6.17;rscore=-4.87;uscore=-4.12;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	7383	8183	39.8	+	0	ID=1_8;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.387;conf=99.99;score=39.76;cscore=45.94;sscore=-6.17;rscore=-4.87;uscore=-4.77;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	8937	10574	142.0	+	0	ID=1_9;partial=00;start_type=ATG;rbs_motif=AATAA;rbs_spacer=13bp;gc_cont=0.351;conf=100.00;score=141.34;cscore=133.63;sscore=7.71;rscore=6.54;uscore=-1.64;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	10571	11326	77.8	+	0	ID=1_10;partial=00;start_type=ATG;rbs_motif=TAA;rbs_spacer=3bp;gc_cont=0.366;conf=100.00;score=80.52;cscore=73.91;sscore=6.61;rscore=1.85;uscore=-1.45;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	11473	12579	39.5	-	0	ID=1_11;partial=00;start_type=ATG;rbs_motif=TAA;rbs_spacer=11bp;gc_cont=0.557;conf=99.99;score=38.83;cscore=34.14;sscore=4.69;rscore=6.07;uscore=-4.20;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	13908	14804	80.9	-	0	ID=1_12;partial=00;start_type=ATG;rbs_motif=TAA;rbs_spacer=3bp;gc_cont=0.340;conf=100.00;score=83.57;cscore=76.96;sscore=6.61;rscore=1.85;uscore=-1.35;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	14801	15883	89.4	-	0	ID=1_13;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.336;conf=100.00;score=90.69;cscore=93.33;sscore=-2.64;rscore=-4.87;uscore=-2.49;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	15876	17078	135.2	-	0	ID=1_14;partial=00;start_type=ATG;rbs_motif=TAA;rbs_spacer=3bp;gc_cont=0.319;conf=100.00;score=135.16;cscore=130.02;sscore=5.15;rscore=1.85;uscore=-0.17;tscore=3.47;
+edge_377	Prodigal_v2.6.3	CDS	17050	17253	0.4	-	0	ID=1_15;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.397;conf=52.49;score=0.43;cscore=10.07;sscore=-9.64;rscore=-6.05;uscore=-6.37;tscore=2.79;

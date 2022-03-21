@@ -1,0 +1,7 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=3528;seqhdr="edge_796"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="29|Methylacidiphilum_infernorum_V4|B|45.5|11|0";gc_cont=45.50;transl_table=11;uses_sd=0
+edge_796	Prodigal_v2.6.3	CDS	880	1194	2.9	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=AATAA;rbs_spacer=12bp;gc_cont=0.425;conf=66.06;score=2.90;cscore=-9.19;sscore=12.08;rscore=5.42;uscore=2.92;tscore=4.25;
+edge_796	Prodigal_v2.6.3	CDS	1224	2216	40.4	+	0	ID=1_2;partial=00;start_type=TTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.427;conf=99.99;score=41.41;cscore=54.74;sscore=-13.34;rscore=-0.40;uscore=1.85;tscore=-15.73;
+edge_796	Prodigal_v2.6.3	CDS	2429	3079	55.0	+	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.490;conf=100.00;score=54.36;cscore=54.60;sscore=-0.24;rscore=-0.40;uscore=-3.43;tscore=4.25;
+edge_796	Prodigal_v2.6.3	CDS	3269	3526	8.9	-	0	ID=1_4;partial=01;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.477;conf=88.60;score=8.92;cscore=5.70;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;

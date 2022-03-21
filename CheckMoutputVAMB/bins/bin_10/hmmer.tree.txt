@@ -1,0 +1,18 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+edge_1029_15         -             90 Ribosomal_S15        PF00312.17    83   2.4e-29   97.9   0.2   1   1   1.5e-32   2.6e-29   97.7   0.2     2    83     7    88     6    88 0.97 # 11059 # 11328 # 1 # ID=9_15;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.533
+edge_957_88          -            258 Ribosomal_S2         PF00318.15   211   2.9e-88  291.5   0.0   1   1   1.9e-91   3.3e-88  291.3   0.0     1   209    11   224    11   226 0.98 # 72814 # 73587 # -1 # ID=26_88;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.610
+edge_734_52          -           1023 Ribosomal_S9         PF00380.14   121   0.00052   17.2   0.4   1   1     9e-07    0.0016   15.7   0.4    38   116   171   292   137   295 0.81 # 41981 # 45049 # -1 # ID=11_52;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.629
+edge_1029_14         -            310 TruB_N               PF01509.13   149   1.7e-51  171.2   0.0   1   1   1.2e-54   2.1e-51  170.9   0.0     1   149    34   181    34   181 0.98 # 9978 # 10907 # 1 # ID=9_14;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.635
+edge_1019_30         -            462 TIGR00422            TIGR00422    863   2.3e-05   19.2   0.0   1   1   2.2e-08   3.7e-05   18.5   0.0   482   579   233   336   212   345 0.84 # 23875 # 25260 # 1 # ID=8_30;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.623
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/1314472e-a109-4c44-8a82-83f4db3c9015
+# Target file:     output/bins/bin_10/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_10/hmmer.tree.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/1314472e-a109-4c44-8a82-83f4db3c9015 output/bins/bin_10/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 12:10:46 2022
+# [ok]

@@ -1,0 +1,7 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=4215;seqhdr="edge_904"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="48|Xylella_fastidiosa_Temecula1|B|51.8|11|1";gc_cont=51.80;transl_table=11;uses_sd=1
+edge_904	Prodigal_v2.6.3	CDS	1	267	9.0	-	0	ID=1_1;partial=10;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.461;conf=87.13;score=8.32;cscore=8.47;sscore=-0.15;rscore=-2.96;uscore=-1.31;tscore=4.77;
+edge_904	Prodigal_v2.6.3	CDS	1183	2208	69.9	-	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=11-12bp;gc_cont=0.493;conf=100.00;score=71.19;cscore=63.20;sscore=7.98;rscore=1.65;uscore=0.27;tscore=4.77;
+edge_904	Prodigal_v2.6.3	CDS	2205	3167	68.9	-	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.514;conf=100.00;score=70.16;cscore=60.95;sscore=9.20;rscore=2.00;uscore=1.13;tscore=4.77;
+edge_904	Prodigal_v2.6.3	CDS	3164	4087	66.1	-	0	ID=1_4;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.527;conf=100.00;score=66.10;cscore=51.58;sscore=14.51;rscore=9.16;uscore=0.58;tscore=4.77;

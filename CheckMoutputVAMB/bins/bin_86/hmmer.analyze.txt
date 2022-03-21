@@ -1,0 +1,28 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+edge_1028_53         -            386 TIGR00468            TIGR00468    324   2.3e-06   20.9   0.3   1   2   9.3e-08   2.3e-05   17.6   0.0   181   209   130   158   121   191 0.85 # 37544 # 38701 # 1 # ID=1_53;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.652
+edge_1028_53         -            386 TIGR00468            TIGR00468    324   2.3e-06   20.9   0.3   2   2      0.01       2.4    1.1   0.1   290   303   355   368   346   375 0.85 # 37544 # 38701 # 1 # ID=1_53;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.652
+edge_1023_8          -            418 TOBE_2               PF08402.5     75    0.0008   13.6   0.1   1   1   7.7e-06    0.0019   12.4   0.1    20    44    69    93    57   106 0.87 # 4028 # 5281 # 1 # ID=4_8;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.612
+edge_1023_13         -            451 RNA_pol_Rpb2_2       PF04561.9    190     1e-27   91.0   0.0   1   1   1.5e-29   3.8e-27   89.1   0.0     1   190   100   298   100   298 0.90 # 10206 # 11558 # 1 # ID=4_13;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.629
+edge_1023_17         -            698 RNA_pol_Rpb1_3       PF04983.13   158   2.8e-10   34.3   0.0   1   1   4.8e-12   5.9e-10   33.3   0.0     1    60   564   635   564   648 0.95 # 13637 # 15730 # 1 # ID=4_17;partial=00;start_type=GTG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.623
+edge_1023_18         -             36 RNA_pol_Rpb1_3       PF04983.13   158   3.4e-06   21.0   0.0   1   1   2.8e-08   3.4e-06   21.0   0.0   112   145     3    36     1    36 0.96 # 15673 # 15780 # 1 # ID=4_18;partial=01;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.593
+edge_1023_16         -            201 RNA_pol_Rpb2_7       PF04560.15    82   1.7e-33  109.0   0.0   1   1     1e-35   2.5e-33  108.4   0.0     1    80    85   159    85   161 0.98 # 12917 # 13519 # 1 # ID=4_16;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.638
+edge_1023_13         -            451 RNA_pol_Rpb2_3       PF04565.11    68   8.4e-31   99.8   0.0   1   1   5.8e-33   1.4e-30   99.1   0.0     1    68   357   426   357   426 0.99 # 10206 # 11558 # 1 # ID=4_13;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.629
+edge_1023_17         -            698 RNA_pol_Rpb1_2       PF00623.15   166     3e-54  177.6   0.0   1   1   2.3e-55   5.6e-53  173.4   0.0     1   165   419   560   419   561 0.95 # 13637 # 15730 # 1 # ID=4_17;partial=00;start_type=GTG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.623
+edge_1023_13         -            451 RNA_pol_Rpb2_1       PF04563.10   203   3.2e-30   98.7   0.0   1   1   2.8e-32   6.9e-30   97.6   0.0    17   203     4   353     1   353 0.95 # 10206 # 11558 # 1 # ID=4_13;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.629
+edge_1023_15         -            225 RNA_pol_Rpb2_6       PF00562.23   386   1.9e-60  198.7   0.0   1   1   2.9e-62   2.3e-60  198.4   0.0   170   299    53   185    36   211 0.95 # 12246 # 12920 # 1 # ID=4_15;partial=00;start_type=ATG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.637
+edge_1023_16         -            201 RNA_pol_Rpb2_6       PF00562.23   386   1.7e-28   93.6   0.0   1   1   2.6e-30   2.1e-28   93.3   0.0   328   386    25    83     2    83 0.90 # 12917 # 13519 # 1 # ID=4_16;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.638
+edge_1023_14         -             83 RNA_pol_Rpb2_6       PF00562.23   386   3.2e-09   30.1   0.0   1   1   4.6e-11   3.7e-09   29.9   0.0     2    63    13    72    12    78 0.91 # 11859 # 12107 # 1 # ID=4_14;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.659
+edge_1023_17         -            698 RNA_pol_Rpb1_1       PF04997.7    337   3.6e-94  309.9   0.0   1   1   8.3e-95     2e-92  304.1   0.0     3   337     6   417     4   417 0.85 # 13637 # 15730 # 1 # ID=4_17;partial=00;start_type=GTG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.623
+edge_1028_2          -            450 Ribosomal_S5         PF00333.15    67    0.0025   11.7   0.0   1   1     2e-05    0.0049   10.8   0.0    32    58   257   283   249   290 0.88 # 1462 # 2811 # 1 # ID=1_2;partial=00;start_type=GTG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.634
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/e511ffc1-01cc-4c59-acdf-7ee3862ca0ec
+# Target file:     output/bins/bin_86/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_86/hmmer.analyze.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/e511ffc1-01cc-4c59-acdf-7ee3862ca0ec output/bins/bin_86/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 13:20:37 2022
+# [ok]

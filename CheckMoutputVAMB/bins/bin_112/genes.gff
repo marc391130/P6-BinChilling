@@ -1,0 +1,11 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=6398;seqhdr="edge_286"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="39|Rickettsia_conorii_Malish_7|B|32.4|11|1";gc_cont=32.40;transl_table=11;uses_sd=1
+edge_286	Prodigal_v2.6.3	CDS	371	1384	90.7	-	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.343;conf=100.00;score=90.65;cscore=87.18;sscore=3.47;rscore=-0.99;uscore=1.56;tscore=2.90;
+edge_286	Prodigal_v2.6.3	CDS	1455	2735	168.2	-	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.348;conf=100.00;score=167.58;cscore=158.79;sscore=8.79;rscore=5.66;uscore=0.89;tscore=2.90;
+edge_286	Prodigal_v2.6.3	CDS	3038	3235	5.3	-	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.384;conf=81.64;score=6.49;cscore=3.31;sscore=3.18;rscore=2.12;uscore=-2.42;tscore=2.26;
+edge_286	Prodigal_v2.6.3	CDS	3225	3659	20.1	-	0	ID=1_4;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.352;conf=99.02;score=20.07;cscore=17.43;sscore=2.64;rscore=-0.99;uscore=0.73;tscore=2.90;
+edge_286	Prodigal_v2.6.3	CDS	3836	4360	8.5	-	0	ID=1_5;partial=00;start_type=GTG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.373;conf=85.89;score=7.86;cscore=10.62;sscore=-2.76;rscore=2.72;uscore=-0.34;tscore=-4.48;
+edge_286	Prodigal_v2.6.3	CDS	4541	4846	21.6	-	0	ID=1_6;partial=00;start_type=TTG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.317;conf=99.31;score=21.60;cscore=25.51;sscore=-3.91;rscore=7.43;uscore=-1.73;tscore=-9.61;
+edge_286	Prodigal_v2.6.3	CDS	4970	5419	58.8	-	0	ID=1_7;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.353;conf=100.00;score=58.82;cscore=54.04;sscore=4.77;rscore=-0.99;uscore=2.86;tscore=2.90;
+edge_286	Prodigal_v2.6.3	CDS	5376	6398	145.6	-	0	ID=1_8;partial=01;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.334;conf=100.00;score=145.61;cscore=142.40;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;

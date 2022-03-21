@@ -1,0 +1,7 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=6286;seqhdr="edge_132"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="39|Rickettsia_conorii_Malish_7|B|32.4|11|1";gc_cont=32.40;transl_table=11;uses_sd=1
+edge_132	Prodigal_v2.6.3	CDS	1	468	70.2	+	0	ID=1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.453;conf=100.00;score=70.21;cscore=66.99;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;
+edge_132	Prodigal_v2.6.3	CDS	840	2234	233.3	+	0	ID=1_2;partial=00;start_type=GTG;rbs_motif=AGxAG;rbs_spacer=5-10bp;gc_cont=0.386;conf=99.99;score=232.63;cscore=236.39;sscore=-3.76;rscore=0.43;uscore=0.95;tscore=-4.48;
+edge_132	Prodigal_v2.6.3	CDS	2234	2854	37.2	+	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.406;conf=100.00;score=46.49;cscore=42.31;sscore=4.18;rscore=-0.99;uscore=-6.98;tscore=2.90;
+edge_132	Prodigal_v2.6.3	CDS	4009	6285	336.0	+	0	ID=1_4;partial=01;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.385;conf=99.99;score=335.37;cscore=328.54;sscore=6.83;rscore=5.66;uscore=-1.07;tscore=2.90;

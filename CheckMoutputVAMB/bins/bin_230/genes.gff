@@ -1,0 +1,4 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=784;seqhdr="edge_841"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="19|Erythrobacter_litoralis_HTCC2594|B|63.1|11|1";gc_cont=63.10;transl_table=11;uses_sd=1
+edge_841	Prodigal_v2.6.3	CDS	90	482	68.0	-	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.659;conf=100.00;score=67.97;cscore=54.92;sscore=13.05;rscore=7.85;uscore=1.55;tscore=3.65;

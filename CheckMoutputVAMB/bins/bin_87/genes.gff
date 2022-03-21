@@ -1,0 +1,4 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=1805;seqhdr="edge_231"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="32|Orientia_tsutsugamushi_Boryong|B|30.5|11|1";gc_cont=30.50;transl_table=11;uses_sd=1
+edge_231	Prodigal_v2.6.3	CDS	283	1587	108.3	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.325;conf=100.00;score=108.27;cscore=105.64;sscore=2.63;rscore=-1.10;uscore=0.97;tscore=2.76;

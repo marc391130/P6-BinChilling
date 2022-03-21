@@ -1,0 +1,17 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+edge_1021_8          -            460 SRP_SPB              PF02978.14   104     1e-37  121.5   4.0   1   2      0.08       7.7   -0.2   0.1    22    54   288   319   276   323 0.77 # 8072 # 9451 # 1 # ID=2_8;partial=00;start_type=ATG;rbs_motif=AATAA;rbs_spacer=7bp;gc_cont=0.388
+edge_1021_8          -            460 SRP_SPB              PF02978.14   104     1e-37  121.5   4.0   2   2     1e-39     1e-37  121.5   4.0     1   104   326   423   326   423 0.97 # 8072 # 9451 # 1 # ID=2_8;partial=00;start_type=ATG;rbs_motif=AATAA;rbs_spacer=7bp;gc_cont=0.388
+edge_837_37          -            418 KH_5                 PF13184.1     69   0.00068   12.3   0.1   1   2   0.00019     0.018    7.8   0.0    14    43   204   233   198   243 0.88 # 27767 # 29020 # -1 # ID=1_37;partial=00;start_type=ATG;rbs_motif=AAA;rbs_spacer=3bp;gc_cont=0.339
+edge_837_37          -            418 KH_5                 PF13184.1     69   0.00068   12.3   0.1   2   2     0.025       2.4    1.0   0.0     6    26   278   298   275   304 0.88 # 27767 # 29020 # -1 # ID=1_37;partial=00;start_type=ATG;rbs_motif=AAA;rbs_spacer=3bp;gc_cont=0.339
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/3778e6d0-911e-406e-9296-a71c5b891500
+# Target file:     output/bins/bin_123/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_123/hmmer.analyze.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/3778e6d0-911e-406e-9296-a71c5b891500 output/bins/bin_123/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 12:42:52 2022
+# [ok]

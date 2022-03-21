@@ -1,0 +1,20 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+edge_394_4           -            497 TIGR00468            TIGR00468    324   5.8e-10   32.1   0.3   1   2   1.2e-08   9.3e-07   21.6   0.0   181   227   247   295   218   317 0.73 # 3999 # 5489 # -1 # ID=3_4;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.441
+edge_394_4           -            497 TIGR00468            TIGR00468    324   5.8e-10   32.1   0.3   2   2   0.00024     0.019    7.4   0.0   290   311   468   489   456   492 0.88 # 3999 # 5489 # -1 # ID=3_4;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.441
+edge_393_3           -            497 TIGR00468            TIGR00468    324   4.5e-09   29.2   0.3   1   2   9.3e-08   7.4e-06   18.6   0.0   181   215   247   281   230   314 0.76 # 2490 # 3980 # -1 # ID=4_3;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.430
+edge_393_3           -            497 TIGR00468            TIGR00468    324   4.5e-09   29.2   0.3   2   2   0.00024     0.019    7.4   0.0   290   311   468   489   456   492 0.88 # 2490 # 3980 # -1 # ID=4_3;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.430
+edge_393_3           -            497 tRNA_anti-codon      PF01336.20    75   3.6e-17   55.6   0.3   1   1   1.2e-18   9.8e-17   54.2   0.2     2    73    64   138    63   140 0.97 # 2490 # 3980 # -1 # ID=4_3;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.430
+edge_394_4           -            497 tRNA_anti-codon      PF01336.20    75   1.2e-16   53.9   0.1   1   1   3.5e-18   2.8e-16   52.8   0.1     2    73    64   138    63   140 0.97 # 3999 # 5489 # -1 # ID=3_4;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.441
+edge_420_39          -            432 EXOSC1               PF10447.4     82   0.00055   13.5   0.2   1   1   1.1e-05    0.0018   11.8   0.2    37    73    38    74    11    83 0.81 # 37157 # 38452 # 1 # ID=5_39;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.288
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/732ef9f7-ec32-40d3-87fd-2c161c7603f7
+# Target file:     output/bins/bin_273/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_273/hmmer.analyze.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/732ef9f7-ec32-40d3-87fd-2c161c7603f7 output/bins/bin_273/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 13:00:50 2022
+# [ok]

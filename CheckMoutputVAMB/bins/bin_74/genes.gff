@@ -1,0 +1,7 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=6814;seqhdr="edge_570"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="41|Shigella_dysenteriae_Sd197|B|51.2|11|1";gc_cont=51.20;transl_table=11;uses_sd=1
+edge_570	Prodigal_v2.6.3	CDS	3	236	9.9	+	0	ID=1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.470;conf=90.71;score=9.91;cscore=6.69;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;
+edge_570	Prodigal_v2.6.3	CDS	573	1031	8.5	+	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=4Base/6BMM;rbs_spacer=13-15bp;gc_cont=0.551;conf=85.88;score=7.85;cscore=5.08;sscore=2.77;rscore=-1.14;uscore=1.25;tscore=3.32;
+edge_570	Prodigal_v2.6.3	CDS	4139	4351	15.1	+	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.559;conf=96.51;score=14.45;cscore=8.81;sscore=5.63;rscore=1.96;uscore=1.53;tscore=2.79;
+edge_570	Prodigal_v2.6.3	CDS	6664	6813	21.7	+	0	ID=1_4;partial=01;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.413;conf=99.22;score=21.05;cscore=8.98;sscore=12.07;rscore=10.46;uscore=-1.05;tscore=3.32;

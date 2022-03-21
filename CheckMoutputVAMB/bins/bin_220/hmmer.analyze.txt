@@ -1,0 +1,20 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+edge_590_3           -            721 KH_1                 PF00013.24    60   1.1e-17   54.5   2.6   1   1   1.3e-18   3.4e-17   53.0   2.6     2    60   561   617   560   617 0.93 # 932 # 3094 # 1 # ID=3_3;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.644
+edge_590_2           -             90 Ribosomal_S15        PF00312.17    83   2.3e-34  108.1   0.2   1   1   9.6e-36   2.6e-34  108.0   0.2     3    83     8    88     6    88 0.97 # 569 # 838 # 1 # ID=3_2;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.570
+edge_590_3           -            721 KH_3                 PF13014.1     43   6.1e-12   36.1   0.3   1   1   6.4e-13   1.7e-11   34.7   0.3     1    39   569   600   569   621 0.82 # 932 # 3094 # 1 # ID=3_3;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.644
+edge_590_3           -            721 S1                   PF00575.18    74   1.7e-21   67.3   0.7   1   1   1.9e-22     5e-21   65.7   0.7     2    74   624   695   623   695 0.97 # 932 # 3094 # 1 # ID=3_3;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.644
+edge_590_3           -            721 RNase_PH             PF01138.16   132     1e-50  162.5   0.0   1   2   2.7e-25   7.3e-24   75.7   0.0     5   132    16   144    14   144 0.92 # 932 # 3094 # 1 # ID=3_3;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.644
+edge_590_3           -            721 RNase_PH             PF01138.16   132     1e-50  162.5   0.0   2   2   9.6e-28   2.6e-26   83.6   0.0     2   132   329   461   328   461 0.93 # 932 # 3094 # 1 # ID=3_3;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.644
+edge_590_3           -            721 KH_2                 PF07650.12    78   1.1e-07   22.5   0.1   1   1   1.5e-08   4.1e-07   20.6   0.1    28    73   562   608   554   613 0.87 # 932 # 3094 # 1 # ID=3_3;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.644
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /tmp/fd46724b-fb79-482c-8914-71665d81cd7e
+# Target file:     output/bins/bin_220/genes.faa
+# Option settings: hmmsearch --domtblout output/bins/bin_220/hmmer.analyze.txt --noali --notextw -E 0.1 --domE 0.1 --cpu 1 /tmp/fd46724b-fb79-482c-8914-71665d81cd7e output/bins/bin_220/genes.faa 
+# Current dir:     /checkm_docker
+# Date:            Mon Mar 21 12:54:37 2022
+# [ok]

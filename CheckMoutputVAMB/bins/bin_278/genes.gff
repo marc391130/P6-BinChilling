@@ -1,0 +1,7 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=1676;seqhdr="edge_340"
+# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="11|Candidatus_Amoebophilus_asiaticus_5a2|B|35.0|11|0";gc_cont=35.00;transl_table=11;uses_sd=0
+edge_340	Prodigal_v2.6.3	CDS	3	80	1.7	+	0	ID=1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.359;conf=59.77;score=1.72;cscore=-1.50;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;
+edge_340	Prodigal_v2.6.3	CDS	144	494	17.3	+	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=AAAAAA;rbs_spacer=11bp;gc_cont=0.319;conf=98.16;score=17.31;cscore=5.54;sscore=11.77;rscore=8.22;uscore=0.08;tscore=3.47;
+edge_340	Prodigal_v2.6.3	CDS	973	1152	13.5	-	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=TAA;rbs_spacer=13bp;gc_cont=0.356;conf=95.74;score=13.54;cscore=15.60;sscore=-2.06;rscore=-0.62;uscore=-3.90;tscore=2.45;
+edge_340	Prodigal_v2.6.3	CDS	1298	1570	27.8	-	0	ID=1_4;partial=00;start_type=ATG;rbs_motif=TAAA;rbs_spacer=14bp;gc_cont=0.326;conf=99.83;score=27.81;cscore=22.33;sscore=5.48;rscore=0.85;uscore=1.16;tscore=3.47;
