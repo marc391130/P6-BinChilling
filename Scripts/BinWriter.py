@@ -9,12 +9,12 @@ from ContigReader import ContigReader
 
 
 
-class fasta_writer:
-    def __init__(self, fasta_file: str, cluster_file: str, output_path: str, bin_names: str, file_predicate: Callable[[str], bool]) -> None:
+class bin_writer:
+    def __init__(self, fasta_file: str, cluster_file: str, output_path: str, file_predicate: Callable[[str], bool] = None, append_filename: str = None) -> None:
         self.fasta_file = fasta_file
         self.cluster_file = cluster_file
-        self.file_predicate = file_predicate
-        self.bin_names = bin_names
+        self.file_predicate = file_predicate if file_predicate is not None else lambda x: True
+        self.append_filename = append_filename if append_filename is not None else "bin_"
         self.output_path = output_path
         
     def __get_folder_content(self, folder_path: str) -> List[str]:
@@ -58,36 +58,44 @@ class fasta_writer:
         return result
     
     #key of values is binned contigname and value is dna string
-    def write_fasta(self, values: Dict[str, str]):
+    def write_fasta(self, outputpath: str, values: Dict[str, str]):
         n = 80 #how many chars per line
         print('writing new fasta file...')
+        outputpath = outputpath if outputpath.endswith(".fasta") else outputpath + ".fasta"
         
-        with open(self.output_path, 'x') as f:
-            for binname, dna_string in tqdm(values.items()):
+        with open(outputpath, 'x') as f:
+            for binname, dna_string in values.items():
                 f.write('>' + binname + '\n')
                 for dna_line in [dna_string[i:i+n] for i in range(0, len(dna_string), n)]:
                     f.write(dna_line + '\n')
-        
+    
+    def write_bins(self, values: Dict[str, Dict[str, str]]):
+        print("writing bins...")
+        for clustername, cluster in tqdm(values.items()):
+            name = self.append_filename + clustername + ".fasta"
+            self.write_fasta(join(self.output_path, name), cluster)
         
     def work(self, showClusters: bool = True):
         
         clusters = self.read_clusters()
         contigs = self.read_fasta()
-        result = {}
-    
-        print("combining clusters...")
-        for binname, contignames in tqdm(clusters.items()):
-            result[self.bin_names+binname] = ''.join([contigs[name] for name in contignames])
         
-        self.write_fasta(result)
+        #split contigs into clusters
+        print("split contigs into clusters...")
+        result = {binname: {name: contigs[name] for name in contignames} \
+            for binname, contignames in tqdm(clusters.items())} #cluster name to dict of contigname to contingstring 
+        
+        self.write_bins(result)
+        
         if showClusters:
-            print(">Clusters:")
-            for x in clusters.items():
-                print(x)                
+            for k, v in result.items():
+                print(f">{k}") 
+            for k2, v2 in v.items():
+                print(f"{k}_{k2} len: {len(v2)}")               
                 
 if __name__ == '__main__':
     print(sys.argv)
-    writer = fasta_writer(sys.argv[1], sys.argv[2], sys.argv[3], \
-        sys.argv[4] if len(sys.argv) >= 5 else 'bin_',\
-        lambda x: x.startswith('cluster'))
+    writer = bin_writer(sys.argv[1], sys.argv[2], sys.argv[3], \
+        lambda x: x.startswith('cluster'),
+        sys.argv[4] if len(sys.argv) >= 5 else None)
     writer.work()
