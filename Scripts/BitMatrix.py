@@ -30,7 +30,7 @@ class BitMatrix:
 
     def __update_matrix__(self) -> None:
         for cluster, cluster_idx in self.cluster_dct.items():
-            for item in cluster: 
+            for item in cluster:
                 self.matrix[self.value_dct[item], cluster_idx] = 1
 
     def calc_membership_in_cluster(self, item, cluster: Cluster) -> int:

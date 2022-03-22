@@ -147,7 +147,7 @@ class AdaptiveClusterEnsembler(Ensembler):
 
 
         print("Evaluating totally certain objects ...")
-        self.__recalculate_and_append_objects__(quality_dct, candidate_clusters_of_totally_certain_objects_dct, filtered_cluster_dct, stop_at_first=True)
+        self.__recalculate_and_append_objects__(quality_dct, candidate_clusters_of_totally_certain_objects_dct, filtered_cluster_dct)
         print("Evaluating Certain objets ...")
         self.__recalculate_and_append_objects__(quality_dct, candidate_clusters_of_certain_objects_dct, filtered_cluster_dct)
         print("Evaluating uncertain objects ...")
@@ -160,7 +160,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         return candidate_clusters
 
         
-    def __recalculate_and_append_objects__(self, quality_dct: Dict[Cluster, float], obj_list_cluster_dct: Dict[object, List[Cluster]], cluster_dct: Dict[Cluster, int], stop_at_first = False) -> None:
+    def __recalculate_and_append_objects__(self, quality_dct: Dict[Cluster, float], obj_list_cluster_dct: Dict[object, List[Cluster]], cluster_dct: Dict[Cluster, int]) -> None:
 
         for item, cluster_lst in tqdm(obj_list_cluster_dct.items()):
             min_change = 99999999
@@ -183,8 +183,6 @@ class AdaptiveClusterEnsembler(Ensembler):
                     min_change = change
                     min_change_cluster = cluster
                     new_cluster_quality = new_quality
-                    if stop_at_first:
-                        break
             
             if min_change_cluster is not None:
                 for cluster in cluster_lst:
