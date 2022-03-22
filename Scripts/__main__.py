@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     seed(2)
 
-    use_real_data = True
+    use_real_data = False
     candidate_clusters = None
     if use_real_data:
         partitionSetReader = PartitionSetReader("../Dataset/contigs_numpy.npy", "../Dataset/ClusterData/", lambda x: x.endswith(".tsv"))
@@ -32,9 +32,9 @@ if __name__ == '__main__':
         def dummy_data(partitions = 2, clusters_per_partition = 100, elements_in_data=1000) -> PartitionSet:
             data = [Contig(str(random())) for x in tqdm(range(elements_in_data))]
 
-            partition_set = PartitionSet()
+            partition_set = PartitionSet(data)
             for x in range(partitions):
-                partition_set.append(Partition(data))
+                partition_set.create_partition()
 
             for partition in range(len(partition_set)):
                 for x in data:
