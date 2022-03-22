@@ -10,40 +10,48 @@ class ContigReader:
     def __init__(self):
         pass
 
+    def read_file_fast(self, file_path: str, numpy_file: str) -> Dict[str, ContigData]:
+        print("trying to load as numpy data...")
+        numpy_data = self.try_load_numpy(numpy_file)
+        if numpy_data is not None:
+            print("found numpy file")
+            return numpy_data
+        else:
+            print("could not find numpy file, loading from fasta...")
+        data = self.read_file(file_path)
+        print("saving fasta as numpy, so its faster in the future")
+        self.save_numpy(data, numpy_file)
+        return data  
+
+
     def read_file(self, file_path: str) -> Dict[str, ContigData]:
         result = {}
         abundance_length_dict = self.__get_abundance_length_dict__(const.ABUNDANCE_FILEPATH)
 
-        def __reset_contig_composition__(name: str, abundance: float) -> Tuple[ContigData, Composition]:
-            return (ContigData(name, abundance=abundance), Composition())
+        def clean_line_name(line: str) -> str:
+            return line.split('>')[1].replace('\n', '')
+        
 
-        def __handle_contig_string__(i: int, temp_contig: ContigData, temp_composition: Composition, temp_string: str, abundance_length_dict: Dict[str, Tuple[float, int]]) -> str:
-            if i != 0:
-                self.__assert_contig_length_equal__(abundance_length_dict[temp_contig.name][1], temp_string, temp_contig.name)
-                composition_analyzer.analyze_composition(temp_composition, temp_string)
-                temp_contig.composition = temp_composition
-                temp_contig.contig_length = len(temp_string)
-                result[temp_contig.name] = temp_contig
-                return ""
-            return temp_string
-
+        composition_analyzer = CompositionAnalyzer()
         with open(file_path, 'r') as file:
             lines = file.readlines()
 
-            composition_analyzer = CompositionAnalyzer()
-            temp_contig = ContigData()
-            temp_composition = Composition()
-
-            temp_string = ""
-            for i in tqdm(range(len(lines))):
-                if lines[i].startswith('>'):
-                    name = lines[i].split('>')[1].strip('\n')
-                    temp_string = temp_string.replace("\n", "")
-                    
-                    temp_string = __handle_contig_string__(i, temp_contig, temp_composition, temp_string, abundance_length_dict)
-                    temp_contig, temp_composition = __reset_contig_composition__(name, abundance_length_dict[name][0])
-                else:
-                    temp_string = temp_string + lines[i]
+            for index in tqdm(range(len(lines))):
+                line = lines[index]
+                if not line.startswith('>'):
+                    continue
+                name = clean_line_name(line)
+                composition = Composition()
+                contig = ContigData(name, composition, 0, abundance_length_dict[name][0])
+                temp_string = ""
+                for i in range(index+1, len(lines)):
+                    if lines[i].startswith('>'):
+                        break
+                    temp_string += lines[i]
+                contig.contig_length = len(temp_string)
+                composition_analyzer.analyze_composition(composition, temp_string)
+                result[name] = contig
+    
         return result
 
     def read_contig_names(self, file_path: str) -> List[str]:
@@ -77,9 +85,16 @@ class ContigReader:
     def __get_abundance__(self, abundance_dict: Dict[str, float], name: str) -> float:
         return abundance_dict[name]
 
-    def save_as_numpy(self, fastafile:str, outputfile:str) -> None:
+    def save_numpy(self, data: Dict[str, ContigData], outputfile: str) -> None:
         outputfile = outputfile if outputfile.endswith('.npy') else outputfile + ".npy"
-        np.save(outputfile, self.read_file(fastafile))
+        np.save(outputfile, data)
+    
+
+    def try_load_numpy(self, filename:str) -> Dict[str, ContigData] or None:
+        try:
+            return self.load_numpy(filename)
+        except IOError as e:
+            return None
 
     def load_numpy(self, filename:str) -> Dict[str, ContigData]:
         return np.load(filename, allow_pickle=True).item()

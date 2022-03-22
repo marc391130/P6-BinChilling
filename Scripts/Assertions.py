@@ -22,6 +22,10 @@ def assert_partion_set_content(partition_set: List[Dict]) -> None:
         if partition.__data__ is not raf:
             raise Exception("Data is not the same in partitionset and partition")
 
+def assert_list_nonempty(lst: List) -> None:
+    if len(lst) <= 0:
+        raise Exception("list is empty, when it shouldnt be")
+
 def assert_new_cluster(object1, object2) -> None:
     if object1 is None and object2 is not None:
         raise Exception("Object1 is none, while object2 is not")

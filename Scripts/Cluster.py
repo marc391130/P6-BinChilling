@@ -1,7 +1,8 @@
 from __future__ import annotations
-from sre_constants import ASSERT
+from logging import exception
 from typing import Dict, List, Generic, TypeVar, Tuple
 from math import sqrt
+
 import Assertions as Assert
 import sys
 
@@ -85,7 +86,7 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
     def __init__(self, data: List[T]) -> None:
         self.__data__ = data
 
-    def add(self, cluster_name: str, item: T):
+    def add(self, cluster_name: str, item: T) -> None:
         Assert.assert_partition_content(self.__data__, item)
         self.__assert_item_not_in_other_cluster__(item)
 
@@ -106,13 +107,19 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
         return len(self.__data__)
 
 class PartitionSet(List[Partition[T]]):
-    def __init__(self):
-        self.total_elements = 0
+    def __init__(self, data: List[T]):
+        Assert.assert_list_nonempty(data)
+        self.__dataset__ = data
 
     def append(self, __object: Partition[T]) -> None:
         Assert.assert_partion_set_content(self)
         self.total_elements = max(self.total_elements, __object.element_count())
         return super().append(__object)
+    
+    def create_partition(self) -> Partition[T]:
+        partition = Partition(self.__dataset__)
+        super().append(partition)
+        return partition
 
     def similarity_measure(self, gamma_idx1: int, gamma_idx2: int, cluster1_name: str, cluster2_name: str) -> float: 
         return self.similarity_measure((gamma_idx1, cluster1_name), (gamma_idx2, cluster2_name))
@@ -136,8 +143,9 @@ class PartitionSet(List[Partition[T]]):
     def __similarity_measure_cluster__(self, cluster1: Cluster, cluster2: Cluster) -> float:
         cluster_intersection = cluster1.intersection(cluster2)
 
-        counter = len(cluster_intersection) - ((len(cluster1) * len(cluster2)) / self.total_elements)
-        divisor = sqrt(len(cluster1) * len(cluster2) * (1 - (len(cluster1) / self.total_elements)) * (1 - (len(cluster2) / self.total_elements)))
+        total_elements = self.__total_elements__()
+        counter = len(cluster_intersection) - ((len(cluster1) * len(cluster2)) / total_elements)
+        divisor = sqrt(len(cluster1) * len(cluster2) * (1 - (len(cluster1) / total_elements)) * (1 - (len(cluster2) / total_elements)))
         if divisor == 0:
             return 0
         return counter / divisor
@@ -147,12 +155,19 @@ class PartitionSet(List[Partition[T]]):
         for partition in self:
             for key, value in partition.items():
                 result.append(value)
+        
         return result
 
+    def __total_elements__(self) -> int:
+        return len(self.__dataset__)
+
+    # def get_all_elements(self) -> List[T]:
+    #     return list(self.__dataset__).copy()
+    
     def get_all_elements(self) -> Dict[T, int]:
         result = {}
         i = 0
-        for item in self[0].__data__:
+        for item in self.__dataset__:
             result[item] = i if item not in result else result[item]
             i += 1
         return result
@@ -163,5 +178,6 @@ class PartitionSet(List[Partition[T]]):
     def maximal_partition_clusters(self) -> int:
         return max([len(partition) for partition in self])
         
+    
     
     

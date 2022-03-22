@@ -9,6 +9,7 @@ from tqdm import tqdm
 from PartitionSetReader import PartitionSetReader
 from ContigReader import ContigReader
 import Constants
+import time
 
 if __name__ == '__main__':
 
@@ -18,15 +19,13 @@ if __name__ == '__main__':
         alpha1_min=0.20, \
         alpha2=0.1)
 
-    #seed(2)
+    seed(2)
 
-    use_real_data = False
+    use_real_data = True
     candidate_clusters = None
-
     if use_real_data:
-        partitionSetReader = PartitionSetReader("../Dataset/ClusterData/", lambda x: x.endswith(".tsv"))
+        partitionSetReader = PartitionSetReader("../Dataset/contigs_numpy.npy", "../Dataset/ClusterData/", lambda x: x.endswith(".tsv"))
         partition_set = partitionSetReader.read_file()
-
 
         candidate_clusters = ensembler.ensemble(partition_set)
     else:
@@ -45,6 +44,6 @@ if __name__ == '__main__':
 
         candidate_clusters = ensembler.ensemble(dummy_data(partitions=2, clusters_per_partition=100, elements_in_data=1000))
 
-    ensembler.print_to_file("Test.txt", candidate_clusters)
+    ensembler.print_to_file("../Dataset/ACE_output.tsv", candidate_clusters)
 
 
