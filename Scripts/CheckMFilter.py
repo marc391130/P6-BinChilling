@@ -17,7 +17,7 @@ class BinDto:
     def isNear(self) -> bool:
         return self.contamination <= 5 and self.completeness >= 90
     
-    def isSubstantia(self) -> bool:
+    def isSubstantial(self) -> bool:
         return self.contamination > 5 and self.contamination <= 10 and\
             self.completeness < 90 and self.completeness >= 70
     
@@ -81,13 +81,16 @@ def getPrintPredicate(input: str = None) -> Callable[[BinDto], bool]:
     elif input == "near":
         return lambda x: x.isNear()
     elif input == "substantial":
-        return lambda x: x.isSubstantia()
+        return lambda x: x.isSubstantial()
     elif input == "moderate":
         return lambda x: x.isModerate()
     elif input == "partial":
         return lambda x: x.isPartial()
+    elif input == "moderateOrBetter":
+        return lambda x: x.isModerate() or x.isSubstantial() or x.isNear()
     else:
-        raise Exception(f"print predicate '{input}' cannot be found. try 'near', 'substantial', 'moderate', 'partial' or leave blank")
+        raise Exception(f"print predicate '{input}' cannot be found."\
+            + " try 'near', 'substantial', 'moderate', 'partial', 'moderateOrBetter' or leave blank")
 
 if __name__ == "__main__":
     print(sys.argv)
