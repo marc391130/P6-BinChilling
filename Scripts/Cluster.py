@@ -10,9 +10,14 @@ sys.setrecursionlimit(10**6)
 T = TypeVar("T")
 
 class Contig:
-    def __init__(self, name: str, vector: List[float]):
+    def __init__(self, name: str):
         self.name = name
-        self.vector = vector
+
+    def __hash__(self) -> int:
+        return id(self)
+    
+    def __str__(self):
+        return self.name
 
 class Cluster(List[T]):
     def __init__(self, cluster1: Cluster = None, cluster2: Cluster = None):
@@ -46,6 +51,7 @@ class Cluster(List[T]):
 
     def calc_membership(self, item: T) -> int:
         result = 0
+
         for el in self.__get_leaf_clusters__():
             if item in el:
                 result += 1
@@ -143,7 +149,7 @@ class PartitionSet(List[Partition[T]]):
                 result.append(value)
         return result
 
-    def get_all_elements(self) -> List[T]:
+    def get_all_elements(self) -> Dict[T, int]:
         result = {}
         i = 0
         for item in self[0].__data__:
