@@ -1,3 +1,4 @@
+from unicodedata import name
 from Composition import Composition
 from typing import List
 
@@ -18,6 +19,6 @@ class ContigData:
 
     def pretty_print(self) -> None:
         print(f"{self.name} {self.contig_length} {self.abundance} {self.composition}")
-        
+    
     def __hash__(self) -> int:
         return self.name.__hash__()

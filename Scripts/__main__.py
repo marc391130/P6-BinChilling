@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     seed(2)
 
-    use_real_data = False
+    use_real_data = True
     candidate_clusters = None
     if use_real_data:
         partitionSetReader = PartitionSetReader("../Dataset/contigs_numpy.npy", "../Dataset/ClusterData/", lambda x: x.endswith(".tsv"))

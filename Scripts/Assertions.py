@@ -4,6 +4,10 @@ def assert_index_exists(idx: int, lst: List) -> None:
     if idx not in lst:
         raise Exception(f"Index {idx} not in {str(lst)}")
 
+def assert_item_in_list(lst: List, item: any):
+    if item not in lst:
+        raise Exception(f"Item {item} not in list")
+
 def assert_key_exists(key, dct: Dict) -> None:
     if key not in dct:
         raise Exception(f"Key {key} not in {str(dct)}")
@@ -21,6 +25,10 @@ def assert_partion_set_content(partition_set: List[Dict]) -> None:
 
         if partition.__data__ is not raf:
             raise Exception("Data is not the same in partitionset and partition")
+
+def assert_list_has_atleast_len(lst: List, min_len: int):
+    if len(lst) <= min_len:
+        raise Exception(f"list has length {len(lst)}, but should have a minimum of {min_len}")
 
 def assert_list_nonempty(lst: List) -> None:
     if len(lst) <= 0:

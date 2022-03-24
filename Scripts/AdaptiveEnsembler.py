@@ -1,3 +1,4 @@
+from ast import Assert
 from typing import Dict, List, Tuple
 from unittest import result
 from Cluster import Cluster, Contig, Partition, PartitionSet
@@ -6,6 +7,7 @@ from tqdm import tqdm
 from itertools import islice
 import Assertions as ASSERT
 from BitMatrix import BitMatrix
+from sys import maxsize as MAXSIZE
 
 MERGED_CLUSTER = -1
 
@@ -161,36 +163,48 @@ class AdaptiveClusterEnsembler(Ensembler):
 
         
     def __recalculate_and_append_objects__(self, quality_dct: Dict[Cluster, float], obj_list_cluster_dct: Dict[object, List[Cluster]], cluster_dct: Dict[Cluster, int]) -> None:
+        
+        def __partial_quality_measure__(self, quality_dict: Dict[Cluster, float], cluster: Cluster, item: any, cluster_dct: Dict[Cluster, int]):
+            #oldValue is average itemValue / len(cluster). Now that item is added, calculate the contribution of the item.
+            #these two are combined by finding the total contribution of oldValue, adding the itemValue and dividing with the length of the cluster
+            #Value of oldValue = [total_oldValue / len(cluster - 1)], so we can get total contribution of oldValue by oldValue by:
+            #[total_oldValue / len(cluster-1)] * len(cluster-1)
+            ASSERT.assert_min_list_len(cluster, 1)
+            oldValue = quality_dict[cluster]
+            total_oldValue = oldValue * (len(cluster))
+            itemValue = 0
+            try:
+                cluster.append(item)
+                itemValue = pow((self.bit_matrix.membership_similarity_measure(item, cluster, cluster_dct) \
+                    - self.__mean_membership_similarity_measure__(cluster, cluster_dct)), 2)
+            finally:
+                cluster.remove(item)
+            
+            return (total_oldValue + itemValue) / (len(cluster)+1)
 
         for item, cluster_lst in tqdm(obj_list_cluster_dct.items()):
-            min_change = 99999999
-            min_change_cluster = None
-            new_cluster_quality = 0
+            min_change, min_change_cluster, new_cluster_quality = MAXSIZE, None, 0
 
             for cluster in cluster_lst:
                 contains_item = item in cluster
-                
-                if not contains_item:
-                    cluster.append(item)
+                change = 0 if contains_item else __partial_quality_measure__(\
+                    self, quality_dct, cluster, item, cluster_dct)
+                new_quality = quality_dct[cluster] + change
 
-                new_quality = self.__quality_measure__(cluster, cluster_dct)
-                change = abs(quality_dct[cluster] - new_quality)
-
-                if not contains_item:
-                    cluster.remove(item)
-
-                if change < min_change:
+                if abs(change) < min_change or change == 0:
                     min_change = change
                     min_change_cluster = cluster
                     new_cluster_quality = new_quality
+                    if change == 0:
+                        break
             
             if min_change_cluster is not None:
                 for cluster in cluster_lst:
                     cluster.remove(item)
                 min_change_cluster.append(item)
                 quality_dct[min_change_cluster] = new_cluster_quality
-
-
+        return None
+    
     def __find_objects_membership_predicate__(self, elements: List, predicate, cluster_dct: Dict[Cluster, int]) -> List:
         objects_lst = []
         check_set = set()
@@ -372,7 +386,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         with open(file_path, 'w') as file:
             for cluster_idx in range(len(clusters)):
                 for item in clusters[cluster_idx]:
-                    file.write(f"{cluster_idx}\t{str(item)}\n")
+                    file.write(f"{cluster_idx}\t{item.name}\n")
 
     def __merge_cls__(self, similarity_matrix: np.matrix, dct_info: Dict[Cluster, int], debug:bool = False) -> Dict[Cluster, int]:
         result_dct = {}
