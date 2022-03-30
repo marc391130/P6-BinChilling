@@ -15,18 +15,18 @@ class BinDto:
         self.completeness = completeness
         
     def isNear(self) -> bool:
-        return self.contamination <= 5 or self.completeness >= 90
+        return self.contamination <= 5 and self.completeness >= 90
     
     def isSubstantial(self) -> bool:
-        return self.contamination > 5 and self.contamination <= 10 or\
+        return self.contamination > 5 and self.contamination <= 10 and\
             self.completeness < 90 and self.completeness >= 70
     
     def isModerate(self) -> bool:
-        return self.contamination > 10 and self.contamination <= 15 or\
+        return self.contamination > 10 and self.contamination <= 15 and\
             self.completeness < 70 and self.completeness >= 50
     
     def isPartial(self) -> bool:
-        return self.contamination > 15 or self.completeness < 50
+        return self.contamination > 15 and self.completeness < 50
         
     def __str__(self) -> str:
         return f"{self.name}\t{self.contamination}\t{self.completeness}"
