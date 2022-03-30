@@ -2,6 +2,7 @@ from __future__ import annotations
 from logging import exception
 from typing import Dict, List, Generic, TypeVar, Tuple
 from math import sqrt
+import formulas as formula
 
 import Assertions as Assert
 import sys
@@ -41,22 +42,44 @@ class Cluster(List[T]):
     def contains(self, item: T) -> bool:
         return item in self
 
-    def merge(self, other: Cluster[T]) -> Cluster[T]:
-        result = Cluster(self, other)
-        for x in self:
+    # def merge(self, other: Cluster[T]) -> Cluster[T]:
+    #     result = Cluster(self, other)
+    #     for x in self:
+    #         result.append(x)
+    #     for x in other:
+    #         if x not in result:
+    #             result.append(x)
+    #     return result
+    
+    @staticmethod
+    def merge(cluster1: Cluster[T], cluster2: Cluster[T]) -> Cluster[T]:
+        result = Cluster(cluster1, cluster2)
+        for x in cluster1:
             result.append(x)
-        for x in other:
+        for x in cluster2:
             if x not in result:
                 result.append(x)
         return result
 
     def calc_membership(self, item: T) -> int:
-        result = 0
-
-        for el in self.__get_leaf_clusters__():
-            if item in el:
-                result += 1
+        item_membership_values = self.calc_all_membership()
+        return item_membership_values[item] if item in item_membership_values else 0
+    
+    def calc_all_membership(self) -> Dict[T, int]:
+        if len(self.__children_lst__) == 0:
+            return {item: 1 for item in self}
+        
+        result = {}
+        for child in self.__children_lst__:
+            child_dic = child.calc_all_membership()
+            for item, value in child_dic.items():
+                result[item] = (value if item not in result else result[item] + value)
+                
+        for item in self:
+            if item not in result:
+                result[item] = 1
         return result
+
 
     def __get_leaf_clusters__(self) -> List[Cluster]:
         result = []
@@ -139,16 +162,19 @@ class PartitionSet(List[Partition[T]]):
 
         return self.__similarity_measure_cluster__(cluster1, cluster2)
 
+    def ClusterToPartitionMap(self) -> Dict[Cluster, int]:
+        dct_info = {}
+        for partition_idx in range(len(self)):
+            for key, value in self[partition_idx].items():
+                dct_info[value] = partition_idx
+        return dct_info
+
 
     def __similarity_measure_cluster__(self, cluster1: Cluster, cluster2: Cluster) -> float:
-        cluster_intersection = cluster1.intersection(cluster2)
+        cluster_intersection = len(cluster1.intersection(cluster2))
 
-        total_elements = self.__total_elements__()
-        counter = len(cluster_intersection) - ((len(cluster1) * len(cluster2)) / total_elements)
-        divisor = sqrt(len(cluster1) * len(cluster2) * (1 - (len(cluster1) / total_elements)) * (1 - (len(cluster2) / total_elements)))
-        if divisor == 0:
-            return 0
-        return counter / divisor
+        total_elements = len(self.__dataset__)
+        return formula.cluster_simularity(cluster1, cluster2, cluster_intersection, total_elements)
 
     def get_all_clusters(self) -> List[Cluster[T]]:
         result = []

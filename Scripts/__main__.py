@@ -11,6 +11,15 @@ from ContigReader import ContigReader
 import Constants
 import time
 
+
+# import numpy
+# arr = numpy.zeros((3,3))
+# app = numpy.ones(shape=(3,1))
+# print("> arr\n", arr)
+# print("> app\n", app)
+# print(numpy.append(arr , app, axis=1 ))
+# raise Exception()
+
 if __name__ == '__main__':
 
     ensembler = AdaptiveClusterEnsembler( \

@@ -1,4 +1,8 @@
-from typing import Dict, List
+from typing import Dict, List, Collection
+
+def assert_not_none(item: any):
+    if item is None:
+        raise Exception(f"item {item} is None")
 
 def assert_index_exists(idx: int, lst: List) -> None:
     if idx not in lst:
@@ -8,9 +12,17 @@ def assert_item_in_list(lst: List, item: any):
     if item not in lst:
         raise Exception(f"Item {item} not in list")
 
+def assert_item_not_in_collection(lst: Collection, item: any):
+    if item in lst:
+        raise Exception(f"Item '{item}' in collection")
+
 def assert_key_exists(key, dct: Dict) -> None:
     if key not in dct:
         raise Exception(f"Key {key} not in {str(dct)}")
+    
+def assert_key_not_exists(key, dct: Dict) -> None:
+    if key in dct:
+        raise Exception(f"Key {key} in {str(dct)}")
 
 def assert_partition_content(data: List, item) -> None:
     if item not in data:
@@ -26,7 +38,7 @@ def assert_partion_set_content(partition_set: List[Dict]) -> None:
         if partition.__data__ is not raf:
             raise Exception("Data is not the same in partitionset and partition")
 
-def assert_list_has_atleast_len(lst: List, min_len: int):
+def assert_min_list_len(lst: List, min_len: int):
     if len(lst) <= min_len:
         raise Exception(f"list has length {len(lst)}, but should have a minimum of {min_len}")
 
