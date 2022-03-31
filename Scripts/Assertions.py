@@ -1,6 +1,6 @@
 from typing import Dict, List, Collection
 
-def assert_not_none(item: any):
+def assert_not_none(item: object):
     if item is None:
         raise Exception(f"item {item} is None")
 

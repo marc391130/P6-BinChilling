@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 from Cluster import Cluster, PartitionSet
 from typing import Tuple, Dict, List
-import Assertions as ASSERT
+import Assertions as Assert
 from ClusterSimilarityMatrix import ClusterSimilarityMatrix
 import formulas as formula
 import Constants as Constant
@@ -14,6 +14,7 @@ class BitMatrix:
         self.element_index_map = None #columns
         self.cluster_index_map = None #rows
         self.similarity_matrix = None
+        self.membership_matrix = None
         self.bit_matrix_transform(gamma)
 
 
@@ -56,7 +57,7 @@ class BitMatrix:
     def __build_similarity_row__(self, cluster: Cluster, partition: int) -> Dict[int, float or np.nan]:
         result = {}
         total_elements = self.__gamma__.__total_elements__()
-        ASSERT.assert_key_exists(cluster, self.cluster_index_map)
+        Assert.assert_key_exists(cluster, self.cluster_index_map)
         exception_lst = set(cluster.__get_leaf_clusters__())
         index_1 = self.cluster_index_map[cluster]
         for cluster2, p2 in self.cluster_index_map.items():                
@@ -74,9 +75,9 @@ class BitMatrix:
 
     def add_cluster_to_bit_matrix(self, cluster: Cluster) -> None:
         
-        ASSERT.assert_key_not_exists(cluster, self.cluster_index_map)
-        ASSERT.assert_not_none(self.matrix)
-        ASSERT.assert_not_none(self.similarity_matrix)
+        Assert.assert_key_not_exists(cluster, self.cluster_index_map)
+        Assert.assert_not_none(self.matrix)
+        Assert.assert_not_none(self.similarity_matrix)
         # ASSERT.assert_item_not_in_collection(self.cluster_index_map, cluster)
         new_index = len(self.cluster_index_map)
         self.cluster_index_map[cluster] = new_index

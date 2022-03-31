@@ -39,6 +39,13 @@ class Cluster(List[T]):
                 result.append(item)
         return result
 
+    def remove(self, __value: T) -> None:
+        if __value not in self:
+            return
+        super().remove(__value)
+        for child in self.__children_lst__:
+            child.remove(__value)
+
     def contains(self, item: T) -> bool:
         return item in self
 
@@ -118,8 +125,8 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
 
         self[cluster_name].append(item)
 
-    def __setitem__(self, __k, __v) -> None:
-        raise Exception("DO NOT USE THIS, use '.add()' instead")
+    # def __setitem__(self, __k, __v) -> None:
+        # raise Exception("DO NOT USE THIS, use '.add()' instead")
 
     def __assert_item_not_in_other_cluster__(self, item: T) -> None:
         for key, value in self.items():
