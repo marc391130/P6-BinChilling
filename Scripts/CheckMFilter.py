@@ -27,6 +27,9 @@ class BinDto:
     
     def isPartial(self) -> bool:
         return self.contamination > 15 and self.completeness < 50
+
+    def isNotZeroCompleteness(self) -> bool:
+        return self.completeness == 0
         
     def __str__(self) -> str:
         return f"{self.name}\t{self.contamination}\t{self.completeness}"
@@ -88,6 +91,8 @@ def getPrintPredicate(input: str = None) -> Callable[[BinDto], bool]:
         return lambda x: x.isPartial()
     elif input == "moderateOrBetter":
         return lambda x: x.isModerate() or x.isSubstantial() or x.isNear()
+    elif input == "rest":
+        return lambda x: x.isNear() is False and x.isModerate() is False and x.isSubstantial() is False and x.isPartial() is False and x.isNotZeroCompleteness() is False
     else:
         raise Exception(f"print predicate '{input}' cannot be found."\
             + " try 'near', 'substantial', 'moderate', 'partial', 'moderateOrBetter' or leave blank")
