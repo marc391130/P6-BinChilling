@@ -1,4 +1,5 @@
 from logging import exception
+from nis import match
 from typing import Callable, List
 import sys
 from tqdm import tqdm
@@ -31,12 +32,23 @@ class BinDto:
     def isNotZeroCompleteness(self) -> bool:
         return self.completeness == 0
         
+    def categoryToString(self) -> str:
+        if self.isNear:
+            return 'near'
+        if self.isSubstantial:
+            return 'substantial'
+        if self.isModerate:
+            return 'moderate'
+        if self.isPartial:
+            return 'partial'
+        return 'Bad bin'
+        
     def __str__(self) -> str:
-        return f"{self.name}\t{self.contamination}\t{self.completeness}"
+        return f"{self.name}\t{self.contamination}\t{self.completeness}\t{self.categoryToString()}"
     
     @staticmethod
     def toStringFormat():
-        return "name\tcontamination\tcompleteness\t"
+        return "name\tcontamination\tcompleteness\tcategory\t"
 
 class CheckMFilter:
     def __init__(self, filepath: str, outputPath: str, print_predicate: Callable[[BinDto], bool] = None) -> None:
