@@ -3,7 +3,10 @@
 # Intended purpose: To get data from fasta files
 
 from random import randrange, random, seed
-from AdaptiveEnsembler import AdaptiveClusterEnsembler
+
+from more_itertools import partition
+from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
+from AdaptiveEnsembler2 import AdaptiveClusterEnsembler2
 from Cluster import Cluster, Partition, PartitionSet, Contig
 from tqdm import tqdm
 from PartitionSetReader import PartitionSetReader
@@ -20,13 +23,25 @@ import time
 # print(numpy.append(arr , app, axis=1 ))
 # raise Exception()
 
+def print_partition(file_path: str, parititon: Partition):
+    with open(file_path, 'w') as file:
+        cluster_lst = list(parititon.values())
+        for cluster_idx in range(len(cluster_lst)):
+            for item in cluster_lst[cluster_idx]:
+                file.write(f"{cluster_idx+1}\t{item.name}\n")
+
 if __name__ == '__main__':
 
-    ensembler = AdaptiveClusterEnsembler( \
-        initial_alpha1_thredshold=0.6, \
-        initial_delta_aplha=0.1, \
-        alpha1_min=0.20, \
-        alpha2=0.1)
+    # ensembler = AdaptiveClusterEnsembler( \
+    #     initial_alpha1_thredshold=0.6, \
+    #     initial_delta_aplha=0.1, \
+    #     alpha1_min=0.9, \
+    #     alpha2=0.6)
+    ensembler = AdaptiveClusterEnsembler2( \
+        initial_alpha1_thredshold=0.8, \
+        initial_delta_aplha=0.02, \
+        alpha1_min=0.9, \
+        alpha2=0.6)
 
     seed(2)
 
@@ -46,13 +61,16 @@ if __name__ == '__main__':
                 partition_set.create_partition()
 
             for partition in range(len(partition_set)):
+                cluster_max = max(int(randrange(int(clusters_per_partition * 0.1), clusters_per_partition)), 2)
+                
                 for x in data:
                     cluster = int(randrange(0,clusters_per_partition))
                     partition_set[partition].add(str(cluster), x)
             return partition_set
 
-        candidate_clusters = ensembler.ensemble(dummy_data(partitions=2, clusters_per_partition=100, elements_in_data=1000))
+        candidate_clusters = ensembler.ensemble(dummy_data(partitions=10, clusters_per_partition=2, elements_in_data=10))
 
-    ensembler.print_to_file("../Dataset/ACE_output.tsv", candidate_clusters)
+    print_partition("../Dataset/ACE_output.tsv", candidate_clusters)
+    # ensembler.print_to_file("../Dataset/ACE_output.tsv", candidate_clusters)
 
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
-from logging import exception
 from typing import Dict, List, Generic, TypeVar, Tuple
 from math import sqrt
 import formulas as formula
+import Constants as Constant
 
 import Assertions as Assert
 import sys
@@ -21,18 +21,30 @@ class Contig:
     def __str__(self):
         return self.name
 
-class Cluster(List[T]):
-    def __init__(self, cluster1: Cluster = None, cluster2: Cluster = None):
-        Assert.assert_new_cluster(cluster1, cluster2)
-        
-        self.__children_lst__ = [cluster1, cluster2] if cluster1 is not None else []
+class Cluster(set, Generic[T]):
+    def __init__(self, partition_id = None):
+        self.__children_lst__ = []
+        self.__partition_id__ = partition_id
 
+    @staticmethod
+    def merge(cluster1: Cluster[T], cluster2: Cluster[T]) -> Cluster[T]:
+        Assert.assert_not_none(cluster1)
+        Assert.assert_not_none(cluster2)
+        result = Cluster()
+        result.__children_lst__ = [cluster1, cluster2]
+        for x in cluster1:
+            result.append(x)
+        for x in cluster2:
+            if x not in result:
+                result.append(x)
+        return result
+    
     def append(self, __object: T) -> None:
         if __object in self:
             raise Exception(f"Item {str(__object)} already in cluster")
-        return super().append(__object)
+        return super().add(__object)
 
-    def intersection(self, other: Cluster[T]) -> Cluster[T]:
+    def intersection(self, other: Cluster[T]) -> List[T]:
         result = []
         for item in other:
             if item in self:
@@ -48,6 +60,11 @@ class Cluster(List[T]):
 
     def contains(self, item: T) -> bool:
         return item in self
+    
+    def SamePartitionAs(self, other: Cluster) -> bool:
+        if self.__partition_id__ is None or other.__partition_id__ is None:
+            return False
+        return self.__partition_id__ == other.__partition_id__
 
     # def merge(self, other: Cluster[T]) -> Cluster[T]:
     #     result = Cluster(self, other)
@@ -58,15 +75,7 @@ class Cluster(List[T]):
     #             result.append(x)
     #     return result
     
-    @staticmethod
-    def merge(cluster1: Cluster[T], cluster2: Cluster[T]) -> Cluster[T]:
-        result = Cluster(cluster1, cluster2)
-        for x in cluster1:
-            result.append(x)
-        for x in cluster2:
-            if x not in result:
-                result.append(x)
-        return result
+
 
     def calc_membership(self, item: T) -> int:
         item_membership_values = self.calc_all_membership()
@@ -80,11 +89,12 @@ class Cluster(List[T]):
         for child in self.__children_lst__:
             child_dic = child.calc_all_membership()
             for item, value in child_dic.items():
-                result[item] = (value if item not in result else result[item] + value)
+                result[item] = value if item not in result else result[item] + value
                 
         for item in self:
             if item not in result:
                 result[item] = 1
+        Assert.assert_equal(len(result), len(self))
         return result
 
 
@@ -121,7 +131,7 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
         self.__assert_item_not_in_other_cluster__(item)
 
         if cluster_name not in self:
-            super().__setitem__(cluster_name, Cluster())
+            super().__setitem__(cluster_name, Cluster(id(self)))
 
         self[cluster_name].append(item)
 

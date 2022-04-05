@@ -4,6 +4,7 @@ from Cluster import Cluster, PartitionSet
 from typing import Tuple, Dict, List
 import Assertions as Assert
 from ClusterSimilarityMatrix import ClusterSimilarityMatrix
+from MemberSimularityMatrix import MemberMatrix
 import formulas as formula
 import Constants as Constant
 
@@ -25,6 +26,7 @@ class BitMatrix:
         self.cluster_index_map = self.__setup_cluster_dct__(clusters)
         self.matrix = self.__setup_bit_matrix__(self.cluster_index_map, self.element_index_map)
         self.similarity_matrix = self.__build_similarity_matrix__(gamma, gamma.ClusterToPartitionMap())
+        self.membership_matrix = MemberMatrix(clusters, list(self.element_index_map.keys()))
 
         self.__update_matrix__()
         
@@ -52,7 +54,7 @@ class BitMatrix:
                 matrix[index_1, index_2] = value
                 matrix[index_2, index_1] = value
                 
-        return ClusterSimilarityMatrix(matrix, self.cluster_index_map)
+        return ClusterSimilarityMatrix(matrix, self.cluster_index_map, total_elements)
     
     def __build_similarity_row__(self, cluster: Cluster, partition: int) -> Dict[int, float or np.nan]:
         result = {}
@@ -78,6 +80,7 @@ class BitMatrix:
         Assert.assert_key_not_exists(cluster, self.cluster_index_map)
         Assert.assert_not_none(self.matrix)
         Assert.assert_not_none(self.similarity_matrix)
+        Assert.assert_not_none(self.membership_matrix)
         # ASSERT.assert_item_not_in_collection(self.cluster_index_map, cluster)
         new_index = len(self.cluster_index_map)
         self.cluster_index_map[cluster] = new_index
@@ -85,6 +88,7 @@ class BitMatrix:
         
         similarity_row = self.__build_similarity_row__(cluster, Constant.MERGED_CLUSTER)
         self.similarity_matrix.__expand__(cluster, similarity_row)
+        self.membership_matrix.add_cluster(cluster)
         
         self.__update_column__(cluster)
         
@@ -99,7 +103,7 @@ class BitMatrix:
     def __update_column__(self, cluster: Cluster):
         cluster_idx = self.cluster_index_map[cluster]
         for item in cluster:
-                self.matrix[self.element_index_map[item], cluster_idx] = 1
+            self.matrix[self.element_index_map[item], cluster_idx] = 1
 
     def calc_membership_in_cluster(self, item, cluster: Cluster) -> int:
         result = 0
@@ -114,7 +118,7 @@ class BitMatrix:
 
         for cluster__, partition_idx in cluster_dct.items():
             membership_value = cluster__.calc_membership(item)
-            max_value = max(membership_value, max_value)
+            max_value += membership_value
             if cluster__ is cluster:
                 cluster_value = membership_value
             

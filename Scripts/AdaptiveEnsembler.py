@@ -9,6 +9,8 @@ import Assertions as Assert
 from BitMatrix import BitMatrix
 from sys import maxsize as MAXSIZE
 from time import time
+from MemberSimularityMatrix import MemberSimularityMatrix
+from Logger import Logger
 
 from ClusterSimilarityMatrix import ClusterSimilarityMatrix
 
@@ -22,12 +24,14 @@ class Ensembler:
         pass
 
 class AdaptiveClusterEnsembler(Ensembler):
-    def __init__(self, initial_alpha1_thredshold: float = 0.8, initial_delta_aplha: float = 0.1, alpha1_min: float = 0.6, alpha2: float = 0.2):
+    def __init__(self, initial_alpha1_thredshold: float = 0.8, initial_delta_aplha: float = 0.1,\
+        alpha1_min: float = 0.6, alpha2: float = 0.2, logger: Logger = None):
         self.alpha1_thredshold = initial_alpha1_thredshold
         self.delta_alpha = initial_delta_aplha
         self.aplha1_min = alpha1_min
         self.alpha2 = alpha2
-        self.bit_matrix = None                    
+        self.bit_matrix = None
+        self.logger = logger                    
 
     def __stage2__(self, gamma: PartitionSet) -> Tuple[List[Cluster], List[Cluster], Dict[Cluster, int]]:
         initial_clusters = gamma.ClusterToPartitionMap()
@@ -40,21 +44,22 @@ class AdaptiveClusterEnsembler(Ensembler):
         while True:
             merged_clusters = self.__merge_cls__(self.bit_matrix.similarity_matrix, initial_clusters)
             lambda_len = len(merged_clusters)
+            print(f"lambda: {lambda_len}")
             if lambda_len >= target_clusters:
                 break
             else:
                 self.alpha1_thredshold += self.delta_alpha
 
         print("Started 2.2")
-        i = 0
-        start_22 = time()
+        i, start_22 = 0, time()
+        def log_22() -> None:
+            print(f"iteration {i:05d}, alpha1: {self.alpha1_thredshold:.4f} / { self.aplha1_min }, clusters: {lambda_len} / { target_clusters }, Time: {(time() - start_22):0.02f}s")
+        log_22()
         while lambda_len >= target_clusters:
-
-            if i % 1 == 0:
-                print(f"iteration {i:05d}, alpha1: {self.alpha1_thredshold:.4f}, lambda: {lambda_len}, K: { target_clusters }. Time: {(time() - start_22):0.02f}s")
             i += 1
 
             self.alpha1_thredshold = self.bit_matrix.similarity_matrix.max_similarity(list(merged_clusters.keys()))
+            log_22()
             if self.alpha1_thredshold < self.aplha1_min:
                 break
             else:
@@ -93,6 +98,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         all_elements = gamma.get_all_elements()
 
         totally_uncertain_objects_lst = self.__find_objects_membership_predicate_for_all__(all_elements, lambda x: x <= 0, filtered_cluster_dct)
+        
 
         print("Totally uncertain objects:", len(totally_uncertain_objects_lst))
         non_candidate_clusters_of_uncertain_objects_dct = {item: [c for c in non_candidate_clusters if item in c] \
@@ -105,8 +111,28 @@ class AdaptiveClusterEnsembler(Ensembler):
         # Find totally certain objects and certain objects in candidate clusters
         print("Started 3.3.1: Finding all totally certain and certain objects ...")
 
+        #reinit membership matrix
+        self.bit_matrix.membership_matrix.initialize(list(cluster_dct.keys()))
+
         totally_certain_objects_lst, certain_objects_lst, uncertain_objects_lst \
             = self.__find_objects_for_totally_certain_certain_and_uncertain_objects__(list(all_elements.keys()), cluster_dct)
+        
+        for item in totally_certain_objects_lst:
+            Assert.assert_item_in_list(all_elements, item)
+            # contains = False
+            # for cluster in filtered_cluster_dct.keys():
+            #     if item in cluster:
+            #         contains = True
+            # if not contains:
+            #     raise Exception("UGGA BUGGA")
+            l = list(filter(lambda cluster: item in cluster, filtered_cluster_dct.keys()))
+            if not any(l):
+                print("uncertain objects")
+                for uncertain_object in totally_uncertain_objects_lst:
+                    print(f"item {uncertain_object} with name {uncertain_object.name} is totally uncertain")
+                raise Exception(f"item {item} with name {item.name} is ded, len of filter: {len(l)}")
+    
+
 
         print("Totally certain objects:", len(totally_certain_objects_lst), "Certain Objects:", \
          len(certain_objects_lst), "Uncertain objects:", len(uncertain_objects_lst), "Total elements:", len(all_elements),\
@@ -142,10 +168,13 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.__assign_certain_objects__(candidate_clusters_of_certain_objects_dct, filtered_cluster_dct)
         
         print("Started 3.4.2: Calculating Quality of candidate clusters ...")
-        quality_dct = {cluster: self.__quality_measure__(cluster, cluster_dct) for cluster in tqdm(candidate_clusters) if len(cluster) != 0}
-        
-        print("Evaluating uncertain objects ...")
-        self.__recalculate_and_append_objects__(quality_dct, uncertain_objects_lst, filtered_cluster_dct)
+        if len(uncertain_objects_lst) > 0:
+            quality_dct = {cluster: self.__quality_measure__(cluster, cluster_dct) for cluster in tqdm(candidate_clusters) if len(cluster) != 0}
+            
+            print("Evaluating uncertain objects...")
+            self.__recalculate_and_append_objects__(quality_dct, uncertain_objects_lst, filtered_cluster_dct)
+        else:
+            print("no uncertain objects to evalutate, skipping step...")
         Assert.assert_only_one_of_each_element_in_cluster_list(all_elements, candidate_clusters)
         #ASSERT.assert_all_elements_are_in_cluster_lst(all_elements, candidate_clusters)
 
@@ -157,7 +186,9 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         for item, cluster_lst in tqdm(certain_objects_map.items()):
             max_value, max_cluster = 0, None
-            for cluster in cluster_lst:
+            Assert.assert_list_nonempty(cluster_lst)
+            for cluster in cluster_lst: 
+                Assert.assert_list_nonempty(cluster)
                 similarity = self.bit_matrix.membership_similarity_measure(item, cluster, cluster_dct)
                 
                 if similarity >= max_value:
@@ -166,7 +197,8 @@ class AdaptiveClusterEnsembler(Ensembler):
                     if similarity >= 1:
                         break
             #end of loop
-            Assert.assert_not_none(max_cluster)
+            if max_cluster is None:
+                Assert.assert_not_none(max_cluster)
             for cluster in cluster_lst:
                 cluster.remove(item)
                 
@@ -181,7 +213,7 @@ class AdaptiveClusterEnsembler(Ensembler):
             #Value of oldValue = [total_oldValue / len(cluster - 1)], so we can get total contribution of oldValue by oldValue by:
             #[total_oldValue / len(cluster-1)] * len(cluster-1)
             Assert.assert_item_not_in_collection(cluster, item)
-            Assert.assert_min_list_len(cluster, 1)
+            Assert.assert_list_nonempty(cluster)
             oldValue = quality_dict[cluster]
             total_oldValue = oldValue * (len(cluster))
             itemValue = 0
@@ -219,11 +251,19 @@ class AdaptiveClusterEnsembler(Ensembler):
 
     def __find_objects_for_totally_certain_certain_and_uncertain_objects__(self, elements: List, cluster_dct: Dict[Cluster, int]) -> Tuple[List, List, List]:
         totally_certain_lst, certain_lst, uncertain_lst  = [], [], []
-        
+        membership_simularity_matrix = self.bit_matrix.membership_matrix\
+            .BuildSimularityMatrix(list(cluster_dct.keys()))
+    
+        np.savetxt("matrix.txt", membership_simularity_matrix.matrix, fmt='%f', newline='\n\n')
+        np.savetxt("matrix_0.txt", membership_simularity_matrix.matrix.sum(axis=0), delimiter=',', fmt='%f', newline='\n\n')
+        np.savetxt("matrix_1.txt", membership_simularity_matrix.matrix.sum(axis=1), delimiter=',', fmt='%f', newline='\n\n')
+        np.savetxt("matrix_max_0.txt", membership_simularity_matrix.matrix.max(axis=0), delimiter=',', fmt='%f', newline='\n\n')
+        np.savetxt("matrix_max_1.txt", membership_simularity_matrix.matrix.max(axis=1), delimiter=',', fmt='%f', newline='\n\n')
+
         parameters, item_map = [], {} #id -> item
         for i in range(len(elements)):
             item = elements[i]
-            tup = (item, i, cluster_dct, self  )
+            tup = (item, i, cluster_dct, membership_simularity_matrix, self.alpha2  )
             item_map[i] = item
             parameters.append( tup )
         
@@ -284,25 +324,21 @@ class AdaptiveClusterEnsembler(Ensembler):
 
 
     def __add_totally_uncertain_objects_to_candidate_clusters__(self, non_candidate_clusters_of_uncertain_objects_dct: Dict[str, List[Cluster]], candidate_clusters: List[Cluster], gamma: PartitionSet) -> None:
-        failed = 0
         for uncertain_object, cluster_lst in tqdm(non_candidate_clusters_of_uncertain_objects_dct.items()):
-            max_similarity = 0
-            max_similarity_candidate_cluster = None
+            max_similarity, max_similarity_candidate_cluster = -1, None
+            Assert.assert_list_nonempty(cluster_lst)
             for cluster in cluster_lst:
                 for candidate_cluster in candidate_clusters:
                     similarity = self.bit_matrix.similarity_matrix.getEntry(cluster, candidate_cluster)
                     # similarity = gamma.__similarity_measure_cluster__(cluster, candidate_cluster)
-                    if similarity > max_similarity:
+                    if similarity >= max_similarity:
                         max_similarity = similarity
                         max_similarity_candidate_cluster = candidate_cluster
             
-            if max_similarity_candidate_cluster is not None:
-                if uncertain_object in max_similarity_candidate_cluster:
-                    print(f"Object {str(uncertain_object)} already in cluster!")
-                    failed += 1
-                else:
-                    max_similarity_candidate_cluster.append(uncertain_object)
-        print(f"Failed: {failed}")
+            Assert.assert_not_none(max_similarity_candidate_cluster)
+            if uncertain_object in max_similarity_candidate_cluster:
+                raise Exception(f"Item {uncertain_object} is already in cluster!")
+            max_similarity_candidate_cluster.append(uncertain_object)
 
     def __find_all_clusters_with_atleast_one_certain_cluster__(self, cluster_dct: Dict[Cluster, int]) -> List[Cluster]:
         result = []
@@ -335,34 +371,10 @@ class AdaptiveClusterEnsembler(Ensembler):
         return result / len(cluster)
 
 
-    def __similarity_matrix__(self, gamma: PartitionSet, cluster_dct: Dict[Cluster, int]) -> np.matrix:
-        matrix = np.empty_like(0, shape = (len(cluster_dct), len(cluster_dct))).astype(np.float32)
-        matrix.fill(0)
-        lst_data = list(cluster_dct.items())
-        done_set = set()
-
-        for i in range(len(lst_data)):
-            for j in range(len(lst_data)):
-                # Also catches if cluster1 == cluster 2, as they are in same partition
-                if self.__is_same_partition__(lst_data[i][1], lst_data[j][1]) or i == j:
-                    continue
-
-                if lst_data[j][0] in done_set:
-                    continue
-                
-                similarity = gamma.__similarity_measure_cluster__(lst_data[i][0], lst_data[j][0])
-                matrix[i,j] = similarity
-                matrix[j,i] = similarity
-
-        return matrix
-
-    def __is_same_partition__(self, partition_idx1: int, partition_idx2: int) -> bool:
-        return partition_idx1 == partition_idx2 and partition_idx1 != MERGED_CLUSTER
-            
 
     def ensemble(self, gamma: PartitionSet[Contig]) -> None:
         self.bit_matrix = BitMatrix(gamma)
-        print(self.bit_matrix, self.bit_matrix.matrix.shape)
+        # print(self.bit_matrix, self.bit_matrix.matrix.shape)
         candidate_clusters, non_candidate_clusters, merged_clusters = self.__stage2__(gamma)
         print(len(candidate_clusters), len(non_candidate_clusters), self.alpha2, gamma.maximal_partition_clusters())
         return self.__stage3__(candidate_clusters, non_candidate_clusters, gamma, merged_clusters)
@@ -373,6 +385,8 @@ class AdaptiveClusterEnsembler(Ensembler):
                 for item in clusters[cluster_idx]:
                     file.write(f"{cluster_idx}\t{item.name}\n")
 
+    def __is_same_partition__(self, partition_idx1: int, partition_idx2: int) -> bool:
+            return partition_idx1 == partition_idx2 and partition_idx1 != MERGED_CLUSTER
 
     def __merge_cls__(self, similarity_matrix: ClusterSimilarityMatrix, dct_info: Dict[Cluster, int], debug:bool = False) -> Dict[Cluster, int]:
         result_dct = {}
@@ -444,18 +458,21 @@ class AdaptiveClusterEnsembler(Ensembler):
     
     
 def __partial_cluster_certainty_degree__(\
-    tuple : Tuple[object, int,  Dict[Cluster, int], AdaptiveClusterEnsembler] ) -> Tuple[object, int]:
-    item, id, cluster_dct, ensembler = tuple
+    tuple : Tuple[object, int,  Dict[Cluster, int], MemberSimularityMatrix, float] ) -> Tuple[object, int]:
+    # item, id, cluster_dct, ensembler = tuple
+    item, id, cluster_dct, matrix, alpha2 = tuple
     
     certainty_degree = UNCERTAIN
     for cluster in cluster_dct.keys():
 
-        similarity = ensembler.bit_matrix.membership_similarity_measure(item, cluster, cluster_dct)
+        similarity = matrix.GetEntry(cluster, item)
+        # similarity = ensembler.bit_matrix.membership_similarity_measure(item, cluster, cluster_dct)
 
         if similarity >= 1:
             certainty_degree = TOTALLY_CERTAIN
             break
-        elif similarity > ensembler.alpha2 and similarity < 1:
+        elif similarity > alpha2 and similarity < 1:
             certainty_degree = CERTAIN
-            break
+            
+            
     return (id, certainty_degree)

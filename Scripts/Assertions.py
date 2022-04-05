@@ -27,7 +27,14 @@ def assert_key_not_exists(key, dct: Dict) -> None:
 def assert_partition_content(data: List, item) -> None:
     if item not in data:
         raise Exception(f"Item {item} not in data")
-        
+
+def assert_unique(collection: Collection):
+    if len(collection) <= 1:
+        return
+    
+    
+    if len(collection) > len(set(collection)):
+        raise Exception("Collection is not consisting of unique elements")
 
 def assert_partion_set_content(partition_set: List[Dict]) -> None:
     raf = None
@@ -39,7 +46,7 @@ def assert_partion_set_content(partition_set: List[Dict]) -> None:
             raise Exception("Data is not the same in partitionset and partition")
 
 def assert_min_list_len(lst: List, min_len: int):
-    if len(lst) <= min_len:
+    if len(lst) < min_len:
         raise Exception(f"list has length {len(lst)}, but should have a minimum of {min_len}")
 
 def assert_list_nonempty(lst: List) -> None:
@@ -80,3 +87,11 @@ def assert_all_elements_are_in_cluster_lst(elements, cluster_lst) -> None:
     for element in elements:
         if element not in item_set:
             raise Exception("Missing element in item_set")
+    
+def assert_equal(value1, value2) -> None:
+    if value1 != value2:
+        raise Exception(f"{value1} != {value2}")
+
+def assert_not_equal(value1, value2) -> None:
+    if value1 == value2:
+        raise Exception(f"{value1} == {value2}")
