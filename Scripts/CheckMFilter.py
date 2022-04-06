@@ -8,6 +8,8 @@ from tqdm import tqdm
 COMPLETENESS_INDEX = 10
 CONTAMINATION_INDEX = 11 
 DEFAULT_PREDICATE = lambda x: True
+BETA_MULTIPLIER = 5
+QUALITY_THREDSHOLD = 0.5
 
 class BinDto:
     def __init__(self, name: str, contamination: float, completeness: float) -> None:
@@ -29,6 +31,10 @@ class BinDto:
     def isPartial(self) -> bool:
         return self.contamination > 15 and self.completeness < 50
 
+    def checkQuality(self) -> float:
+        quality = self.completeness / (self.contamination * BETA_MULTIPLIER + self.completeness) if self.completeness != 0 or self.contamination != 0 else 0
+        return quality
+
     def isNotZeroCompleteness(self) -> bool:
         return self.completeness == 0
         
@@ -44,11 +50,11 @@ class BinDto:
         return 'Bad bin'
         
     def __str__(self) -> str:
-        return f"{self.name}\t{self.contamination}\t{self.completeness}\t{self.categoryToString()}"
+        return f"{self.name}\t{self.contamination}\t{self.completeness}\t{self.categoryToString()}\t{self.checkQuality()}"
     
     @staticmethod
     def toStringFormat():
-        return "name\tcontamination\tcompleteness\tcategory\t"
+        return "name\tcontamination\tcompleteness\tcategory\tQuality\t"
 
 class CheckMFilter:
     def __init__(self, filepath: str, outputPath: str, print_predicate: Callable[[BinDto], bool] = None) -> None:
@@ -73,11 +79,18 @@ class CheckMFilter:
     
     def write_output(self, values: List[BinDto]) -> None:
         print("writing output...")
-        with open(self.outputPath, 'x') as f:
+        with open(self.outputPath, 'w') as f:
             f.write(BinDto.toStringFormat() + "\n")
             for dto in tqdm(values):
                 if self.predicate(dto):
                     f.write(str(dto) + "\n")
+        
+        print("Near:", len([dto for dto in values if dto.isNear()]))
+        print("Substantial:", len([dto for dto in values if dto.isSubstantial()]))
+        print("Moderate:", len([dto for dto in values if dto.isModerate()]))
+        print("Partial:", len([dto for dto in values if dto.isPartial()]))
+        print("Rest:", len([dto for dto in values if getPrintPredicate('rest')(dto)]))
+
             
     
     def prettyprint(self, line: str):
@@ -105,6 +118,10 @@ def getPrintPredicate(input: str = None) -> Callable[[BinDto], bool]:
         return lambda x: x.isModerate() or x.isSubstantial() or x.isNear()
     elif input == "rest":
         return lambda x: x.isNear() is False and x.isModerate() is False and x.isSubstantial() is False and x.isPartial() is False and x.isNotZeroCompleteness() is False
+    elif input == "all":
+        return lambda x: x.isNear() or x.isModerate() or x.isSubstantial() or x.isPartial()
+    elif input == "quality":
+        return lambda x: x.checkQuality() >= QUALITY_THREDSHOLD
     else:
         raise Exception(f"print predicate '{input}' cannot be found."\
             + " try 'near', 'substantial', 'moderate', 'partial', 'moderateOrBetter' or leave blank")
