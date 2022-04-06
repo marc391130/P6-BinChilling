@@ -9,7 +9,8 @@ from tqdm import tqdm
 
 FOLDER_PATH = "C:/Users/Patrick/Documents/Github/P6/Dataset"
 FILE_NAME = "features.tsv"
-OUTPUT_NAME = "kmeans_out.tsv"
+OUTPUT_NAME = "kmeans_out_"
+OUTPUT_TYPE = ".tsv"
 
 seed(2)
 
@@ -41,7 +42,7 @@ class KMeansRunner:
     def make_tsv(self, cluster_map: pd.DataFrame, nr_name: int) -> None:
         data_dct: Dict[int, List[int]] = {}
 
-        file_path = join(FOLDER_PATH, OUTPUT_NAME + str(nr_name))
+        file_path = join(FOLDER_PATH, OUTPUT_NAME + str(nr_name) + OUTPUT_TYPE)
 
         for idx_, row in cluster_map.iterrows():
             cluster_id = row['cluster']
