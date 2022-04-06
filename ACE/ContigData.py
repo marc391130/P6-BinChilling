@@ -8,6 +8,7 @@ class ContigData:
         self.name = name
         self.contig_length = contig_length
         self.abundance = abundance
+        self.SCG_genes = set()
     
     def as_composition_list(self, addatiive_value = 0) -> List[float]:
         result = []

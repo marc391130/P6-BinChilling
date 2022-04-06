@@ -6,6 +6,7 @@ from typing import List, Dict, Tuple
 import pandas as pd
 import collections
 from tqdm import tqdm
+import sys
 
 FOLDER_PATH = "C:/Users/Patrick/Documents/Github/P6/Dataset"
 FILE_NAME = "features.tsv"
@@ -16,7 +17,7 @@ seed(2)
 
 class TsvLoader:
     @staticmethod
-    def load_tsv(file) -> List:
+    def load_tsv(file) -> Tuple[List, List]:
         result = []
         indexes = []
 
@@ -34,15 +35,14 @@ class TsvLoader:
 
 class KMeansRunner:
 
-    def __init__(self, target_clusters: int = 350, variens: int = 10, tsv_data: Tuple[List, List] = None) -> None:
-        self.min_clusters = target_clusters - variens
-        self.max_clsuters = target_clusters + variens
+    def __init__(self, output_path: str, tsv_data: Tuple[List, List] = None) -> None:
         self.data, self.indexes = tsv_data
+        self.output_path = output_path
 
     def make_tsv(self, cluster_map: pd.DataFrame, nr_name: int) -> None:
         data_dct: Dict[int, List[int]] = {}
 
-        file_path = join(FOLDER_PATH, OUTPUT_NAME + str(nr_name) + OUTPUT_TYPE)
+        file_path = join(self.output_path, str(nr_name) + OUTPUT_TYPE)
 
         for idx_, row in cluster_map.iterrows():
             cluster_id = row['cluster']
@@ -69,18 +69,22 @@ class KMeansRunner:
 
         self.make_tsv(data_map, target_clusters)
 
-    def run_range(self) -> None:
-        for x in tqdm(range(self.min_clusters, self.max_clsuters)):
+    def run_range(self, min_c: int, max_c: int) -> None:
+        for x in tqdm(range(min_c, max_c)):
             self.run(x)
 
 
 
 if __name__ == "__main__":    
+    print(sys.argv)
+    if len(sys.argv) != 5:
+        raise ValueError("Provide 4 arguments: inputpath, outputpath, min, max")
+    
     file_path = join(FOLDER_PATH, FILE_NAME)
-    data = TsvLoader.load_tsv(file_path)
+    data = TsvLoader.load_tsv(sys.argv[1])
 
-    runner = KMeansRunner(target_clusters=389, variens=15, tsv_data=data)
-    runner.run_range()
+    runner = KMeansRunner(sys.argv[2], tsv_data=data)
+    runner.run_range(int(sys.argv[3]), int(sys.argv[4]))
 
     # kmeans = KMeans(n_clusters=389)
     # kmeans.fit(data)

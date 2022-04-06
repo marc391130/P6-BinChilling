@@ -4,7 +4,6 @@
 
 from random import randrange, random, seed
 
-from more_itertools import partition
 from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler, target_bin_3_4th_count_estimator
 from Cluster import Cluster, Partition, PartitionSet, Contig
 from tqdm import tqdm
@@ -12,6 +11,7 @@ from PartitionSetReader import PartitionSetReader
 from ContigReader import ContigReader
 import Constants
 import time
+import Constants as Const 
 
 
 # import numpy
@@ -37,18 +37,19 @@ if __name__ == '__main__':
     #     alpha1_min=0.9, \
     #     alpha2=0.6)
     ensembler = AdaptiveClusterEnsembler( \
-        initial_alpha1_thredshold=0.6, \
+        initial_alpha1_thredshold=0.8, \
         initial_delta_aplha=0.02, \
-        alpha1_min=0.7, \
+        alpha1_min=0.8, \
         alpha2=0.9,
         taget_clusters_est=target_bin_3_4th_count_estimator)
 
-    seed(2)
+    seed(2) # most random number used for seed, chosen by committee
 
     use_real_data = True
     candidate_clusters = None
     if use_real_data:
-        partitionSetReader = PartitionSetReader("../Dataset/contigs_numpy.npy", "../Dataset/ClusterData/", lambda x: x.endswith(".tsv"))
+        contigReader = ContigReader(Const.FASTA_FILEPATH, Const.ABUNDANCE_FILEPATH, Const.SCG_FILEPATH, "../Dataset/contigs_numpy.npy")
+        partitionSetReader = PartitionSetReader("../Dataset/ClusterData/", contigReader, lambda x: x.endswith(".tsv"))
         partition_set = partitionSetReader.read_file()
 
         candidate_clusters = ensembler.ensemble(partition_set)

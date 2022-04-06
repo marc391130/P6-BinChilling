@@ -50,9 +50,9 @@ class QualityMeasuerer:
         return (total_val + value) / (len(cluster) +1)
 
 def target_bin_3_4th_count_estimator(gamma: PartitionSet) -> int:
-    cluster_ln = [len(partition) for partition in gamma]
-    average = sum(cluster_ln) / len(cluster_ln)
-    third = (max(cluster_ln) - average ) / 2
+    partition_ln = [len(partition) for partition in gamma]
+    average = sum(partition_ln) / len(partition_ln)
+    third = (max(partition_ln) - average ) / 2
     return int(average + third)
     
 
