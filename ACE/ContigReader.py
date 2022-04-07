@@ -14,7 +14,7 @@ class ContigReader:
         self.numpy_file = numpy_file
         pass
 
-    def read_file_fast(self, numpy_file: str = None, load_SCGs:bool = False) -> Dict[str, ContigData]:
+    def read_file_fast(self, numpy_file: str or None = None, load_SCGs:bool = False) -> Dict[str, ContigData]:
         numpy_path = numpy_file if numpy_file is not None else self.numpy_file
         
         print("trying to load as numpy data...")

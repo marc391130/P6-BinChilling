@@ -1,7 +1,6 @@
 from multiprocessing import cpu_count, Pool
 from typing import Callable, Dict, List, Tuple
 
-from more_itertools import partition
 from Cluster import Cluster, Contig, Partition, PartitionSet
 import numpy as np
 from tqdm import tqdm

@@ -1,5 +1,3 @@
-from logging import exception
-from nis import match
 from typing import Callable, List
 import sys
 from tqdm import tqdm
@@ -39,13 +37,13 @@ class BinDto:
         return self.completeness == 0
         
     def categoryToString(self) -> str:
-        if self.isNear:
+        if self.isNear():
             return 'near'
-        if self.isSubstantial:
+        if self.isSubstantial():
             return 'substantial'
-        if self.isModerate:
+        if self.isModerate():
             return 'moderate'
-        if self.isPartial:
+        if self.isPartial():
             return 'partial'
         return 'Bad bin'
         
