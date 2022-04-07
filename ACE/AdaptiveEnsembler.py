@@ -69,7 +69,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.taget_clusters_est = taget_clusters_est
     
     
-    def __target_clusters__(self, gamma: PartitionSet) -> int:
+    def __calc_target_clusters__(self, gamma: PartitionSet) -> int:
         if isinstance(self.taget_clusters_est, int):
             return self.taget_clusters_est
         elif callable(self.taget_clusters_est):
@@ -90,7 +90,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         self.log("Building Cluster simularity matrix...")
         clusterMatrix = ClusterSimilarityMatrix.Build(all_clusters, len(all_items))
-        target_clusters = self.__target_clusters__(gamma)
+        target_clusters = self.__calc_target_clusters__(gamma)
         
         memberMatrix: MemberMatrix = None
         
@@ -363,7 +363,7 @@ def MergeClusters(alpha1: float, cluster_sim_matrix: ClusterSimilarityMatrix, cl
 
 
 
-#returns (item_id, s_x,cluster_index)
+#returns (item_id, s_x, cluster_index)
 def __partial_cluster_certainty_degree__(\
     tuple : Tuple[int, np.matrix] ) -> Tuple[int, float, int]:
     # item, id, cluster_dct, ensembler = tuple

@@ -75,7 +75,7 @@ class ContigReader:
         return result
 
 
-    def read_SCGs(self) -> Dict[str, List[str]]:
+    def read_contig_SCGs(self) -> Dict[str, List[str]]:
         if self.SCG_filepath is None:
             print("No SCG filepath supplied, skipping reading of SCGs, despite it being enabled")
             return dict()
@@ -116,6 +116,19 @@ class ContigReader:
                 result[name] = parse_SCG_from_line(name, SCG_str)
         return result
 
+
+
+    def read_total_SCGs_set(self) -> set:
+        contig_SCGs = self.read_contig_SCGs()
+        result = set()
+        
+        for SCG_lst in contig_SCGs.values():
+            SCG_set = set(SCG_lst)
+            result.union(SCG_set)
+        return result
+        
+    
+    
     def read_contig_names(self, file_path: str) -> List[str]:
         with open(file_path, 'r') as file:
             return [line.split('>')[1].strip('\n') for line in file.readlines() if line.startswith('>')]

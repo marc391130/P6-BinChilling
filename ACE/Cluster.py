@@ -29,24 +29,31 @@ class Cluster(set, Generic[T]):
     def merge(cluster1: Cluster[T], cluster2: Cluster[T]) -> Cluster[T]:
         Assert.assert_not_none(cluster1)
         Assert.assert_not_none(cluster2)
-        result = Cluster()
-        result.__children_lst__ = [cluster1, cluster2]
-        for x in cluster1:
-            result.append(x)
-        for x in cluster2:
-            if x not in result:
-                result.append(x)
-        return result
+        cluster = Cluster()
+        cluster.__children_lst__ = [cluster1, cluster2]
+        for x in cluster1.union(cluster2):
+            cluster.add(x)
+        return cluster
     
     def append(self, __object: T) -> None:
         if __object in self:
             raise Exception(f"Item {str(__object)} already in cluster")
         return super().add(__object)
 
-    def intersection(self, other: Cluster[T]) -> List[T]:
+    # def intersection(self, other: Cluster[T]) -> List[T]:
+    #     result = []
+    #     for item in other:
+    #         if item in self:
+    #             result.append(item)
+    #     return result
+
+    def descriminatory_union(self, other: Cluster[T]) -> List[T]:
         result = []
         for item in other:
-            if item in self:
+            if item not in self:
+                result.append(item)
+        for item in self:
+            if item not in other:
                 result.append(item)
         return result
 
