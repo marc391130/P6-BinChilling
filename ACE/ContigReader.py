@@ -124,7 +124,7 @@ class ContigReader:
         
         for SCG_lst in contig_SCGs.values():
             SCG_set = set(SCG_lst)
-            result.union(SCG_set)
+            result = result.union(SCG_set)
         return result
         
     
@@ -177,7 +177,6 @@ class ContigReader:
     
 if __name__ == "__main__":
     reader = ContigReader('../Dataset/edges.fasta', '../Dataset/edges_depth.txt', '../Dataset/marker_gene_stats.tsv')
-    r = reader.read_SCGs()
+    r = reader.read_total_SCGs_set()
     print("DONE")
-    for n, l in sorted(r.items(), key=lambda b: b[0]):
-        print(n, '|', l)
+    print(len(r))
