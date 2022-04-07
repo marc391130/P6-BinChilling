@@ -19,6 +19,7 @@ class BinEvaluator:
 
         for cluster in cluster_lst:
             result[cluster] = (self.__calculate_completeness__(cluster), self.__calculate_contamination__(cluster))
+            #print((self.__calculate_completeness__(cluster)) - (0.5 * self.__calculate_contamination__(cluster)) - (0.5 * self.__calculate_megabin_penalty__(cluster)))
 
         return result
 
@@ -31,12 +32,8 @@ class BinEvaluator:
         return (counter / divisor) * 100 if divisor != 0 else 0
 
     def __calculate_contamination__(self, cluster: Cluster[ContigData]) -> float:
-        SCGs = {}
+        SCGs = self.__calculate_number_of_SCGs__(cluster)
         uniques = self.__calculate_unqiues__(cluster)
-        
-        for item in cluster:
-            for scg in item.SCG_genes:
-                SCGs[scg] = SCGs[scg] + 1 if scg in SCGs else 1
 
         dSCG = [scg for scg, count in SCGs.items() if count > 1]
 
@@ -44,6 +41,13 @@ class BinEvaluator:
         divisor = len(uniques)
 
         return (counter / divisor) * 100 if divisor != 0 else 0
+
+    def __calculate_megabin_penalty__(self, cluster: Cluster[ContigData]) -> float:
+        SCGs = self.__calculate_number_of_SCGs__(cluster)
+        uniques = self.__calculate_unqiues__(cluster)
+        nr_SCGs = sum(list(SCGs.values())) - len(uniques)
+
+        return nr_SCGs / len(self.all_SCGs) if len(self.all_SCGs) != 0 else 0
 
     def __calculate_unqiues__(self, cluster: Cluster) -> set:
         uniques = set()
@@ -53,6 +57,15 @@ class BinEvaluator:
                 uniques.add(scg)
 
         return uniques
+    
+    def __calculate_number_of_SCGs__(self, cluster: Cluster[ContigData]) -> Dict[str, int]:
+        SCGs = {}
+
+        for item in cluster:
+            for scg in item.SCG_genes:
+                SCGs[scg] = SCGs[scg] + 1 if scg in SCGs else 1
+
+        return SCGs
 
 class ClusterReader:
     def __init__(self, file_path: str, contig_reader: ContigReader) -> None:
