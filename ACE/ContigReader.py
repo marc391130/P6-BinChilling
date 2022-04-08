@@ -7,7 +7,7 @@ import re
 import numpy as np
 
 class ContigReader:
-    def __init__(self, fasta_file: str, depth_file: str,  SCG_filepath: str = None, numpy_file: str = None):
+    def __init__(self, fasta_file: str, depth_file: str = None,  SCG_filepath: str = None, numpy_file: str = None):
         self.fasta_file = fasta_file
         self.SCG_filepath = SCG_filepath
         self.depth_file = depth_file
@@ -38,7 +38,7 @@ class ContigReader:
 
     def read_file(self, file_path: str, load_SCGs:bool = False) -> Dict[str, ContigData]:
         result: Dict[str, ContigData] = {}
-        abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file)
+        abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file) if self.depth_file is not None else {}
 
         def clean_line_name(line: str) -> str:
             return line.split('>')[1].replace('\n', '')
@@ -54,7 +54,7 @@ class ContigReader:
                     continue
                 name = clean_line_name(line)
                 composition = Composition()
-                contig = ContigData(name, composition, 0, abundance_length_dict[name][0])
+                contig = ContigData(name, composition, 0, (abundance_length_dict[name][0] if self.abundance_length_dict is not None else 0))
                 temp_string = ""
                 for i in range(index+1, len(lines)):
                     if lines[i].startswith('>'):
