@@ -5,6 +5,7 @@ from tqdm import tqdm
 from CompositionAnalyzer import CompositionAnalyzer
 import re
 import numpy as np
+import zipfile
 
 class ContigReader:
     def __init__(self, fasta_file: str, depth_file: str = None,  SCG_filepath: str = None, numpy_file: str = None):
@@ -12,7 +13,6 @@ class ContigReader:
         self.SCG_filepath = SCG_filepath
         self.depth_file = depth_file
         self.numpy_file = numpy_file
-        pass
 
     def read_file_fast(self, numpy_file: str or None = None, load_SCGs:bool = False) -> Dict[str, ContigData]:
         numpy_path = numpy_file if numpy_file is not None else self.numpy_file
@@ -38,23 +38,23 @@ class ContigReader:
 
     def read_file(self, file_path: str, load_SCGs:bool = False) -> Dict[str, ContigData]:
         result: Dict[str, ContigData] = {}
-        abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file) if self.depth_file is not None else {}
+        abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file) if self.depth_file is not None else None
 
         def clean_line_name(line: str) -> str:
             return line.split('>')[1].replace('\n', '')
         
-
         composition_analyzer = CompositionAnalyzer()
         with open(file_path, 'r') as file:
             lines = file.readlines()
-
+            current_contig = 0
             for index in tqdm(range(len(lines))):
                 line = lines[index]
                 if not line.startswith('>'):
                     continue
-                name = clean_line_name(line)
+                current_contig += 1
+                name = clean_line_name(line) if not self.depth_file.endswith('.npz') else str(current_contig)
                 composition = Composition()
-                contig = ContigData(name, composition, 0, (abundance_length_dict[name][0] if self.abundance_length_dict is not None else 0))
+                contig = ContigData(name, composition, 0, (abundance_length_dict[name][0] if abundance_length_dict is not None else 0))
                 temp_string = ""
                 for i in range(index+1, len(lines)):
                     if lines[i].startswith('>'):
@@ -145,16 +145,29 @@ class ContigReader:
                 raise Exception(f"Over 1% error")
 
     def __get_abundance_length_dict__(self, file_path: str) -> Dict[str, Tuple[float,int]]:
+        def read_npz(file_path):
+            data = np.load(file_path)
+            result = data['arr_0']
+            data.close()
+            return result
+
         result = {}
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
+        if file_path.endswith('.npz'):
+            npz_data = read_npz(file_path)
             
-            for i in range(1, len(lines)):
-                data = lines[i].replace('\t', " ").split(' ')
-                name = data[0]
-                length = int(float(data[1]))
-                abundance = float(data[2])
-                result[name] = (abundance, length)
+            for data_idx in range(len(npz_data)):
+                result[str(data_idx)] = (np.median(npz_data[data_idx], axis=0), 0)
+            
+        else:
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+                
+                for i in range(1, len(lines)):
+                    data = lines[i].replace('\t', " ").split(' ')
+                    name = data[0]
+                    length = int(float(data[1]))
+                    abundance = float(data[2])
+                    result[name] = (abundance, length)
         return result
 
     def __get_abundance__(self, abundance_dict: Dict[str, float], name: str) -> float:
