@@ -48,7 +48,7 @@ if __name__ == '__main__':
     use_real_data = True
     candidate_clusters = None
     if use_real_data:
-        contigReader = ContigReader(Const.FASTA_FILEPATH, Const.ABUNDANCE_FILEPATH, Const.SCG_FILEPATH, "../Dataset/contigs_numpy.npy")
+        contigReader = ContigReader(Const.FASTA_FILEPATH, '../Dataset/oral_abundance.npz', Const.SCG_FILEPATH, "../Dataset/contigs_numpy.npy")
         partitionSetReader = PartitionSetReader("../Dataset/ClusterData/", contigReader, lambda x: x.endswith(".tsv"))
         partition_set = partitionSetReader.read_file()
 
