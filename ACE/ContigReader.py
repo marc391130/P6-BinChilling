@@ -51,11 +51,11 @@ class ContigReader:
                 line = lines[index]
                 if not line.startswith('>'):
                     continue
-                current_contig += 1
                 name = clean_line_name(line) if not self.depth_file.endswith('.npz') else str(current_contig)
                 composition = Composition()
                 contig = ContigData(name, composition, 0, (abundance_length_dict[name][0] if abundance_length_dict is not None else 0))
                 temp_string = ""
+                current_contig += 1
                 for i in range(index+1, len(lines)):
                     if lines[i].startswith('>'):
                         break
