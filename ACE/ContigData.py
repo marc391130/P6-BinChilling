@@ -3,11 +3,12 @@ from Composition import Composition
 from typing import List
 
 class ContigData: 
-    def __init__(self, name: str = "", composition: Composition = None, contig_length: int = 0, abundance: float = 0):
+    def __init__(self, name: str = "", composition: Composition = None, contig_length: int = 0, avg_abundance: float = 0):
         self.composition = composition
         self.name = name
         self.contig_length = contig_length
-        self.abundance = abundance
+        self.avg_abundance = avg_abundance
+        self.SCG_genes = set()
     
     def as_composition_list(self, addatiive_value = 0) -> List[float]:
         result = []
@@ -18,7 +19,7 @@ class ContigData:
         return result
 
     def pretty_print(self) -> None:
-        print(f"{self.name} {self.contig_length} {self.abundance} {self.composition}")
+        print(f"{self.name} {self.contig_length} {self.avg_abundance} {self.composition}")
     
     def __hash__(self) -> int:
         return self.name.__hash__()

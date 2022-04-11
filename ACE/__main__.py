@@ -4,14 +4,19 @@
 
 from random import randrange, random, seed
 
-from more_itertools import partition
 from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler, target_bin_3_4th_count_estimator
 from Cluster import Cluster, Partition, PartitionSet, Contig
 from tqdm import tqdm
 from PartitionSetReader import PartitionSetReader
 from ContigReader import ContigReader
+from ContigData import ContigData
 import Constants
 import time
+import Constants as Const 
+import argparse
+import sys
+import os
+from io import TextIOWrapper
 
 
 # import numpy
@@ -22,55 +27,202 @@ import time
 # print(numpy.append(arr , app, axis=1 ))
 # raise Exception()
 
-def print_partition(file_path: str, parititon: Partition):
+def print_result(file_path: str, parititon: Partition[ContigData]):
     with open(file_path, 'w') as file:
         cluster_lst = list(parititon.values())
         for cluster_idx in range(len(cluster_lst)):
             for item in cluster_lst[cluster_idx]:
                 file.write(f"{cluster_idx+1}\t{item.name}\n")
 
-if __name__ == '__main__':
 
-    # ensembler = AdaptiveClusterEnsembler( \
-    #     initial_alpha1_thredshold=0.6, \
-    #     initial_delta_aplha=0.1, \
-    #     alpha1_min=0.9, \
-    #     alpha2=0.6)
-    ensembler = AdaptiveClusterEnsembler( \
-        initial_alpha1_thredshold=0.6, \
-        initial_delta_aplha=0.02, \
-        alpha1_min=0.7, \
-        alpha2=0.9,
-        taget_clusters_est=target_bin_3_4th_count_estimator)
+def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
+    numpy_cachepath: str, partition_folder: str, output_path: str):
+    
+    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, numpy_cachepath)
+    partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"))
+    partition_set = partitionSetReader.read_file()
 
-    seed(2)
+    output = ensembler.ensemble(partition_set)
+            
+    print_result(output_path, output)
+    print("Completed successfully")
+    sys.exit(0)
+    
+def run_searchensemble(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
+    numpy_cachepath: str, partition_folder: str, output_path: str):
+    
+    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, numpy_cachepath)
+    partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"))
+    partition_set = partitionSetReader.read_file()
 
-    use_real_data = True
-    candidate_clusters = None
-    if use_real_data:
-        partitionSetReader = PartitionSetReader("../Dataset/contigs_numpy.npy", "../Dataset/ClusterData/", lambda x: x.endswith(".tsv"))
-        partition_set = partitionSetReader.read_file()
+    for i in range(25):
+        output = ensembler.ensemble(partition_set)
+    print_result(output_path, output)
+    print("Completed successfully")
+    sys.exit(0)
 
-        candidate_clusters = ensembler.ensemble(partition_set)
+def main():    
+    seed(2) # most random number used for seed, chosen by committee
+    
+    parser = argparse.ArgumentParser(
+        prog='ACE',
+        description="""ACE BINNING ENSEMBLER""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        usage="%(prog)s WRITE THIS LATER PLZ",
+        add_help=True
+        )
+    
+    
+    p_args = parser.add_argument_group(title='Contig input (required)', description=None)
+    p_args.add_argument('--fasta', metavar='', required=True,\
+        dest='fasta', help='path to fasta file of contigs')
+    p_args.add_argument('--SCG', metavar='', required=False, \
+        dest='SCG', help='Path to single copy genes file')
+    p_args.add_argument('--jgi', metavar='', required=False, default=None, \
+        dest='JGI', help='path to depth file (either this or --NPZ required)')
+    p_args.add_argument('--NPZ', metavar='', required=False, default=None, \
+        dest='NPZ', help='path to abundance file in npz format (either this or --jgi required)')
+    
+    IO_args = parser.add_argument_group(title='IO (required)', description=None)
+    IO_args.add_argument('--cache', metavar='', required=False,\
+        dest='numpy_cache', help='Path for cache. If no cache exists at the path, a cache file will be created (highly encuraged)')
+    IO_args.add_argument('-P', metavar='', required=True,\
+        dest='partition_folder', help='Path to folder of partition files (Each partition should be its own .tsv file)')
+    IO_args.add_argument('--outdir', metavar='', required=True,\
+        dest='outdir', help='Output file of the result (Overrides file if already exists)')
+    IO_args.add_argument('-l', metavar='', required=False, default=None,\
+        dest='logdest', help='file to output logfile [default = no log file]')
+    
+    ensemble_args = parser.add_argument_group(title='Ensemble variables', description=None)
+    ensemble_args.add_argument('-a1', type=float, dest='a1', metavar='',
+        default=0.9, help='initial a1 value, for merging similar clusters [default = 0.9]')
+
+    ensemble_args.add_argument('-a1min', type=float, dest='a1_min', metavar='',
+        default=0.85, help='the minimum threshold for merging clusters. (recommended between 0.5 and 0.9) [default = 0.85]')
+    ensemble_args.add_argument('-a2',type=float, dest='a2', metavar='',\
+        default=0.85, help='initial a2 value, for labeling item certainty [default = 0.85]')
+    
+    ensemble_args.add_argument('-k', type=int, dest='target_clusters', metavar='',
+        default=None, help='The number of bins to target during the process [default = 3rd quartile average]')
+    
+    if(len(sys.argv) <= 1):
+        parser.print_help()
+        sys.exit()
+        
+    args = parser.parse_args()
+    
+    ###### BINNING ARGS ######
+    
+    #fasta file exist 
+    fasta_path = os.path.abspath(args.fasta)
+    if os.path.isfile(fasta_path) is False:
+        raise FileNotFoundError(fasta_path)
+    
+    #jgi exist
+    abundance_path = None
+    if args.JGI is not None:
+        abundance_path = os.path.abspath(args.JGI)
+        if os.path.isfile(abundance_path) is False:
+            raise FileNotFoundError(abundance_path)
+    elif args.NPZ is not None:
+        abundance_path = os.path.abspath(args.NPZ)
     else:
-        def dummy_data(partitions = 2, clusters_per_partition = 100, elements_in_data=1000) -> PartitionSet:
-            data = [Contig(str(random())) for x in tqdm(range(elements_in_data))]
+        raise argparse.ArgumentError(None, 'Either JGI or NPZ option required')
+    
+    if os.path.isfile(abundance_path) is False:
+            raise FileNotFoundError(abundance_path)
+    
+    #Single copy genes file
+    SCG_path = os.path.abspath(args.SCG)
+    if os.path.isfile(SCG_path) is False:
+        raise FileNotFoundError(SCG_path)
+    
+    ###### IO ARGS ######
+    numpy_cache = None
+    if args.numpy_cache is not None:
+        numpy_cache = os.path.abspath(args.numpy_cache)
+    
+    #partition folder
+    partition_folder = os.path.dirname(args.partition_folder)
+    if partition_folder and os.path.isdir(partition_folder) is False:
+        raise NotADirectoryError(partition_folder)
+    
+    #output file
+    outfile = os.path.abspath(args.outdir)
+    if os.path.isfile(outfile):
+        print(f"Output file '{args.outdir}' already exists, overriding file when process completes...")
+    
+    ###### ENSEMBLER ARGS ######
+    
+    if  0 > args.a1 or args.a1 > 1: 
+        raise argparse.ArgumentError("a1 is not in range 0 to 1")
+    
+    if 0 > args.a1_min or args.a1_min > 1:
+        raise argparse.ArgumentError("a1_min is not in range 0 to 1") 
+    
+    if 0 > args.a2 or args.a2 > 1:
+        raise argparse.ArgumentError("a2 is not in range 0 to 1") 
 
-            partition_set = PartitionSet(data)
-            for x in range(partitions):
-                partition_set.create_partition()
+    target_clusters = args.target_clusters if args.target_clusters is not None\
+        else target_bin_3_4th_count_estimator
+    
+    try: 
+        logfile = open(args.logdest, 'w') if args.logdest is not None else None
+        
+        ensembler = AdaptiveClusterEnsembler(
+                initial_alpha1_thredshold=args.a1,
+                initial_delta_aplha=0.02,
+                alpha1_min=args.a1_min,
+                alpha2=args.a2,
+                taget_clusters_est=target_clusters,
+                logfile=logfile,
+                should_log=True
+            )
+        
+        run(ensembler, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, outfile)
+    finally:
+        if logfile is not None:
+            logfile.close()
+    
+if __name__ == '__main__':
+    main()
+    
 
-            for partition in range(len(partition_set)):
-                cluster_max = max(int(randrange(int(clusters_per_partition * 0.1), clusters_per_partition)), 2)
+    # # ensembler = AdaptiveClusterEnsembler( \
+    # #     initial_alpha1_thredshold=0.6, \
+    # #     initial_delta_aplha=0.1, \
+    # #     alpha1_min=0.9, \
+    # #     alpha2=0.6)
+    
+
+
+    # use_real_data = True
+    # candidate_clusters = None
+    # if use_real_data:
+    #     contigReader = ContigReader(Const.FASTA_FILEPATH, Const.ABUNDANCE_FILEPATH, Const.SCG_FILEPATH, "../Dataset/contigs_numpy.npy")
+    #     partitionSetReader = PartitionSetReader("../Dataset/ClusterData/", contigReader, lambda x: x.endswith(".tsv"))
+    #     partition_set = partitionSetReader.read_file()
+
+    #     candidate_clusters = ensembler.ensemble(partition_set)
+    # else:
+    #     def dummy_data(partitions = 2, clusters_per_partition = 100, elements_in_data=1000) -> PartitionSet:
+    #         data = [Contig(str(random())) for x in tqdm(range(elements_in_data))]
+
+    #         partition_set = PartitionSet(data)
+    #         for x in range(partitions):
+    #             partition_set.create_partition()
+
+    #         for partition in range(len(partition_set)):
+    #             cluster_max = max(int(randrange(int(clusters_per_partition * 0.1), clusters_per_partition)), 2)
                 
-                for x in data:
-                    cluster = int(randrange(0,clusters_per_partition))
-                    partition_set[partition].add(str(cluster), x)
-            return partition_set
+    #             for x in data:
+    #                 cluster = int(randrange(0,clusters_per_partition))
+    #                 partition_set[partition].add(str(cluster), x)
+    #         return partition_set
 
-        candidate_clusters = ensembler.ensemble(dummy_data(partitions=10, clusters_per_partition=2, elements_in_data=10))
+    #     candidate_clusters = ensembler.ensemble(dummy_data(partitions=10, clusters_per_partition=2, elements_in_data=10))
 
-    print_partition("../Dataset/ACE_output.tsv", candidate_clusters)
-    # ensembler.print_to_file("../Dataset/ACE_output.tsv", candidate_clusters)
+    # print_result("../Dataset/ACE_output.tsv", candidate_clusters)
+    # # ensembler.print_to_file("../Dataset/ACE_output.tsv", candidate_clusters)
 
 

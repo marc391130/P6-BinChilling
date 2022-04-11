@@ -451,7 +451,7 @@ def cluster(matrix, randomseed=0, labels=None, maxsteps=25, windowsize=200, mins
 
     Output: Generator of (medoid, {point1, point2 ...}) tuples for each cluster.
     """
-    print(f"howdidwe get here { str(randomseed) }")
+    
     if labels is not None and len(matrix) != len(labels):
         raise ValueError("Got {} labels for {} points".format(len(labels), len(matrix)))
 
