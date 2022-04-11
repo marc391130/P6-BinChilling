@@ -92,7 +92,7 @@ def calc_rpkm(outdir, bampaths, rpkmpath, jgipath, mincontiglength, refhash, nco
 
         if not rpkms.dtype == np.float32:
             raise ValueError('RPKMs .npz array must be of float32 dtype')
-    
+        return rpkms
     else:
         log('Reference hash: {}'.format(refhash if refhash is None else refhash.hex()), logfile, 1)
 

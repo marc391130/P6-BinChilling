@@ -1,7 +1,6 @@
 from os import listdir
 from os.path import join
 from typing import Callable, List
-import Constants as CONSTANT
 import sys
 
 
