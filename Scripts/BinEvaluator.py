@@ -95,7 +95,7 @@ if __name__ == '__main__':
         print("arguments need to be:\n", \
             "1: SCG_Filepath\n", \
             "2: Numpy_filepath\n", \
-            "3: Cluster_filepath", \
+            "3: Cluster_filepath\n", \
             "4: Output path")
     else:
         reader = ContigReader("", "", sys.argv[1], sys.argv[2])

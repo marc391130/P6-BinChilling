@@ -156,39 +156,11 @@ class MemberMatrix:
         # np.savetxt("member_matrix.txt", matrix, fmt='%d', delimiter=',', newline='\n\n')
         return MemberMatrix(matrix, cluster_index_map, item_index_map)
     
-    @staticmethod
-    def buildButGay(cluster_lst: List[Cluster], item_lst: List[object]) -> MemberMatrix:
-        item_index_map = {item_lst[i]: i for i in range(len(item_lst))}
-        cluster_index_map = {cluster_lst[i]: i for i in range(len(cluster_lst))}
-        shape = (len(item_index_map), len(cluster_index_map))
-        matrix: np.matrix = np.zeros(shape=shape, dtype=np.int)
-        
-        print("Calculating gay matrix")
-        for item, i_index in tqdm(item_index_map.items()):
-            for cluster, c_index in cluster_index_map.items():
-                value = cluster.calc_membership(item)
-                matrix[i_index, c_index] = value
-        
-        for row in matrix:
-            print(row.sum())
-            Assert.assert_equal(row.sum(), 5)
-        
-        gay = MemberMatrix(matrix, cluster_index_map, item_index_map)
-        old = MemberMatrix.build(cluster_lst, item_lst)
-        
-        print("Determining gayness")
-        for item, i_index in tqdm(item_index_map.items()):
-            for cluster, c_index in cluster_index_map.items():
-                Assert.assert_equal(gay.matrix[i_index, c_index], old.matrix[i_index, c_index])
-        
-        print("Not gay")
-        return MemberMatrix(matrix, cluster_index_map, item_index_map)
-    
     
     def __getitem__(self, tuple: Tuple[object, Cluster]) -> float:
         item, cluster = tuple
         return self.getEntry(cluster, item)
-     
+    
     def getEntry(self, cluster: Cluster, item: object) -> int:
         Assert.assert_key_exists(cluster, self.cluster_index_map)
         Assert.assert_key_exists(item, self.item_index_map)
@@ -231,26 +203,21 @@ class MemberMatrix:
         Assert.assert_index_exists(item1, self.item_index_map)
         Assert.assert_index_exists(item2, self.item_index_map)
         Assert.assert_not_equal(item1, item2)
-        i1, i2 = self.item_index_map[item1], self.item_index_map[item2]
-        Assert.assert_not_equal(i1, i2)
         
-        row1 = self.matrix[i1]
-        row2 = self.matrix[i2]
-        Assert.assert_equal(len(row1), len(row2))
-        Assert.assert_not_equal(len(row1), 0)
-        common_index = set([index for index in range(len(row1)) if row1[index] > 0 and row2[index] > 0])
         common_neighbors = set()
         for cluster, c_index in self.cluster_index_map.items():
-            if c_index not in common_index:
+            if item1 not in cluster or item2 not in cluster:
                 continue
             for item in cluster:
-                if item not in common_neighbors:
-                    common_neighbors.add(item)
+                common_neighbors.add(item) #set.add does not add duplicates
+                    
         return common_neighbors
     
     def common_neighbors(self, coassociation_matrix: CoAssosiationMatrix, item1: object, item2: object) -> float:
         common_items = self.get_common_items(item1, item2)
-        sum_value = sum([coassociation_matrix[item1, a_item] + coassociation_matrix[a_item, item2] for a_item in common_items])
+        if len(common_items) == 0:
+            return 0
+        sum_value = sum([coassociation_matrix[item1, c_item] + coassociation_matrix[c_item, item2] for c_item in common_items])
         div = 2* len(common_items)
         return sum_value / div if div != 0 else 0
 
@@ -262,9 +229,6 @@ class MemberMatrix:
         values = [self.common_neighbors(coassociation_matrix, item, item2) for item2 in cluster if item != item2 ]
         return sum(values) / len(values)
         
-        
-    def buildCoAssosiationMatrix(self, gamma: PartitionSet) -> CoAssosiationMatrix:
-        return CoAssosiationMatrix.build(gamma, list(self.cluster_index_map.keys()))
     
     def shape(self) -> Tuple[int, int]:
         return (len(self.item_index_map), len(self.cluster_index_map))
@@ -277,31 +241,40 @@ class CoAssosiationMatrix:
         
     
     @staticmethod
-    def build(gamma: PartitionSet, cluster_lst: List[Cluster]) -> CoAssosiationMatrix:
-        Assert.assert_unique(cluster_lst)
+    def build(gamma: PartitionSet) -> CoAssosiationMatrix:
         item_lst = list((gamma.get_all_elements()).keys())
         index_map = {item_lst[i]: i for i in range(len(item_lst))}
         partition_count = len(gamma)
         
-        matrix = np.full(shape=(len(item_lst), len(item_lst)), fill_value=0, dtype=np.float32)
+        matrix :np.matrix = np.full(shape=(len(item_lst), len(item_lst)), fill_value=0, dtype=np.float32)
         
-        print("Building coassociation matrix...")
-        for item_index1 in tqdm(range(len(item_lst))):
-            item1 = item_lst[item_index1]
+        for item1 in tqdm(item_lst):
             matrix_index1 = index_map[item1]
-            for item_index2 in range(item_index1, len(item_lst)):
-                item2 = item_lst[item_index2]
+            item_coasssiation =  gamma.calc_all_coassosiation(item1)
+            
+            for item2, value in item_coasssiation.items():
                 matrix_index2 = index_map[item2]
-                
-                value = len([cluster for cluster in cluster_lst if item1 in cluster and item2 in cluster]) / partition_count
+                    
                 matrix[matrix_index1, matrix_index2] = value
                 matrix[matrix_index2, matrix_index1] = value
-                
-        if matrix.max() == 0:
-            raise Exception("DEBUG THING")
-                
+        
+        np.savetxt('CoAssosiation', matrix, fmt='%f', delimiter=',', newline='\n\n')
         return CoAssosiationMatrix(matrix, index_map, partition_count)
     
+    
+    def FindAssociatedItem(self, item: object) -> object or None:
+        Assert.assert_key_exists(item, self.index_map)
+        index = self.index_map[item]
+        max_value, max_item = 0, None
+        for other_item, other_index in self.index_map.items():
+            if index == other_index:
+                continue
+            value = self.matrix[index, other_index]
+            if value > max_value:
+                max_value = value
+                max_item = other_item
+        return max_item
+        
     
     
     def GetEntry(self, item1: object, item2: object) -> float:

@@ -19,20 +19,6 @@ class ClusterSimilarityMatrix():
         size = len(cluster_index_map)
         matrix = np.full(shape = (size, size), fill_value=np.NINF, dtype=np.float32)
         
-        print("calculating similarity matrix...")
-        # for i in tqdm(range(len(clusters))):
-        #     cluster1 = clusters[i]
-        #     matrix_index_1 = cluster_index_map[cluster1]
-        #     for j in range(i, len(clusters)):
-        #         cluster2 = clusters[j]
-        #         matrix_index_2 = cluster_index_map[cluster2]
-        #         if i == j or cluster1 is cluster2 or cluster1.SamePartitionAs(cluster2):
-        #             # matrix[matrix_index_1, matrix_index_2] = np.NINF
-        #             continue
-                
-        #         value = formula.cluster_simularity(cluster1, cluster2, len(cluster1.intersection(cluster2)), item_count)
-                
-        #         matrix[matrix_index_1, matrix_index_2] = value
         #         matrix[matrix_index_2, matrix_index_1] = value
         def calculate(c1: Cluster, c2: Cluster) -> float:
             return ClusterSimilarityMatrix.cluster_simularity(c1, c2, len(c1.intersection(c2)), item_count)

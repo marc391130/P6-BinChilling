@@ -130,7 +130,7 @@ class Cluster(set, Generic[T]):
 class Partition(Dict[str, Cluster[T]], Generic[T]):
 
     def __init__(self, data: List[T]) -> None:
-        self.__data__ = data
+        self.__data__ = set(data)
 
     def add(self, cluster_name: str, item: T) -> None:
         Assert.assert_partition_content(self.__data__, item)
@@ -151,6 +151,23 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
 
     def element_count(self) -> int:
         return len(self.__data__)
+    
+    def IsInSameCluster(self, item1: T, item2: T) -> bool:
+        Assert.assert_item_in_list(self.__data__, item1)
+        Assert.assert_item_in_list(self.__data__, item2)
+        for cluster in self.values():
+            if item1 in cluster and item2 in cluster:
+                return True
+        return False
+    
+    def get_neighboring_items(self, item: T) -> List[T]:
+        Assert.assert_item_in_list(self.__data__, item)
+        for cluster in self.values():
+            if item in cluster:
+                return list(cluster)
+        return list([])
+        
+        
 
 class PartitionSet(List[Partition[T]]):
     def __init__(self, data: List[T]):
@@ -191,6 +208,24 @@ class PartitionSet(List[Partition[T]]):
             for key, value in self[partition_idx].items():
                 dct_info[value] = partition_idx
         return dct_info
+
+    def calc_all_coassosiation(self, item: object) -> Dict[object, float]:
+        Assert.assert_item_in_list(self.__dataset__, item)
+        item_values = {}
+        for partition in self:
+            common = partition.get_neighboring_items(item)
+            for d_item in common:
+                item_values[d_item] = item_values[d_item] + 1 if d_item in item_values else 1
+                    
+        
+        return { item: value / len(self) for item, value in item_values.items()  }
+
+    def calc_coassosiation(self, item1: object, item2: object):
+        Assert.assert_item_in_list(self.__dataset__, item1)
+        Assert.assert_item_in_list(self.__dataset__, item2)
+        
+        return sum([1 if p.IsInSameCluster(item1, item2) else 0 for p in self]) / len(self)
+            
 
 
     def get_all_clusters(self) -> List[Cluster[T]]:
