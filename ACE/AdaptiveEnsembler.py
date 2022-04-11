@@ -14,7 +14,7 @@ from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimu
 from ClusterSimilarityMatrix import ClusterSimilarityMatrix
 from io import TextIOWrapper
 
-__global_disable_tqdm = True
+__global_disable_tqdm = False
 tqdm.__init__ = partialmethod(tqdm.__init__, disable=__global_disable_tqdm)
 
 THREAD_COUNT = min(cpu_count(), 8) 
