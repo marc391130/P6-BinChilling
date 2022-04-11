@@ -65,7 +65,7 @@ class ContigReader:
                 result[name] = contig
         if load_SCGs:
             print("loading SCGs...")
-            SCG_dct = self.read_SCGs()
+            SCG_dct = self.read_contig_SCGs()
             for contig_name, contig in tqdm(result.items()):
                 if contig_name in SCG_dct:
                     contig.SCG_genes = set(SCG_dct[contig_name])

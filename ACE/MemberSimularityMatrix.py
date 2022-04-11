@@ -9,11 +9,6 @@ def average(ite :Iterable) -> float:
     return sum(ite) / len(ite)
 
 
-class AceMatrix:
-    def __init__(self) -> None:
-        pass
-    
-
 class MemberSimularityMatrix:
     def __init__(self, matrix: np.matrix, cluster_index_map: Dict[Cluster, int], item_index_map: Dict[Cluster, int]) -> None:
         self.matrix = matrix
