@@ -1,14 +1,13 @@
 from random import seed
 from os.path import join
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
 from typing import List, Dict, Tuple
 import pandas as pd
 import collections
 from tqdm import tqdm
 import sys
 
-FOLDER_PATH = "C:/Users/Patrick/Documents/Github/P6/Dataset"
+FOLDER_PATH = "../Dataset"
 FILE_NAME = "features.tsv"
 OUTPUT_NAME = "kmeans_out_"
 OUTPUT_TYPE = ".tsv"
