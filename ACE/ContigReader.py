@@ -4,13 +4,15 @@ from tqdm import tqdm
 from CompositionAnalyzer import CompositionAnalyzer
 import re
 import numpy as np
+from multiprocessing import Pool, cpu_count
 
 class ContigReader:
-    def __init__(self, fasta_file: str, depth_file: str = None,  SCG_filepath: str = None, numpy_file: str = None):
+    def __init__(self, fasta_file: str, depth_file: str = None,  SCG_filepath: str = None, numpy_file: str = None, max_threads: int or None = None):
         self.fasta_file = fasta_file
         self.SCG_filepath = SCG_filepath
         self.depth_file = depth_file
         self.numpy_file = numpy_file
+        self.max_threads = max_threads
 
     def read_file_fast(self, numpy_file: str or None = None, load_SCGs:bool = False) -> Dict[str, ContigData]:
         numpy_path = numpy_file if numpy_file is not None else self.numpy_file
@@ -49,9 +51,10 @@ class ContigReader:
                 line = lines[index]
                 if not line.startswith('>'):
                     continue
-                name = clean_line_name(line) if not self.depth_file.endswith('.npz') else str(current_contig)
+                name = clean_line_name(line) 
                 composition = Composition()
-                contig = ContigData(name, composition, 0, (abundance_length_dict[name][0] if abundance_length_dict is not None else 0))
+                abundance = abundance_length_dict[name][0] if not self.depth_file.endswith('.npz') else abundance_length_dict[str(current_contig)][0]
+                contig = ContigData(name, composition, 0, abundance)
                 temp_string = ""
                 current_contig += 1
                 for i in range(index+1, len(lines)):
@@ -72,6 +75,39 @@ class ContigReader:
 
         return result
 
+    def r_test(self, file_path: str, load_SCGs:bool = False) -> Dict[str, ContigData]:
+        abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file) if self.depth_file is not None else None
+        temp = {}
+        def clean_line_name(line: str) -> str:
+            return line.split('>')[1].replace('\n', '')
+        
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            current_name = ''
+            for line in tqdm(lines):
+                if line.startswith('>'):
+                    current_name = clean_line_name(line) if not self.depth_file.endswith('.npz') else str(len(temp))
+                    temp[current_name] = ''
+                else:
+                    temp[current_name] += line
+                    
+        parameters = [(key, value, abundance_length_dict[key]) for key, value in temp.items()]
+        contig_lst = []
+        with Pool(min(self.max_threads, cpu_count())) as p:
+            contig_lst: List[ContigData] = list(tqdm(p.imap(__build_contig_multithread__, parameters), total=len(parameters)))
+        result = {contig.name: contig for contig in contig_lst}
+        
+        if load_SCGs:
+            print("loading SCGs...")
+            SCG_dct = self.read_contig_SCGs()
+            for contig_name, contig in tqdm(result.items()):
+                if contig_name in SCG_dct:
+                    contig.SCG_genes = set(SCG_dct[contig_name])
+        else:
+            print("skipping SCG load, as option disabled...")
+        
+        return result
+        
 
     def read_contig_SCGs(self) -> Dict[str, List[str]]:
         if self.SCG_filepath is None:
@@ -206,7 +242,16 @@ class DataWrapper():
         split_filename = split_filename[len(split_filename) - 1].split("\\")
         return split_filename[len(split_filename) - 1]
 
+
+def __build_contig_multithread__(tuple: Tuple[str, str, float]) -> ContigData:
+    name, dna_string, abundance = tuple
     
+    composition = Composition()
+    analyser = CompositionAnalyzer()
+    analyser.analyze_composition(composition, dna_string)
+    contig = ContigData(name, composition, contig_length=len(dna_string), avg_abundance=abundance)
+    return contig
+
 if __name__ == "__main__":
     reader = ContigReader('../Dataset/edges.fasta', '../Dataset/edges_depth.txt', '../Dataset/marker_gene_stats.tsv')
     r = reader.read_total_SCGs_set()
