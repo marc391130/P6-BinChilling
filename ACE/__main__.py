@@ -139,17 +139,21 @@ def main():
     ###### IO ARGS ######
     numpy_cache = None
     if args.numpy_cache is not None:
-        numpy_cache = os.path.abspath(args.numpy_cache)
+        numpy_cache: str = os.path.abspath(args.numpy_cache)
+        if not numpy_cache.endswith('.npy'):
+            raise argparse.ArgumentError(args.numpy_cache, message='Provided cache file does not end in .npy')
     
     #partition folder
+    partition_folder = args.partition_folder if args.partition_folder.endswith('/') else args.partition_folder + '/'
     partition_folder = os.path.dirname(args.partition_folder)
     if partition_folder and os.path.isdir(partition_folder) is False:
         raise NotADirectoryError(partition_folder)
     
     #output file
-    outfile = os.path.abspath(args.outdir)
+    outfile: str = os.path.abspath(args.outdir)
+    outfile = outfile if outfile.endswith('.tsv') else outfile + '.tsv'
     if os.path.isfile(outfile):
-        print(f"Output file '{args.outdir}' already exists, overriding file when process completes...")
+        print(f"Output file '{outfile}' already exists, overriding file when process completes...")
     
     ###### ENSEMBLER ARGS ######
     

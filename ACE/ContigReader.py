@@ -1,10 +1,28 @@
 from typing import Dict, List, Tuple
 from Domain import ContigData, Composition
 from tqdm import tqdm
-from CompositionAnalyzer import CompositionAnalyzer
+import Constants as const
 import re
 import numpy as np
 from multiprocessing import Pool, cpu_count
+
+class CompositionAnalyzer:
+    def __init__(self) -> None:
+        pass
+
+    def analyze_composition(self, composition_dict : Composition, contig_string : str) -> None:
+        com_len = len(contig_string) - (const.COMPOSITION_CONSTANT - 1)
+        #com_normalize_val = 1 / com_len
+        if com_len < const.COMPOSITION_CONSTANT:
+            raise Exception("composition string is smaller than the COMPOSITION_CONSTANT: " + str(const.COMPOSITION_CONSTANT))
+
+        for x in range(com_len):
+            key = contig_string[x:x + const.COMPOSITION_CONSTANT]
+            reversed_key = key[::-1]
+            if key in composition_dict:
+                composition_dict.AddOccurence(key)
+            elif reversed_key in composition_dict:
+                composition_dict.AddOccurence(reversed_key)
 
 class ContigReader:
     def __init__(self, fasta_file: str, depth_file: str = None,  SCG_filepath: str = None, numpy_file: str = None, max_threads: int or None = None):
@@ -12,24 +30,24 @@ class ContigReader:
         self.SCG_filepath = SCG_filepath
         self.depth_file = depth_file
         self.numpy_file = numpy_file
-        self.max_threads = max_threads
+        self.max_threads = max_threads if max_threads is not None else cpu_count()
 
     def read_file_fast(self, numpy_file: str or None = None, load_SCGs:bool = False) -> Dict[str, ContigData]:
         numpy_path = numpy_file if numpy_file is not None else self.numpy_file
         
-        print("trying to load as numpy data...")
+        print("trying to load cache as numpy data...")
         if numpy_path is not None:        
             numpy_data = self.try_load_numpy(numpy_path)
             if numpy_data is not None:
-                print("found npz file")
+                print("found cache file")
                 return numpy_data
             else:
-                print("could not find npz file, loading from fasta...")
+                print("could not find cache file, loading from fasta...")
         else:
-            print('no npz path supplied, loading fasta. Contig objects will not be cached...')
+            print('no cache file supplied, loading fasta. Contig objects will not be cached...')
         data = self.read_file(self.fasta_file, load_SCGs)
         if numpy_path is not None:
-            print("saving fasta as numpy, so its faster in the future")
+            print("saving contigs as numpy, so its faster in the future")
             self.save_numpy(data, numpy_path)
         else:
             print('skipping caching result')
@@ -37,6 +55,7 @@ class ContigReader:
 
 
     def read_file(self, file_path: str, load_SCGs:bool = False) -> Dict[str, ContigData]:
+        return self.read_file_multithreaded(file_path, load_SCGs)
         result: Dict[str, ContigData] = {}
         abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file) if self.depth_file is not None else None
 
@@ -75,24 +94,34 @@ class ContigReader:
 
         return result
 
-    def r_test(self, file_path: str, load_SCGs:bool = False) -> Dict[str, ContigData]:
+    def read_file_multithreaded(self, file_path: str, load_SCGs:bool = False) -> Dict[str, ContigData]:
         abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file) if self.depth_file is not None else None
-        temp = {}
+        temp_result: Dict[str, List[str]] = {}
+        temp_result_index_map : Dict[str, int] = {}
+        
+        def get_abundance(name: str) -> float:
+            return abundance_length_dict[name][0] if not self.depth_file.endswith('.npz')\
+                else abundance_length_dict[str(temp_result_index_map[name])][0]
+        
         def clean_line_name(line: str) -> str:
             return line.split('>')[1].replace('\n', '')
         
+        print("Reading fasta file...")        
         with open(file_path, 'r') as file:
             lines = file.readlines()
-            current_name = ''
+            current_name, current_index = '', 0
             for line in tqdm(lines):
                 if line.startswith('>'):
-                    current_name = clean_line_name(line) if not self.depth_file.endswith('.npz') else str(len(temp))
-                    temp[current_name] = ''
+                    current_name = clean_line_name(line)
+                    temp_result[current_name] = []
+                    temp_result_index_map[current_name] = current_index
+                    current_index += 1
                 else:
-                    temp[current_name] += line
-                    
-        parameters = [(key, value, abundance_length_dict[key]) for key, value in temp.items()]
+                    temp_result[current_name].append(line)
+
+        parameters = [(key, value, get_abundance(key)) for key, value in temp_result.items()]
         contig_lst = []
+        print("Analysing contig compositions...")
         with Pool(min(self.max_threads, cpu_count())) as p:
             contig_lst: List[ContigData] = list(tqdm(p.imap(__build_contig_multithread__, parameters), total=len(parameters)))
         result = {contig.name: contig for contig in contig_lst}
@@ -243,8 +272,10 @@ class DataWrapper():
         return split_filename[len(split_filename) - 1]
 
 
-def __build_contig_multithread__(tuple: Tuple[str, str, float]) -> ContigData:
-    name, dna_string, abundance = tuple
+def __build_contig_multithread__(tuple: Tuple[str, List[str], float]) -> ContigData:
+    name, dna_seq, abundance = tuple
+    
+    dna_string = ''.join(dna_seq).replace('\n', '')
     
     composition = Composition()
     analyser = CompositionAnalyzer()
@@ -254,6 +285,6 @@ def __build_contig_multithread__(tuple: Tuple[str, str, float]) -> ContigData:
 
 if __name__ == "__main__":
     reader = ContigReader('../Dataset/edges.fasta', '../Dataset/edges_depth.txt', '../Dataset/marker_gene_stats.tsv')
-    r = reader.read_total_SCGs_set()
+    r = reader.read_file_multithreaded('../Dataset/edges.fasta', True)
     print("DONE")
     print(len(r))

@@ -24,8 +24,8 @@ class PartitionSetReader:
         partition_set = PartitionSet[ContigData](list(contig_dct.values()))
         
         warning_clusters = []
-        print("reading partitions files...")
-        for file in tqdm(files):
+        print(f"reading {len(files)} partitions files...")
+        for file in files:
             partition = partition_set.create_partition() #dont have to add it to partition after this
             self.__parse_partition__(file, partition, contig_dct)
             
@@ -38,7 +38,7 @@ class PartitionSetReader:
 
     def __parse_partition__(self, filename: str, partition: Partition, contigs: Dict[str, ContigData]) -> None:
         with open(join(self.folder_path, filename), 'r') as f:
-            for line in f.readlines():
+            for line in tqdm(f.readlines()):
                 cluster_name, edge_name = self.__parse_cluster_line__(line) 
                 partition.add(cluster_name, contigs[edge_name])
 
