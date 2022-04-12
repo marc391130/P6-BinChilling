@@ -384,7 +384,7 @@ def MergeClusters(alpha1: float, cluster_sim_matrix: ClusterSimilarityMatrix, cl
     child_merged_set = set() #has been merged, aka skip if in this
     max_similarity = -1
 
-    for i in range(len(clusters)):
+    for i in tqdm(range(len(clusters))):
         cluster1 = clusters[i]
         is_merged = False
         if cluster1 in child_merged_set:
