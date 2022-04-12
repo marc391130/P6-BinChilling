@@ -10,4 +10,4 @@ pipreqs
 
 #Stå i github mappe, kør:
 
-scp -r ./P6 MulvadServer:/home/ubuntu/Bak 
+scp -r ./P6 P6:/mnt/bak/P6 

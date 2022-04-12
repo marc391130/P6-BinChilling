@@ -60,7 +60,7 @@ class AdaptiveClusterEnsembler(Ensembler):
     def __init__(self, initial_alpha1_thredshold: float = 0.8, initial_delta_aplha: float = 0.1,\
         alpha1_min: float = 0.6, alpha2: float = 0.2, \
         taget_clusters_est: int or Callable[[PartitionSet], int] = None, quality_measurer: QualityMeasuerer = None,\
-        logfile: TextIOWrapper = None, should_log: bool = True):
+        logfile: TextIOWrapper = None, should_log: bool = True, threads: int = None):
         self.alpha1_thredshold = initial_alpha1_thredshold
         self.delta_alpha = initial_delta_aplha
         self.aplha1_min = alpha1_min
@@ -69,6 +69,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.quality_measure = quality_measurer if quality_measurer is not None else QualityMeasuerer()
         self.taget_clusters_est = taget_clusters_est
         self.should_log = should_log #Should log to console
+        self.thread_count = min(threads, THREAD_COUNT) if threads is not None else THREAD_COUNT
     
     
     def __calc_target_clusters__(self, gamma: PartitionSet) -> int:
@@ -344,25 +345,25 @@ class AdaptiveClusterEnsembler(Ensembler):
         reverse_cluster_index_map = {value: key for key, value in similarity_matrix.cluster_index_map.items()}
         reverse_item_index_map = {value: key for key, value in similarity_matrix.item_index_map.items()}
 
-        parameters = []
-        for item in items:
-            parameters.append((similarity_matrix.item_index_map[item], similarity_matrix.matrix))
+        parameters = [(similarity_matrix.item_index_map[item], similarity_matrix.matrix) for item in items ]
         
-        with Pool(THREAD_COUNT) as p:
-            r = list(tqdm(p.imap(__partial_cluster_certainty_degree__, parameters), total=len(parameters)))
-            for item_id, similarity, cluster_index in r:
-                item_cluster_tuple = (reverse_item_index_map[item_id], reverse_cluster_index_map[cluster_index])
-                
-                if similarity >= 1:
-                    totally_certain_lst.append(item_cluster_tuple)
-                elif similarity > alpha2 and similarity < 1:
-                    certain_lst.append(item_cluster_tuple)
-                elif similarity <= alpha2 and similarity > 0:
-                    uncertain_lst.append(item_cluster_tuple[0]) #only add item
-                elif similarity == 0:
-                    totally_uncertain_lst.append(item_cluster_tuple[0]) #only add item
-                else:
-                    raise Exception("something went wrong, simularity value outside bound [0, 1]")
+        result = None
+        with Pool(self.thread_count) as p:
+            result = list(tqdm(p.imap(__partial_cluster_certainty_degree__, parameters), total=len(parameters)))
+            
+        for item_id, similarity, cluster_index in result:
+            item_cluster_tuple = (reverse_item_index_map[item_id], reverse_cluster_index_map[cluster_index])
+            
+            if similarity >= 1:
+                totally_certain_lst.append(item_cluster_tuple)
+            elif similarity > alpha2 and similarity < 1:
+                certain_lst.append(item_cluster_tuple)
+            elif similarity <= alpha2 and similarity > 0:
+                uncertain_lst.append(item_cluster_tuple[0]) #only add item
+            elif similarity == 0:
+                totally_uncertain_lst.append(item_cluster_tuple[0]) #only add item
+            else:
+                raise Exception("something went wrong, simularity value outside bound [0, 1]")
         return totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_lst
         
     def build_final_partition(self, gamma: PartitionSet, candidate_clusters: List[Cluster]):
