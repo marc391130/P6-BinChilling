@@ -193,7 +193,7 @@ class ContigReader:
         return split_filename[len(split_filename) - 1]
 
     def load_numpy(self, filename:str) -> Dict[str, ContigData]:
-        return np.load(filename, allow_pickle=True).item()
+        return np.load(filename, allow_pickle=True)
     
 class DataWrapper():
     def __init__(self, identifier: str, data: np.ndarray):
