@@ -72,9 +72,9 @@ def main():
     p_args = parser.add_argument_group(title='Contig input (required)', description=None)
     p_args.add_argument('--fasta', metavar='', required=True,\
         dest='fasta', help='path to fasta file of contigs')
-    p_args.add_argument('--SCG', metavar='', required=False, \
+    p_args.add_argument('--SCG', metavar='', required=True, \
         dest='SCG', help='Path to single copy genes file (required)')
-    p_args.add_argument('--jgi', metavar='', required=True, default=None, \
+    p_args.add_argument('--jgi', metavar='', required=False, default=None, \
         dest='JGI', help='path to depth file (either this or --NPZ required)')
     p_args.add_argument('--NPZ', metavar='', required=False, default=None, \
         dest='NPZ', help='path to abundance file in npz format (either this or --jgi required)')
