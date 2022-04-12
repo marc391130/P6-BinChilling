@@ -1,11 +1,9 @@
 from typing import Dict, List, Tuple
-from Composition import Composition
-from ContigData import ContigData
+from Domain import ContigData, Composition
 from tqdm import tqdm
 from CompositionAnalyzer import CompositionAnalyzer
 import re
 import numpy as np
-import zipfile
 
 class ContigReader:
     def __init__(self, fasta_file: str, depth_file: str = None,  SCG_filepath: str = None, numpy_file: str = None):
@@ -134,7 +132,6 @@ class ContigReader:
             return [line.split('>')[1].strip('\n') for line in file.readlines() if line.startswith('>')]
 
 
-    
     def __assert_contig_length_equal__(self, depth_len:int, contig:str, name:str) -> None:
 
         if depth_len < 1000000:
@@ -174,8 +171,7 @@ class ContigReader:
         return abundance_dict[name]
 
     def save_numpy(self, data: Dict[str, ContigData], outputfile: str) -> None:
-        identifier = self.__get_identifier_from_name__(self.fasta_file)
-        wrapper = DataWrapper(identifier, data)
+        wrapper = DataWrapper(self.fasta_file, data)
         outputfile = outputfile if outputfile.endswith('.npy') else outputfile + ".npy"
         np.save(outputfile, np.array([wrapper]))
     
@@ -183,29 +179,32 @@ class ContigReader:
     def try_load_numpy(self, filename:str) -> Dict[str, ContigData] or None:
         try:
             wrapper: DataWrapper = self.load_numpy(filename)[0]
-            return wrapper.validate_and_get_data(self.__get_identifier_from_name__(filename))
+            return wrapper.validate_and_get_data(self.fasta_file)
         except IOError as e:
             return None
-
-    def __get_identifier_from_name__(self, filename: str) -> str:
-        split_filename = filename.split("/")
-        split_filename = filename[len(split_filename) - 1].split("\\")
-        return split_filename[len(split_filename) - 1]
 
     def load_numpy(self, filename:str) -> Dict[str, ContigData]:
         return np.load(filename, allow_pickle=True)
     
 class DataWrapper():
     def __init__(self, identifier: str, data: np.ndarray):
-        self.identifier = identifier
+        self.identifier = DataWrapper.cleanse_identifier(identifier)
         self.data = data
 
     def validate_and_get_data(self, identifier):
-        if identifier != self.identifier:
-            raise Exception("Cache data does not match (.fasta /.fna) file")
+        cleansed_identifier = DataWrapper.cleanse_identifier(identifier)
+        if cleansed_identifier != self.identifier:
+            raise Exception(f"Cache identifier does not match (.fasta /.fna) file.\n \
+                            Expected to load cache for {self.identifier}, but recieved {cleansed_identifier}.\n \
+                            Please give another cache path or delete the old cache.")
         
         return self.data
-
+    
+    @staticmethod
+    def cleanse_identifier(identifier :str) -> str:
+        split_filename = identifier.split("/")
+        split_filename = split_filename[len(split_filename) - 1].split("\\")
+        return split_filename[len(split_filename) - 1]
 
     
 if __name__ == "__main__":

@@ -10,16 +10,6 @@ sys.setrecursionlimit(10**6)
 
 T = TypeVar("T")
 
-class Contig:
-    def __init__(self, name: str):
-        self.name = name
-
-    def __hash__(self) -> int:
-        return id(self)
-    
-    def __str__(self):
-        return self.name
-
 class Cluster(set, Generic[T]):
     def __init__(self, partition_id = None):
         self.__children_lst__ = []
@@ -39,13 +29,6 @@ class Cluster(set, Generic[T]):
         if __object in self:
             raise Exception(f"Item {str(__object)} already in cluster")
         return super().add(__object)
-
-    # def intersection(self, other: Cluster[T]) -> List[T]:
-    #     result = []
-    #     for item in other:
-    #         if item in self:
-    #             result.append(item)
-    #     return result
 
     def descriminatory_union(self, other: Cluster[T]) -> List[T]:
         result = []
@@ -71,17 +54,6 @@ class Cluster(set, Generic[T]):
         if self.__partition_id__ is None or other.__partition_id__ is None:
             return False
         return self.__partition_id__ == other.__partition_id__
-
-    # def merge(self, other: Cluster[T]) -> Cluster[T]:
-    #     result = Cluster(self, other)
-    #     for x in self:
-    #         result.append(x)
-    #     for x in other:
-    #         if x not in result:
-    #             result.append(x)
-    #     return result
-    
-
 
     def calc_membership(self, item: T) -> int:
         item_membership_values = self.calc_all_membership()
@@ -117,14 +89,6 @@ class Cluster(set, Generic[T]):
 
     def __hash__(self) -> int:
         return id(self)
-
-    # @staticmethod
-    # def membership_similarity(cluster_lst: List[Cluster[T]], object: T) -> int:
-    #     result = 0
-    #     for cluster in cluster_lst:
-    #         if cluster.contains(object):
-    #             result += 1
-    #     return result
     
 # Do not use normal set item of this dict, use add instead
 class Partition(Dict[str, Cluster[T]], Generic[T]):
@@ -167,7 +131,6 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
                 return list(cluster)
         return list([])
         
-        
 
 class PartitionSet(List[Partition[T]]):
     def __init__(self, data: List[T]):
@@ -183,24 +146,6 @@ class PartitionSet(List[Partition[T]]):
         partition = Partition(self.__dataset__)
         super().append(partition)
         return partition
-
-    def similarity_measure(self, gamma_idx1: int, gamma_idx2: int, cluster1_name: str, cluster2_name: str) -> float: 
-        return self.similarity_measure((gamma_idx1, cluster1_name), (gamma_idx2, cluster2_name))
-
-    def similarity_measure(self, cluster1_idx: Tuple[int, str], cluster2_idx: Tuple[int, str]) -> float: 
-        Assert.assert_index_exists(cluster1_idx[0], self)
-        Assert.assert_index_exists(cluster2_idx[0], self)
-
-        partition1 = self[cluster1_idx[0]]
-        partition2 = self[cluster2_idx[0]]
-
-        Assert.assert_key_exists(cluster1_idx[1], partition1)
-        Assert.assert_key_exists(cluster2_idx[1], partition2)
-
-        cluster1 = partition1[cluster1_idx[1]]
-        cluster2 = partition2[cluster2_idx[1]]
-
-        return self.__similarity_measure_cluster__(cluster1, cluster2)
 
     def ClusterToPartitionMap(self) -> Dict[Cluster, int]:
         dct_info = {}
@@ -225,7 +170,6 @@ class PartitionSet(List[Partition[T]]):
         Assert.assert_item_in_list(self.__dataset__, item2)
         
         return sum([1 if p.IsInSameCluster(item1, item2) else 0 for p in self]) / len(self)
-            
 
 
     def get_all_clusters(self) -> List[Cluster[T]]:

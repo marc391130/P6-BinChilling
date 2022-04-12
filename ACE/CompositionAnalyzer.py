@@ -1,5 +1,5 @@
 import Constants as const
-from Composition import Composition
+from Domain import Composition
 
 class CompositionAnalyzer:
     def __init__(self) -> None:

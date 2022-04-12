@@ -1,9 +1,7 @@
-from faulthandler import disable
 from functools import partialmethod
 from multiprocessing import cpu_count, Pool
 from typing import Callable, Dict, List, Tuple
-
-from Cluster import Cluster, Contig, Partition, PartitionSet
+from Cluster import Cluster, Partition, PartitionSet
 import numpy as np
 from tqdm import tqdm
 from itertools import islice

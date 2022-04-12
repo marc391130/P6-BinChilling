@@ -4,7 +4,7 @@ from Cluster import Cluster, Partition, PartitionSet
 from typing import Callable, Tuple, Dict, List
 from ContigReader import ContigReader
 import Constants as CONSTANT
-from ContigData import ContigData
+from Domain import ContigData
 from tqdm import tqdm
 
 

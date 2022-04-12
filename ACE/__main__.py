@@ -3,20 +3,16 @@
 # Intended purpose: To get data from fasta files
 
 from random import randrange, random, seed
-
 from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler, target_bin_3_4th_count_estimator
-from Cluster import Cluster, Partition, PartitionSet, Contig
+from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
 from PartitionSetReader import PartitionSetReader
 from ContigReader import ContigReader
-from ContigData import ContigData
-import Constants
-import time
+from Domain import ContigData
 import Constants as Const 
 import argparse
 import sys
 import os
-from io import TextIOWrapper
 
 
 # import numpy
@@ -77,8 +73,8 @@ def main():
     p_args.add_argument('--fasta', metavar='', required=True,\
         dest='fasta', help='path to fasta file of contigs')
     p_args.add_argument('--SCG', metavar='', required=False, \
-        dest='SCG', help='Path to single copy genes file')
-    p_args.add_argument('--jgi', metavar='', required=False, default=None, \
+        dest='SCG', help='Path to single copy genes file (required)')
+    p_args.add_argument('--jgi', metavar='', required=True, default=None, \
         dest='JGI', help='path to depth file (either this or --NPZ required)')
     p_args.add_argument('--NPZ', metavar='', required=False, default=None, \
         dest='NPZ', help='path to abundance file in npz format (either this or --jgi required)')

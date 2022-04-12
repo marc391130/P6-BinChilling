@@ -6,7 +6,7 @@ from CheckMFilter import BinDto, CheckMFilter
 sys.path.insert(1, "../ACE")
 
 from Cluster import Cluster
-from ContigData import ContigData
+from Domain import ContigData
 from ContigReader import ContigReader
 
 
