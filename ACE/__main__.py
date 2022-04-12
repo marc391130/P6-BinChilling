@@ -32,9 +32,9 @@ def print_result(file_path: str, parititon: Partition[ContigData]):
 
 
 def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
-    numpy_cachepath: str, partition_folder: str, output_path: str):
+    numpy_cachepath: str, partition_folder: str, output_path: str, max_threads: int or None):
     
-    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, numpy_cachepath)
+    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, numpy_cachepath, max_threads=max_threads)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"))
     partition_set = partitionSetReader.read_file()
 
@@ -183,7 +183,7 @@ def main():
                 threads=args.threads
             )
         
-        run(ensembler, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, outfile)
+        run(ensembler, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, outfile, args.threads)
     finally:
         if logfile is not None:
             logfile.close()
