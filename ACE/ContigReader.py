@@ -174,19 +174,39 @@ class ContigReader:
         return abundance_dict[name]
 
     def save_numpy(self, data: Dict[str, ContigData], outputfile: str) -> None:
+        identifier = self.__get_identifier_from_name__(self.fasta_file)
+        wrapper = DataWrapper(identifier, data)
         outputfile = outputfile if outputfile.endswith('.npy') else outputfile + ".npy"
-        np.save(outputfile, data)
+        np.save(outputfile, np.array([wrapper]))
     
 
     def try_load_numpy(self, filename:str) -> Dict[str, ContigData] or None:
         try:
-            return self.load_numpy(filename)
+            wrapper: DataWrapper = self.load_numpy(filename)[0]
+            return wrapper.validate_and_get_data(self.__get_identifier_from_name__(filename))
         except IOError as e:
             return None
+
+    def __get_identifier_from_name__(self, filename: str) -> str:
+        split_filename = filename.split("/")
+        split_filename = filename[len(split_filename) - 1].split("\\")
+        return split_filename[len(split_filename) - 1]
 
     def load_numpy(self, filename:str) -> Dict[str, ContigData]:
         return np.load(filename, allow_pickle=True).item()
     
+class DataWrapper():
+    def __init__(self, identifier: str, data: np.ndarray):
+        self.identifier = identifier
+        self.data = data
+
+    def validate_and_get_data(self, identifier):
+        if identifier != self.identifier:
+            raise Exception("Cache data does not match (.fasta /.fna) file")
+        
+        return self.data
+
+
     
 if __name__ == "__main__":
     reader = ContigReader('../Dataset/edges.fasta', '../Dataset/edges_depth.txt', '../Dataset/marker_gene_stats.tsv')
