@@ -12,7 +12,7 @@ T = TypeVar("T")
 
 class Cluster(set, Generic[T]):
     def __init__(self, partition_id = None):
-        self.__children_lst__ = []
+        self.__children_lst__: List[Cluster] = []
         self.__partition_id__ = partition_id
 
     @staticmethod

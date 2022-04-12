@@ -16,6 +16,25 @@ class MemberSimularityMatrix:
         self.item_index_map = item_index_map
     
     @staticmethod
+    def IndependentBuild(clusters: List[Cluster], gamma: PartitionSet):
+        cluster_lst = list(clusters)
+        cluster_index_map = {cluster_lst[index]: index for index in range(len(cluster_lst))}
+        all_items = list(gamma.get_all_elements().keys())
+        item_index_map = {all_items[index]: index for index in range(len(all_items))}
+        del cluster_lst, all_items
+        
+        shape = (len(item_index_map), len(cluster_index_map)) 
+        matrix = np.full(shape=shape, fill_value=0, dtype=np.float32)
+        max_row_value = len(gamma)
+        
+        for cluster, c_index in cluster_index_map.items():
+            membership_map = cluster.calc_all_membership()
+            for item, membership in membership_map.items():
+                i_index = item_index_map[item]
+                matrix[i_index, c_index] = membership / max_row_value
+        return MemberSimularityMatrix(matrix, cluster_index_map, item_index_map)
+    
+    @staticmethod
     def Build(memberMatrix: MemberMatrix) -> MemberSimularityMatrix:
         cluster_index_map = dict(memberMatrix.cluster_index_map)
         item_index_map = dict(memberMatrix.item_index_map)
@@ -183,13 +202,6 @@ class MemberMatrix:
         for cluster in clusters: # make sure every cluster exists inside the cluster_index_map
             Assert.assert_key_exists(cluster, self.cluster_index_map)
         
-        for cluster, c_index in self.cluster_index_map.items():
-            item_map = cluster.calc_all_membership()
-            for item, i_index in self.item_index_map.items():
-                if item in item_map:
-                    Assert.assert_equal(self.matrix[i_index, c_index], item_map[item])
-                else:
-                    Assert.assert_equal(self.matrix[i_index, c_index], 0)
         return MemberSimularityMatrix.Build(self)       
     
     

@@ -96,13 +96,11 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.log("Building Cluster simularity matrix...")
         target_clusters = self.__calc_target_clusters__(gamma)
         
-        memberMatrix: MemberMatrix = None
-        clusterMatrix = None
         
         self.log("Merging initial clusters (step 2.1)")
         lambda_len, available_clusters = 0, all_clusters
         while True:
-            available_clusters, max_sim = MergeClusters(alpha1, clusterMatrix, all_clusters, len(all_items))
+            available_clusters, max_sim = MergeClusters(alpha1, all_clusters, len(all_items))
             lambda_len = len(available_clusters)
             self.log(f"Testing alhpa1 value of {alpha1}, found {lambda_len} / { target_clusters} ...")
             if lambda_len >= target_clusters:
@@ -119,13 +117,12 @@ class AdaptiveClusterEnsembler(Ensembler):
         log_22()
         while lambda_len >= target_clusters:
             i += 1
-            clusterMatrix = None #ClusterSimilarityMatrix.BuildFrom(available_clusters, clusterMatrix)
-            alpha1 = max_sim #clusterMatrix.max_simularity_np()
+            alpha1 = max_sim
             log_22()
             if alpha1 < self.aplha1_min:
                 break
             else:
-                new_available_clusters, max_sim = MergeClusters(alpha1, clusterMatrix, available_clusters, len(all_items))
+                new_available_clusters, max_sim = MergeClusters(alpha1, available_clusters, len(all_items))
         
             if len(new_available_clusters) < target_clusters:
                 break
@@ -134,8 +131,8 @@ class AdaptiveClusterEnsembler(Ensembler):
                 lambda_len = len(available_clusters)
         
         self.log("Building simularity matrix (step 2.3)...")
-        memberMatrix = MemberMatrix.build(available_clusters, all_items)
-        similarity_matrix = memberMatrix.BuildSimularityMatrix(available_clusters)
+
+        similarity_matrix = MemberSimularityMatrix.IndependentBuild(available_clusters, gamma)
         certain_clusters = [cluster for cluster in tqdm(available_clusters) if similarity_matrix.Cluster_Max(cluster) > alpha2]
         
         self.log(f"Found {len(certain_clusters)} clusters with certain objects")
@@ -151,9 +148,11 @@ class AdaptiveClusterEnsembler(Ensembler):
             alpha2 = similarity_matrix.Cluster_Max(candidate_clusters[len(candidate_clusters)-1])
         
         #calculate new membership and simularity based on candidate and non-candidate
+        del cluster_certainty_lst, certain_clusters, available_clusters, new_available_clusters
         candidate_memberMatrix = MemberMatrix.build(candidate_clusters, all_items)
         non_candidate_memberMatrix = MemberMatrix.build(non_candidate_clusters, all_items)
         similarity_matrix = MemberSimularityMatrix.RefineTo(similarity_matrix, candidate_clusters)
+        del all_items, all_clusters
         
         partition = self.assign_item_to_one_cluster(gamma, alpha2,\
             candidate_clusters, similarity_matrix, candidate_memberMatrix, non_candidate_memberMatrix)
@@ -378,7 +377,7 @@ class AdaptiveClusterEnsembler(Ensembler):
             
         
         
-def MergeClusters(alpha1: float, cluster_sim_matrix: ClusterSimilarityMatrix, clusters: List[Cluster], total_elements)\
+def MergeClusters(alpha1: float, clusters: List[Cluster], total_elements)\
     -> Tuple[List[Cluster], float]: #tuple of (all available cluster, next_higext_similarity) 
     result_clusters = []
     child_merged_set = set() #has been merged, aka skip if in this
@@ -393,7 +392,7 @@ def MergeClusters(alpha1: float, cluster_sim_matrix: ClusterSimilarityMatrix, cl
         for j in range(i, len(clusters)):
             cluster2 = clusters[j]
 
-            if cluster1 is cluster2 or cluster1.SamePartitionAs(cluster2) or cluster2 in child_merged_set:
+            if cluster2 in child_merged_set or cluster1.SamePartitionAs(cluster2) or cluster1 is cluster2:
                 continue
                 
             # if cluster_sim_matrix[cluster1, cluster2] >= alpha1:
