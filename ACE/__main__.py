@@ -84,14 +84,17 @@ def main():
         dest='NPZ', help='path to abundance file in npz format (either this or --jgi required)')
     
     IO_args = parser.add_argument_group(title='IO (required)', description=None)
-    IO_args.add_argument('--cache', metavar='', required=False,\
+    IO_args.add_argument('--cache', metavar='', type=str, required=False,\
         dest='numpy_cache', help='Path for cache. If no cache exists at the path, a cache file will be created (highly encuraged)')
-    IO_args.add_argument('-P', metavar='', required=True,\
+    IO_args.add_argument('-P', metavar='', type=str, required=True,\
         dest='partition_folder', help='Path to folder of partition files (Each partition should be its own .tsv file)')
-    IO_args.add_argument('--outdir', metavar='', required=True,\
+    IO_args.add_argument('--outfile', metavar='', type=str, required=True,\
         dest='outdir', help='Output file of the result (Overrides file if already exists)')
-    IO_args.add_argument('-l', metavar='', required=False, default=None,\
+    IO_args.add_argument('-l', metavar='', type=str, required=False, default=None,\
         dest='logdest', help='file to output logfile [default = no log file]')
+    IO_args.add_argument('-t', metavar='', type=int, required=False, default=None,\
+        dest='threads', help='Max number of threads to use [default <= 8]')
+    
     
     ensemble_args = parser.add_argument_group(title='Ensemble variables', description=None)
     ensemble_args.add_argument('-a1', type=float, dest='a1', metavar='',
@@ -176,7 +179,8 @@ def main():
                 alpha2=args.a2,
                 taget_clusters_est=target_clusters,
                 logfile=logfile,
-                should_log=True
+                should_log=True,
+                threads=args.threads
             )
         
         run(ensembler, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, outfile)
