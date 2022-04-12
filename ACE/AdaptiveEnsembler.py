@@ -94,15 +94,15 @@ class AdaptiveClusterEnsembler(Ensembler):
         all_clusters = gamma.get_all_clusters()
         
         self.log("Building Cluster simularity matrix...")
-        clusterMatrix = ClusterSimilarityMatrix.Build(all_clusters, len(all_items))
         target_clusters = self.__calc_target_clusters__(gamma)
         
         memberMatrix: MemberMatrix = None
+        clusterMatrix = None
         
         self.log("Merging initial clusters (step 2.1)")
         lambda_len, available_clusters = 0, all_clusters
         while True:
-            available_clusters = MergeClusters(alpha1, clusterMatrix, all_clusters)
+            available_clusters, max_sim = MergeClusters(alpha1, clusterMatrix, all_clusters, len(all_items))
             lambda_len = len(available_clusters)
             self.log(f"Testing alhpa1 value of {alpha1}, found {lambda_len} / { target_clusters} ...")
             if lambda_len >= target_clusters:
@@ -119,13 +119,13 @@ class AdaptiveClusterEnsembler(Ensembler):
         log_22()
         while lambda_len >= target_clusters:
             i += 1
-            clusterMatrix = ClusterSimilarityMatrix.BuildFrom(available_clusters, clusterMatrix)
-            alpha1 = clusterMatrix.max_simularity_np()
+            clusterMatrix = None #ClusterSimilarityMatrix.BuildFrom(available_clusters, clusterMatrix)
+            alpha1 = max_sim #clusterMatrix.max_simularity_np()
             log_22()
             if alpha1 < self.aplha1_min:
                 break
             else:
-                new_available_clusters = MergeClusters(alpha1, clusterMatrix, available_clusters)
+                new_available_clusters, max_sim = MergeClusters(alpha1, clusterMatrix, available_clusters, len(all_items))
         
             if len(new_available_clusters) < target_clusters:
                 break
@@ -378,11 +378,11 @@ class AdaptiveClusterEnsembler(Ensembler):
             
         
         
-def MergeClusters(alpha1: float, cluster_sim_matrix: ClusterSimilarityMatrix, clusters: List[Cluster])\
-    -> Tuple[List[Cluster], set]: #tuple of (all available cluster, set of merged clusters) 
+def MergeClusters(alpha1: float, cluster_sim_matrix: ClusterSimilarityMatrix, clusters: List[Cluster], total_elements)\
+    -> Tuple[List[Cluster], float]: #tuple of (all available cluster, next_higext_similarity) 
     result_clusters = []
     child_merged_set = set() #has been merged, aka skip if in this
-
+    max_similarity = -1
 
     for i in range(len(clusters)):
         cluster1 = clusters[i]
@@ -396,7 +396,9 @@ def MergeClusters(alpha1: float, cluster_sim_matrix: ClusterSimilarityMatrix, cl
             if cluster1 is cluster2 or cluster1.SamePartitionAs(cluster2) or cluster2 in child_merged_set:
                 continue
                 
-            if cluster_sim_matrix[cluster1, cluster2] >= alpha1:
+            # if cluster_sim_matrix[cluster1, cluster2] >= alpha1:
+            similarity = ClusterSimilarityMatrix.cluster_simularity(cluster1, cluster2, total_elements)
+            if similarity >= alpha1:
                 #merge the two clusters
                 new_cluster = Cluster.merge(cluster1, cluster2)
                 
@@ -409,12 +411,14 @@ def MergeClusters(alpha1: float, cluster_sim_matrix: ClusterSimilarityMatrix, cl
                 
                 is_merged = True
                 break
+            else:
+                max_similarity = max(max_similarity, similarity)
             
         if is_merged is False:
             result_clusters.append(cluster1)
             
         
-    return result_clusters
+    return result_clusters, max_similarity
 
 
 

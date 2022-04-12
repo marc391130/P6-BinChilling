@@ -69,10 +69,11 @@ class ClusterSimilarityMatrix():
     
     
     @staticmethod
-    def cluster_simularity(cluster1: Cluster, cluster2: Cluster, intersection_len: int,  total_elements: int) -> float:    
+    def cluster_simularity(cluster1: Cluster, cluster2: Cluster, total_elements: int) -> float:    
+        if cluster1.SamePartitionAs(cluster2): return np.NINF
+        intersection_len = len(cluster1.intersection(cluster2))
         counter = intersection_len - ((len(cluster1) * len(cluster2)) / total_elements)
         divisor = sqrt(len(cluster1) * len(cluster2) * (1 - (len(cluster1) / total_elements)) * (1 - (len(cluster2) / total_elements)))
-
         return counter / divisor if divisor != 0 else 0
     
     def __len__(self) -> int:

@@ -98,7 +98,7 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
 
     def add(self, cluster_name: str, item: T) -> None:
         Assert.assert_partition_content(self.__data__, item)
-        self.__assert_item_not_in_other_cluster__(item)
+        # self.__assert_item_not_in_other_cluster__(item)
 
         if cluster_name not in self:
             super().__setitem__(cluster_name, Cluster(id(self)))
