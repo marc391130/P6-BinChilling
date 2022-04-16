@@ -24,21 +24,24 @@ def Build_simularity_matrix(clusters: List[Cluster], gamma: PartitionSet) -> sp.
 
 
 class MemberSimularityMatrix2(SparseDictHashMatrix):
-    def __init__(__self__) -> None:
-        super().__init__()
+    def __init__(self, item_lst: List[object], cluster_lst: List[Cluster]) -> None:
+        self.all_clusters = cluster_lst
+        self.all_items = item_lst
+        super().__init__()         
     
     @staticmethod
     def IndependentBuild(clusters: List[Cluster], gamma: PartitionSet):
         cluster_lst = list(clusters)
+        item_lst = list(gamma.get_all_elements().keys()) 
         
-        matrix = MemberSimularityMatrix2()
+        matrix = MemberSimularityMatrix2(item_lst, cluster_lst)
         # matrix = sp.csc_matrix(shape, dtype=np.float32)
         
         for cluster in cluster_lst:
             membership_map = cluster.calc_all_membersimularity(max_member_value=len(gamma))
             for item, simularity in membership_map.items():
                 matrix[item, cluster] = simularity
-        return MemberSimularityMatrix2(matrix)
+        return matrix
     
     def set(self, __k: Tuple[object, Cluster], __v: float):
         if(__v > 1 or __v < 0):
@@ -51,7 +54,7 @@ class MemberSimularityMatrix2(SparseDictHashMatrix):
     def item_max(self, item) -> float:
         return max(self.get_row(item).values())
     
-    def item_argMax(self, item) -> Cluster:
+    def item_argMax(self, item) -> Tuple[Cluster, float]:
         arg_max, max_value = None, 0 
         
         for cluster, sim in self.get_row(item).items():
@@ -59,7 +62,10 @@ class MemberSimularityMatrix2(SparseDictHashMatrix):
                 arg_max, max_value = cluster, sim
         if arg_max is None:
             raise KeyError("Could not find index in argmax")
-        return arg_max
+        return (arg_max, max_value)
+    
+    def item_argMax_Cluster(self, item) -> Cluster:
+        return self.item_argMax[0]
         
     def assign_item_to(self, cluster: Cluster, item: object) -> None:
         for cluster2 in self.get_row(item).keys():

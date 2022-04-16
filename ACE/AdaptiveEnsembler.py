@@ -320,26 +320,10 @@ class AdaptiveClusterEnsembler(Ensembler):
         -> Tuple[List[Tuple[object, Cluster]], List[Tuple[object, Cluster]], List[object], List[object]]:
         totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_lst  = [], [], [], []
     
-        # np.savetxt("matrix.txt", similarity_matrix.matrix, fmt='%f', newline='\n\n')
-        # np.savetxt("matrix_sum_0.txt", similarity_matrix.matrix.sum(axis=0), delimiter=',', fmt='%f', newline='\n\n')
-        # np.savetxt("matrix_sum_1.txt", similarity_matrix.matrix.sum(axis=1), delimiter=',', fmt='%f', newline='\n\n')
-        # np.savetxt("matrix_max_0.txt", similarity_matrix.matrix.max(axis=0), delimiter=',', fmt='%f', newline='\n\n')
-        # np.savetxt("matrix_max_1.txt", similarity_matrix.matrix.max(axis=1), delimiter=',', fmt='%f', newline='\n\n')
-        reverse_cluster_index_map = {value: key for key, value in similarity_matrix.cluster_index_map.items()}
-        reverse_item_index_map = {value: key for key, value in similarity_matrix.item_index_map.items()}
-
-        parameters = [(similarity_matrix.item_index_map[item], similarity_matrix.matrix) for item in items ]
         
-        result = None
-        with Pool(self.thread_count) as p:
-            result = tqdm(p.imap(__partial_cluster_certainty_degree__, parameters, chunksize=self.chunksize), total=len(parameters))
-            p.close()
-            p.join()
-            # result = list(tqdm(p.imap(__partial_cluster_certainty_degree__, parameters), total=len(parameters)))
-            
-        for item_id, similarity, cluster_index in result:
-            item_cluster_tuple = (reverse_item_index_map[item_id], reverse_cluster_index_map[cluster_index])
-            
+        for item in tqdm(items):
+            cluster, similarity = similarity_matrix.item_argMax(item)
+            item_cluster_tuple = (item, cluster)
             if similarity >= 1:
                 totally_certain_lst.append(item_cluster_tuple)
             elif similarity > alpha2 and similarity < 1:
@@ -350,6 +334,32 @@ class AdaptiveClusterEnsembler(Ensembler):
                 totally_uncertain_lst.append(item_cluster_tuple[0]) #only add item
             else:
                 raise Exception("something went wrong, simularity value outside bound [0, 1]")
+        
+        # reverse_cluster_index_map = {value: key for key, value in similarity_matrix.cluster_index_map.items()}
+        # reverse_item_index_map = {value: key for key, value in similarity_matrix.item_index_map.items()}
+
+        # parameters = [(similarity_matrix.item_index_map[item], similarity_matrix.matrix) for item in items ]
+        
+        # result = None
+        # with Pool(self.thread_count) as p:
+        #     result = tqdm(p.imap(__partial_cluster_certainty_degree__, parameters, chunksize=self.chunksize), total=len(parameters))
+        #     p.close()
+        #     p.join()
+        #     # result = list(tqdm(p.imap(__partial_cluster_certainty_degree__, parameters), total=len(parameters)))
+            
+        # for item_id, similarity, cluster_index in result:
+        #     item_cluster_tuple = (reverse_item_index_map[item_id], reverse_cluster_index_map[cluster_index])
+            
+        #     if similarity >= 1:
+        #         totally_certain_lst.append(item_cluster_tuple)
+        #     elif similarity > alpha2 and similarity < 1:
+        #         certain_lst.append(item_cluster_tuple)
+        #     elif similarity <= alpha2 and similarity > 0:
+        #         uncertain_lst.append(item_cluster_tuple[0]) #only add item
+        #     elif similarity == 0:
+        #         totally_uncertain_lst.append(item_cluster_tuple[0]) #only add item
+        #     else:
+        #         raise Exception("something went wrong, simularity value outside bound [0, 1]")
         return totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_lst
         
     def build_final_partition(self, gamma: PartitionSet, candidate_clusters: List[Cluster]):
