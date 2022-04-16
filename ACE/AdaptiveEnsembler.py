@@ -1,6 +1,7 @@
 from functools import partialmethod
-from multiprocessing import cpu_count, Pool
-from typing import Callable, Dict, List, Tuple
+import itertools
+from multiprocessing import cpu_count, Pool, get_context
+from typing import Callable, Dict, List, Tuple, Generic, TypeVar
 from Cluster import Cluster, Partition, PartitionSet
 import numpy as np
 from tqdm import tqdm
@@ -8,8 +9,9 @@ from itertools import islice
 import Assertions as Assert
 from sys import maxsize as MAXSIZE
 from time import time
-from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix
-from ClusterSimilarityMatrix import ClusterSimilarityMatrix
+from Domain import ContigData
+from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, Build_simularity_matrix
+from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
 from io import TextIOWrapper
 
 __global_disable_tqdm = False
@@ -18,29 +20,27 @@ tqdm.__init__ = partialmethod(tqdm.__init__, disable=__global_disable_tqdm)
 THREAD_COUNT = min(cpu_count(), 8) 
 
 class Ensembler:
-    def ensemble(self, data: PartitionSet) -> Partition:
+    def ensemble(self, gamma: PartitionSet) -> Partition:
         pass
     
 class QualityMeasuerer:
-    def calculate_quality(self, cluster: Cluster, member_matrix: MemberMatrix,\
-        simularity_matrix: MemberSimularityMatrix) -> float:
+    def calculate_quality(self, cluster: Cluster, partition_count: int) -> float:
         if len(cluster) == 0:
             return 0.0
         
-        mean = simularity_matrix.Cluster_Mean(cluster)
-        sum_value = sum([ pow(simularity_matrix.GetEntry(cluster, item) - mean, 2) for item in cluster])
+        mean = cluster.mean_member_simularity(partition_count)
+        sum_value = sum([ pow(cluster.member_simularity(item, partition_count) - mean, 2) for item in cluster])
         
         return sum_value / len(cluster)
     
-    def calculate_speculative_quality(self, initial_quality: float, item: object, cluster: Cluster,\
-        member_matrix: MemberMatrix, simularity_matrix: MemberSimularityMatrix) -> float:
+    def calculate_speculative_quality(self, initial_quality: float, item: object, \
+        cluster: Cluster, gamma: PartitionSet) -> float:
         if item in cluster:
             return initial_quality
         
-        mean = simularity_matrix.Cluster_Mean(cluster)
-        member_val = member_matrix.getEntry(cluster, item)
-        div = simularity_matrix.Item_sum(item)
-        new_simularity = (member_val +1) / (div+1)
+        mean = cluster.mean_member_simularity(len(gamma))
+        member_val = cluster.membership(item)
+        new_simularity = (member_val+1) / (len(gamma)+1)
         value = pow(new_simularity - mean, 2)
         
         total_val = initial_quality * len(cluster)
@@ -52,13 +52,23 @@ def target_bin_3_4th_count_estimator(gamma: PartitionSet) -> int:
     average = sum(partition_ln) / len(partition_ln)
     third = (max(partition_ln) - average ) / 2
     return int(average + third)
+  
+
+        
     
 
 class AdaptiveClusterEnsembler(Ensembler):
-    def __init__(self, initial_alpha1_thredshold: float = 0.8, initial_delta_aplha: float = 0.1,\
-        alpha1_min: float = 0.6, alpha2: float = 0.2, \
-        taget_clusters_est: int or Callable[[PartitionSet], int] = None, quality_measurer: QualityMeasuerer = None,\
-        logfile: TextIOWrapper = None, should_log: bool = True, threads: int = None):
+    def __init__(self, 
+            initial_alpha1_thredshold: float = 0.8, 
+            initial_delta_aplha: float = 0.1,\
+            alpha1_min: float = 0.6,
+            alpha2: float = 0.2, \
+            chunksize: int = None,
+            taget_clusters_est: int or Callable[[PartitionSet], int] = None, 
+            quality_measurer: QualityMeasuerer = None,
+            logfile: TextIOWrapper = None, 
+            should_log: bool = True, 
+            threads: int = None):
         self.alpha1_thredshold = initial_alpha1_thredshold
         self.delta_alpha = initial_delta_aplha
         self.aplha1_min = alpha1_min
@@ -68,6 +78,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.taget_clusters_est = taget_clusters_est
         self.should_log = should_log #Should log to console
         self.thread_count = min(threads, THREAD_COUNT) if threads is not None else THREAD_COUNT
+        self.chunksize = chunksize
     
     
     def __calc_target_clusters__(self, gamma: PartitionSet) -> int:
@@ -88,52 +99,26 @@ class AdaptiveClusterEnsembler(Ensembler):
     def ensemble(self, gamma: PartitionSet) -> Partition:
         
         start_time = time()
-        alpha1, alpha2 = self.alpha1_thredshold, self.alpha2
+        alpha2 = self.alpha2
         
+        partition_count = len(gamma)
         all_items = list(gamma.get_all_elements().keys())
         all_clusters = gamma.get_all_clusters()
         
-        self.log("Building Cluster simularity matrix...")
+        self.log(f'Starting ensemblement using {len(all_items)} items distributed among {len(all_clusters)} clusters and {len(gamma)} partitions.')        
         target_clusters = self.__calc_target_clusters__(gamma)
         
+        self.log("Builing cluster similarity matrix...")
+        cluster_matrix = SparseClustserSimularity.build_multithread(\
+            all_clusters, len(all_items), self.aplha1_min, self.thread_count, self.chunksize)
         
         self.log("Merging initial clusters (step 2.1)")
-        lambda_len, available_clusters = 0, all_clusters
-        while True:
-            available_clusters, max_sim = MergeClusters(alpha1, all_clusters, len(all_items))
-            lambda_len = len(available_clusters)
-            self.log(f"Testing alhpa1 value of {alpha1}, found {lambda_len} / { target_clusters} ...")
-            if lambda_len >= target_clusters:
-                # memberMatrix = MemberMatrix(available_clusters, all_items)
-                break
-            else:
-                alpha1 += self.delta_alpha
         
-        
-        self.log("Merging similar clusters (step 2.2)")
-        i, start_22 = 0, time()
-        def log_22() -> None:
-            self.log(f"iteration {i:05d}, alpha1: {alpha1:.4f} / { self.aplha1_min }, clusters: {lambda_len} / { target_clusters }, Time: {(time() - start_22):0.02f}s")
-        log_22()
-        while lambda_len >= target_clusters:
-            i += 1
-            alpha1 = max_sim
-            log_22()
-            if alpha1 < self.aplha1_min:
-                break
-            else:
-                new_available_clusters, max_sim = MergeClusters(alpha1, available_clusters, len(all_items))
-        
-            if len(new_available_clusters) < target_clusters:
-                break
-            else:
-                available_clusters = new_available_clusters
-                lambda_len = len(available_clusters)
+        available_clusters = self.merge_clusters(cluster_matrix, 1)
         
         self.log("Building simularity matrix (step 2.3)...")
 
-        similarity_matrix = MemberSimularityMatrix.IndependentBuild(available_clusters, gamma)
-        certain_clusters = [cluster for cluster in tqdm(available_clusters) if similarity_matrix.Cluster_Max(cluster) > alpha2]
+        certain_clusters = [cluster for cluster in available_clusters if cluster.max_member_simularity(partition_count)  > alpha2]
         
         self.log(f"Found {len(certain_clusters)} clusters with certain objects")
         candidate_clusters, non_candidate_clusters = None, None
@@ -141,21 +126,22 @@ class AdaptiveClusterEnsembler(Ensembler):
             candidate_clusters = certain_clusters
             non_candidate_clusters = [cluster for cluster in available_clusters if cluster not in candidate_clusters]
         else: 
-            cluster_certainty_lst = [ (cluster, similarity_matrix.Cluster_Mean(cluster)) for cluster in available_clusters ]
+            cluster_certainty_lst = [ (cluster, cluster.mean_member_simularity(partition_count)) for cluster in available_clusters ]
             cluster_certainty_lst = list(sorted(cluster_certainty_lst, key = lambda item: item[1], reverse=True))
             candidate_clusters: List[Cluster] = [x[0] for x in islice(cluster_certainty_lst, target_clusters)]
             non_candidate_clusters = [x[0] for x in islice(cluster_certainty_lst, target_clusters, None)]
-            alpha2 = similarity_matrix.Cluster_Max(candidate_clusters[len(candidate_clusters)-1])
+            alpha2 = candidate_clusters[len(candidate_clusters)-1].max_member_simularity(partition_count)
+            del cluster_certainty_lst
         
         #calculate new membership and simularity based on candidate and non-candidate
-        del cluster_certainty_lst, certain_clusters, available_clusters, new_available_clusters
-        candidate_memberMatrix = MemberMatrix.build(candidate_clusters, all_items)
+        del certain_clusters, available_clusters
         non_candidate_memberMatrix = MemberMatrix.build(non_candidate_clusters, all_items)
-        similarity_matrix = MemberSimularityMatrix.RefineTo(similarity_matrix, candidate_clusters)
+        # similarity_matrix = Build_simularity_matrix(candidate_clusters, gamma)
+        similarity_matrix = MemberSimularityMatrix.IndependentBuild(candidate_clusters, gamma)
         del all_items, all_clusters
         
         partition = self.assign_item_to_one_cluster(gamma, alpha2,\
-            candidate_clusters, similarity_matrix, candidate_memberMatrix, non_candidate_memberMatrix)
+            candidate_clusters, similarity_matrix, non_candidate_memberMatrix)
         
         self.log(f"Finished in time {(time() - start_time):0.02f}s")
         
@@ -163,7 +149,7 @@ class AdaptiveClusterEnsembler(Ensembler):
     
     
     def assign_item_to_one_cluster(self, gamma: PartitionSet, alpha2: float, candidate_clusters: List[Cluster],\
-        similarity_matrix: MemberSimularityMatrix, membership_matrix: MemberMatrix, non_candidate_membership_matrix) -> Partition:
+        similarity_matrix: MemberSimularityMatrix, non_candidate_membership_matrix) -> Partition:
         
         all_items = gamma.get_all_elements()
         
@@ -209,7 +195,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         candidate_clusters = self.assign_certains_objects(certain_lst, candidate_clusters)
         
         self.log("Assign uncertain objects")
-        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, similarity_matrix, membership_matrix)
+        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, similarity_matrix, gamma)
     
         #Handling lost items. 
         candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)    
@@ -287,12 +273,12 @@ class AdaptiveClusterEnsembler(Ensembler):
     
     
     def assign_uncertain_objects(self, uncertain_item_lst: List, candidate_clusters: List[Cluster],\
-        simularity_matrix: MemberSimularityMatrix, membership_matrix: MemberMatrix) -> List[Cluster]:
+        simularity_matrix: MemberSimularityMatrix, gamma: PartitionSet) -> List[Cluster]:
         
         self.log("Calculate initial quality...")
         initial_quality = {}
         for cluster in tqdm(candidate_clusters):
-            quality = self.quality_measure.calculate_quality(cluster, membership_matrix, simularity_matrix)
+            quality = self.quality_measure.calculate_quality(cluster, len(gamma))
             initial_quality[cluster] = quality
         
         self.log("Assigning uncertain clusters...")
@@ -302,14 +288,14 @@ class AdaptiveClusterEnsembler(Ensembler):
             #then finds the cluster and new quality with the smallest delta quality,
             # by taking the abselute value of initial quality - speculative quality
             min_changed_cluster, new_quality = min([(cluster, self.quality_measure.calculate_speculative_quality( \
-                initial_quality[cluster], item, cluster, membership_matrix, simularity_matrix)) \
+                initial_quality[cluster], item, cluster, gamma)) \
                 for cluster in candidate_clusters], key= lambda x: abs(initial_quality[x[0]] - x[1]) )
             initial_quality[min_changed_cluster] = new_quality
             
             for cluster in candidate_clusters:
                 cluster.remove(item)
                 
-            min_changed_cluster.append(item)
+            min_changed_cluster.add(item)
         return candidate_clusters
     
     def assign_certains_objects(self, certain_lst: List[Tuple[object, Cluster]],\
@@ -325,7 +311,7 @@ class AdaptiveClusterEnsembler(Ensembler):
             for can_cluster in candidate_clusters:
                 can_cluster.remove(item)
             #add it back into best cluster
-            cluster.append(item)
+            cluster.add(item)
         return candidate_clusters
     
         
@@ -346,7 +332,8 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         result = None
         with Pool(self.thread_count) as p:
-            result = list(tqdm(p.imap(__partial_cluster_certainty_degree__, parameters), total=len(parameters)))
+            result = p.map(__partial_cluster_certainty_degree__, parameters, chunksize=self.chunksize)
+            # result = list(tqdm(p.imap(__partial_cluster_certainty_degree__, parameters), total=len(parameters)))
             
         for item_id, similarity, cluster_index in result:
             item_cluster_tuple = (reverse_item_index_map[item_id], reverse_cluster_index_map[cluster_index])
@@ -375,7 +362,48 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.log(f"Found {len(partition)} total clusters")
         return partition
             
+    def merge_clusters(self, cluster_matrix: SparseClustserSimularity, alpha1: float) -> List[Cluster]:
+        i, start_22 = 0, time()
         
+        def log_22() -> None:
+            self.log(f"iteration {i:05d}, alpha1: {alpha1:.4f} / { self.aplha1_min }, clusters: { len(cluster_matrix.__all_clusters__) }, Time: {(time() - start_22):0.02f}s")
+        
+        def find_merge_clusters() -> Tuple[List[Cluster], float]:
+            merged_lst, skip_set, max_simularity = [], set(), -1 #only a set, so we dont have to convert it later 
+            for clusterTuple, similarity in tqdm(cluster_matrix.get_entries()):
+                cluster1, cluster2 = clusterTuple
+                if cluster1 in skip_set or cluster2 in skip_set: continue
+                if similarity >= alpha1:
+                    new_cluster = Cluster.merge(cluster1, cluster2)
+                    skip_set.add(cluster1)
+                    skip_set.add(cluster2)
+                    merged_lst.append(new_cluster)
+                else: max_simularity = max(max_simularity, similarity) 
+            # for cluster in skip_set: cluster_matrix.remove_cluster(cluster)
+            cluster_matrix.remove_set_of_clusters(skip_set)
+            return (merged_lst, max_simularity)
+            
+        while  alpha1 >= self.aplha1_min:
+            i = i+1
+            log_22()
+            merged_clusters, max_merge_simularity = find_merge_clusters()
+            max_merged_simularity = sort_merged_cluster_multithread(cluster_matrix, merged_clusters)
+            alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.delta_alpha)
+        
+        return cluster_matrix.get_available_clusters()
+    
+def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, merged_lst: List[Cluster]) -> float:
+    max_simularity = -1
+    for merged_cluster in merged_lst:
+        cluster_matrix.add_cluster(merged_cluster)
+        for cluster in cluster_matrix.__all_clusters__:
+            if merged_cluster is cluster: continue
+            similarity = cluster_simularity(merged_cluster, cluster, cluster_matrix.total_item_count)
+            if similarity > cluster_matrix.min_value:
+                cluster_matrix.set_value(merged_cluster, cluster, similarity)
+            #elif similarity < alpha1: 
+            max_simularity = max(max_simularity, similarity)
+    return max_simularity
         
 def MergeClusters(alpha1: float, clusters: List[Cluster], total_elements)\
     -> Tuple[List[Cluster], float]: #tuple of (all available cluster, next_higext_similarity) 
@@ -389,14 +417,14 @@ def MergeClusters(alpha1: float, clusters: List[Cluster], total_elements)\
         if cluster1 in child_merged_set:
             continue
 
-        for j in range(i, len(clusters)):
+        for j in range(i+1, len(clusters)):
             cluster2 = clusters[j]
 
-            if cluster2 in child_merged_set or cluster1.SamePartitionAs(cluster2) or cluster1 is cluster2:
+            if cluster2 in child_merged_set or cluster1.SamePartitionAs(cluster2):
                 continue
                 
             # if cluster_sim_matrix[cluster1, cluster2] >= alpha1:
-            similarity = ClusterSimilarityMatrix.cluster_simularity(cluster1, cluster2, total_elements)
+            similarity = cluster_simularity(cluster1, cluster2, total_elements)
             if similarity >= alpha1:
                 #merge the two clusters
                 new_cluster = Cluster.merge(cluster1, cluster2)
@@ -430,18 +458,3 @@ def __partial_cluster_certainty_degree__(\
     cluster_index = np.argmax(matrix[item_index])
     similarity = matrix[item_index, cluster_index]
     return (item_index, similarity, cluster_index)
-
-
-def __assign_to_certainty__(item: object, simularity: float, alpha2: int,\
-    totally_certain: List, certain: List, uncertain: List, totally_uncertain: List) -> None:
-    
-    if simularity >= 1:
-        totally_certain.append(item)
-    elif alpha2 < simularity < 1:
-        certain.append(item)
-    elif simularity <= alpha2 and simularity != 0:
-        uncertain.append(item)
-    elif simularity == 0:
-        totally_uncertain.append(item)
-    else:
-        raise Exception("nay nayed")

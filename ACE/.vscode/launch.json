@@ -9,7 +9,7 @@
                 "--fasta", "../Dataset/edges.fasta", "--jgi",
                 "../Dataset/edges_depth.txt", "--SCG", "../Dataset/marker_gene_stats.tsv",
                  "--cache", "../Dataset/contigs_numpy.npy", "-P", "../Dataset/ClusterData/",
-                 "--outdir", "../Dataset/ACE_output.tsv"
+                 "--outfile", "../Dataset/ACE_output.tsv"
             ],
 
             "name": "Python: main.py",

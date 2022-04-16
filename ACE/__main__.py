@@ -3,16 +3,22 @@
 # Intended purpose: To get data from fasta files
 
 from random import randrange, random, seed
+
+from torch import chunk
 from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler, target_bin_3_4th_count_estimator
 from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
 from PartitionSetReader import PartitionSetReader
-from ContigReader import ContigReader
+from ContigReader import ContigFilter, ContigReader
 from Domain import ContigData
 import Constants as Const 
 import argparse
 import sys
 import os
+from multiprocessing import set_start_method
+import scipy as sp
+# set_start_method('spawn')
+# set_start_method('spawn2')
 
 
 # import numpy
@@ -32,9 +38,10 @@ def print_result(file_path: str, parititon: Partition[ContigData]):
 
 
 def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
-    numpy_cachepath: str, partition_folder: str, output_path: str, max_threads: int or None):
+    numpy_cachepath: str, partition_folder: str, output_path: str, max_threads: int or None, min_contigs: int):
     
-    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, numpy_cachepath, max_threads=max_threads)
+    contigFilter = ContigFilter(min_contigs)
+    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, numpy_cachepath, max_threads=max_threads, contig_filter=contigFilter)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"))
     partition_set = partitionSetReader.read_file()
 
@@ -98,11 +105,15 @@ def main():
 
     ensemble_args.add_argument('-a1min', type=float, dest='a1_min', metavar='',
         default=0.85, help='the minimum threshold for merging clusters. (recommended between 0.5 and 0.9) [default = 0.85]')
-    ensemble_args.add_argument('-a2',type=float, dest='a2', metavar='',\
-        default=0.85, help='initial a2 value, for labeling item certainty [default = 0.85]')
+    ensemble_args.add_argument('-a2', type=float, dest='a2', metavar='',\
+        default=0.85 , help='initial a2 value, for labeling item certainty [default = 0.85]')
+    ensemble_args.add_argument('-m', type=int, dest='min_contigs', metavar='',
+        default=100, help='minimum contig length to use [default = 100]')
     
     ensemble_args.add_argument('-k', type=int, dest='target_clusters', metavar='',
         default=None, help='The number of bins to target during the process [default = 3rd quartile average]')
+    ensemble_args.add_argument('-c', type=int, dest='chunksize', metavar='',
+        default=50, help='The chinksize to split a list into when multithreading [default = 50, ignored if -t = 1]')
     
     if(len(sys.argv) <= 1):
         parser.print_help()
@@ -169,6 +180,9 @@ def main():
     target_clusters = args.target_clusters if args.target_clusters is not None\
         else target_bin_3_4th_count_estimator
     
+    if args.chunksize < 1:
+        raise argparse.ArgumentError('chunksize must be larger than 0')
+    
     try: 
         logfile = open(args.logdest, 'w') if args.logdest is not None else None
         
@@ -180,10 +194,11 @@ def main():
                 taget_clusters_est=target_clusters,
                 logfile=logfile,
                 should_log=True,
-                threads=args.threads
+                threads=args.threads,
+                chunksize=args.chunksize
             )
         
-        run(ensembler, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, outfile, args.threads)
+        run(ensembler, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, outfile, args.threads, args.min_contigs)
     finally:
         if logfile is not None:
             logfile.close()

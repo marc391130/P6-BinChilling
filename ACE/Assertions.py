@@ -1,4 +1,8 @@
-from typing import Dict, List, Collection
+from typing import Callable, Dict, List, Collection
+
+def assert_fail(msg: str = None):
+    err = "An assertion failed" if msg is None else msg 
+    raise Exception(err)
 
 def assert_not_none(item: object):
     if item is None:
@@ -87,7 +91,13 @@ def assert_all_elements_are_in_cluster_lst(elements, cluster_lst) -> None:
     for element in elements:
         if element not in item_set:
             raise Exception("Missing element in item_set")
+
+def assert_lambda(assertion_predicate: Callable[[], bool], error_msg:str =None):
+    if assertion_predicate() is False:
+        msg = f"'{assertion_predicate}' assertion failed" if error_msg is None else error_msg
+        raise Exception(msg)
     
+
 def assert_equal(value1, value2) -> None:
     if value1 != value2:
         raise Exception(f"{value1} != {value2}")

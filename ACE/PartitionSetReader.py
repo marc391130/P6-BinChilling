@@ -40,7 +40,8 @@ class PartitionSetReader:
         with open(join(self.folder_path, filename), 'r') as f:
             for line in tqdm(f.readlines()):
                 cluster_name, edge_name = self.__parse_cluster_line__(line) 
-                partition.add(cluster_name, contigs[edge_name])
+                if edge_name in contigs:
+                    partition.add(cluster_name, contigs[edge_name])
 
                 
     #returns tuple of cluster_name, edge_name

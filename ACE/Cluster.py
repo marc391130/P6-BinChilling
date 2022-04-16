@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Dict, List, Generic, TypeVar, Tuple
+from logging import exception
+from typing import Dict, List, Generic, TypeVar, Tuple, Iterable, Iterator
 from math import sqrt
 import Constants as Constant
 
@@ -10,25 +11,56 @@ sys.setrecursionlimit(10**6)
 
 T = TypeVar("T")
 
-class Cluster(set, Generic[T]):
+class Cluster(Generic[T]):
     def __init__(self, partition_id = None):
-        self.__children_lst__: List[Cluster] = []
         self.__partition_id__ = partition_id
+        #maps each item in cluster to membership value
+        self.__membership__: Dict[T, int] = dict()
 
     @staticmethod
     def merge(cluster1: Cluster[T], cluster2: Cluster[T]) -> Cluster[T]:
         Assert.assert_not_none(cluster1)
         Assert.assert_not_none(cluster2)
-        cluster = Cluster()
-        cluster.__children_lst__ = [cluster1, cluster2]
-        for x in cluster1.union(cluster2):
-            cluster.add(x)
+        cluster = Cluster(partition_id=None)
+        
+        for item, membership in cluster1.__membership__.items():
+            cluster.__add_member__(item, membership)
+        for item, membership in cluster2.__membership__.items():
+            cluster.__add_member__(item, membership)
         return cluster
     
+    def __contains__(self, __o: T) -> bool:
+        return __o in self.__membership__
+    
+    def __len__(self) -> int:
+        return len(self.__membership__)
+    
+    def __iter__(self) -> Iterator[Cluster]:
+        return self.__membership__.__iter__()
+    
+    def intersection(self, other: Cluster) -> List[T]:
+        #return list(set(self.__membership__.keys()) & set(other.__membership__.keys()))
+        a, b = ((self, other) if len(self) > len(other) else (other, self))
+        return [item for item in b if item in a]        
+    
+    # def union(self, c: Iterable[Cluster]) -> set[Cluster]:
+    #     return set(self.__membership__.keys()).union(c)
+    
     def append(self, __object: T) -> None:
-        if __object in self:
-            raise Exception(f"Item {str(__object)} already in cluster")
-        return super().add(__object)
+        return self.add(__object)
+    
+    def add(self, __object: T) -> None:
+        if __object in self.__membership__:
+            raise Exception('Cluster already has item ' + str(__object))
+        self.__membership__[__object] = 1
+
+    def __add_member__(self, __object: T, membership: int) -> None:
+        self.__membership__[__object] = self.__membership__[__object] + membership\
+            if __object in self.__membership__ else membership
+
+    def remove(self, __value: T) -> bool:
+        if __value in self:
+            self.__membership__.pop(__value)
 
     def descriminatory_union(self, other: Cluster[T]) -> List[T]:
         result = []
@@ -40,52 +72,45 @@ class Cluster(set, Generic[T]):
                 result.append(item)
         return result
 
-    def remove(self, __value: T) -> None:
-        if __value not in self:
-            return
-        super().remove(__value)
-        for child in self.__children_lst__:
-            child.remove(__value)
-
-    def contains(self, item: T) -> bool:
-        return item in self
-    
     def SamePartitionAs(self, other: Cluster) -> bool:
         if self.__partition_id__ is None or other.__partition_id__ is None:
             return False
         return self.__partition_id__ == other.__partition_id__
 
-    def calc_membership(self, item: T) -> int:
-        item_membership_values = self.calc_all_membership()
-        return item_membership_values[item] if item in item_membership_values else 0
+    # def membership(self, item: T) -> int:
+    #     item_membership_values = self.calc_all_membership()
+    #     return item_membership_values[item] if item in item_membership_values else 0
+    
+    def calc_all_membersimularity(self, max_member_value: int) -> Dict[T, float]:
+        return { item: membersip / max_member_value for item, membersip in self.__membership__.items()}
     
     def calc_all_membership(self) -> Dict[T, int]:
-        if len(self.__children_lst__) == 0:
-            return {item: 1 for item in self}
-        
-        result = {}
-        for child in self.__children_lst__:
-            child_dic = child.calc_all_membership()
-            for item, value in child_dic.items():
-                result[item] = value if item not in result else result[item] + value
-                
-        for item in self:
-            if item not in result:
-                result[item] = 1
-        Assert.assert_equal(len(result), len(self))
-        return result
+        return self.__membership__
 
+    def member_simularity(self, item: T, max_member_value: int) -> float:
+        return self.membership(item) / max_member_value
 
-    def __get_leaf_clusters__(self) -> List[Cluster]:
-        result = []
-        
-        if len(self.__children_lst__) == 0:
-            return [self]
+    def mean_member_simularity(self, max_member_value: int) -> float:
+        return sum([self.member_simularity(item, max_member_value) for item in self]) / max_member_value
+    
+    def max_member_simularity(self, max_member_value: int) -> float:
+        return self.max_membership() / max_member_value
+    
+    def argmax_member_simularity(self, max_member_value: int) -> Tuple[T, float]:
+        item, membership = self.argmax_membership()
+        return (item, membership / max_member_value)
+    
+    def membership(self, item: T) -> int:
+        return self.__membership__[item] if item in self.__membership__ else 0
 
-        for child in self.__children_lst__:
-            result += child.__get_leaf_clusters__()
-        
-        return result
+    def mean_membership(self, partition_count: int) -> float:
+        return sum(self.__membership__.values()) / partition_count
+    
+    def max_membership(self) -> int:
+        return max(self.__membership__.values())
+
+    def argmax_membership(self) -> Tuple[T, int]:
+        return max(self.__membership__.items(), key=lambda x: x[1])
 
     def __hash__(self) -> int:
         return id(self)
@@ -103,7 +128,7 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
         if cluster_name not in self:
             super().__setitem__(cluster_name, Cluster(id(self)))
 
-        self[cluster_name].append(item)
+        self[cluster_name].add(item)
 
     # def __setitem__(self, __k, __v) -> None:
         # raise Exception("DO NOT USE THIS, use '.add()' instead")
@@ -170,7 +195,6 @@ class PartitionSet(List[Partition[T]]):
         Assert.assert_item_in_list(self.__dataset__, item2)
         
         return sum([1 if p.IsInSameCluster(item1, item2) else 0 for p in self]) / len(self)
-
 
     def get_all_clusters(self) -> List[Cluster[T]]:
         result = []

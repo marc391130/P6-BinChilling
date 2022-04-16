@@ -4,10 +4,22 @@ from tqdm import tqdm
 from Cluster import Cluster, PartitionSet
 from typing import Iterable, Tuple, Dict, List
 import Assertions as Assert 
+import scipy.sparse as sp  
 
 def average(ite :Iterable) -> float:
     return sum(ite) / len(ite)
 
+
+def Build_simularity_matrix(clusters: List[Cluster], gamma: PartitionSet) -> sp.dok_matrix:
+    
+    items = list(gamma.get_all_elements().keys())
+    shape = (items, clusters)
+    matrix = sp.dok_matrix(shape, dtype=np.float16)
+    for cluster in clusters:
+        membership_map = cluster.calc_all_membersimularity(max_member_value=len(gamma))
+        for item, simularity in membership_map.items():
+            matrix[item, cluster] = simularity
+    return matrix
 
 class MemberSimularityMatrix:
     def __init__(self, matrix: np.matrix, cluster_index_map: Dict[Cluster, int], item_index_map: Dict[Cluster, int]) -> None:
@@ -24,53 +36,15 @@ class MemberSimularityMatrix:
         del cluster_lst, all_items
         
         shape = (len(item_index_map), len(cluster_index_map)) 
-        matrix = np.full(shape=shape, fill_value=0, dtype=np.float32)
-        max_row_value = len(gamma)
+        # matrix = np.full(shape=shape, fill_value=0, dtype=np.float32)
+        matrix = sp.csr_matrix(shape, dtype=np.float32)
         
         for cluster, c_index in cluster_index_map.items():
-            membership_map = cluster.calc_all_membership()
-            for item, membership in membership_map.items():
+            membership_map = cluster.calc_all_membersimularity(max_member_value=len(gamma))
+            for item, simularity in membership_map.items():
                 i_index = item_index_map[item]
-                matrix[i_index, c_index] = membership / max_row_value
+                matrix[i_index, c_index] = simularity
         return MemberSimularityMatrix(matrix, cluster_index_map, item_index_map)
-    
-    @staticmethod
-    def Build(memberMatrix: MemberMatrix) -> MemberSimularityMatrix:
-        cluster_index_map = dict(memberMatrix.cluster_index_map)
-        item_index_map = dict(memberMatrix.item_index_map)
-        shape = (len(item_index_map), len(cluster_index_map)) 
-        matrix = np.full(shape=shape, fill_value=-1, dtype=np.float32)
-        
-        def row_divisor(item_index) -> float:
-            # return np.max(memberMatrix.matrix[item_index])
-            return np.sum(memberMatrix.matrix[item_index])
-        
-        for item, e_index in item_index_map.items():
-            row_value = row_divisor(e_index)
-            for cluster, c_index in cluster_index_map.items():
-                membership_value = memberMatrix[item, cluster] 
-                simularityValue = membership_value / row_value if row_value > 0 else 0
-                matrix[e_index, c_index] = simularityValue
-        # np.savetxt('simularity_matrix.txt', matrix, fmt='%f', delimiter=', ', newline='\n\n')
-        return MemberSimularityMatrix(matrix, cluster_index_map, item_index_map) 
-    
-    
-    @staticmethod
-    def RefineTo(simularity_matrix: MemberSimularityMatrix, keep_clusters: List[Cluster]) -> MemberSimularityMatrix:
-        Assert.assert_unique(keep_clusters)
-        for keep_cluster in keep_clusters:
-            Assert.assert_key_exists(keep_cluster, simularity_matrix.cluster_index_map)
-        keep_cluster_index_map = {keep_clusters[i]: i for i in range(len(keep_clusters)) }           
-        item_index_map = dict(simularity_matrix.item_index_map)
-        shape = (len(item_index_map), len(keep_cluster_index_map))
-        
-        matrix = np.full(shape=shape, fill_value=0, dtype=np.float32)
-        
-        for item, i_index in item_index_map.items():
-            for cluster, c_index in keep_cluster_index_map.items():
-                matrix[i_index, c_index] = simularity_matrix[item, cluster]
-        # np.savetxt('simularity_matrix_refined.txt', matrix, fmt='%f', delimiter=', ', newline='\n\n')
-        return MemberSimularityMatrix(matrix, keep_cluster_index_map, item_index_map)
     
     
     def shape(self) -> Tuple[int, int]:
@@ -88,24 +62,24 @@ class MemberSimularityMatrix:
         self.matrix[i_index, c_index] = __v
     
     
-    def Cluster_Mean(self, cluster: Cluster) -> float:
-        Assert.assert_key_exists(cluster, self.cluster_index_map)
-        if len(cluster) == 0:
-            return 0.0
-        return self.Cluster_Sum(cluster) / len(cluster)
+    # def Cluster_Mean(self, cluster: Cluster) -> float:
+    #     Assert.assert_key_exists(cluster, self.cluster_index_map)
+    #     if len(cluster) == 0:
+    #         return 0.0
+    #     return self.Cluster_Sum(cluster) / len(cluster)
     
-    def Cluster_Max(self, cluster: Cluster) -> float:
-        c_index, max_value = self.cluster_index_map[cluster], 0
-        for item in cluster:
-            max_value = max(self.matrix[self.item_index_map[item], c_index], max_value)
-        return max_value
+    # def Cluster_Max(self, cluster: Cluster) -> float:
+    #     c_index, max_value = self.cluster_index_map[cluster], 0
+    #     for item in cluster:
+    #         max_value = max(self.matrix[self.item_index_map[item], c_index], max_value)
+    #     return max_value
         
-    def Cluster_Sum(self, cluster: Cluster) -> float:
-        c_index, sum_value = self.cluster_index_map[cluster], 0
-        for item in cluster:
-            i_index = self.item_index_map[item]
-            sum_value += self.matrix[i_index, c_index]
-        return sum_value
+    # def Cluster_Sum(self, cluster: Cluster) -> float:
+    #     c_index, sum_value = self.cluster_index_map[cluster], 0
+    #     for item in cluster:
+    #         i_index = self.item_index_map[item]
+    #         sum_value += self.matrix[i_index, c_index]
+    #     return sum_value
     
     def Item_sum(self, item) -> float:
         e_index, sum_value = self.item_index_map[item], 0
@@ -152,26 +126,21 @@ class MemberMatrix:
     def build(cluster_lst: List[Cluster], item_lst: List[object]) -> MemberMatrix:
         item_index_map = {item_lst[i]: i for i in range(len(item_lst))}
         cluster_index_map = {cluster_lst[i]: i for i in range(len(cluster_lst))}
-        shape = (len(item_index_map), len(cluster_index_map))
-        matrix: np.matrix = np.zeros(shape=shape, dtype=np.int)
+        shape = (len(cluster_index_map), len(item_index_map))
+        # matrix: np.matrix = np.zeros(shape=shape, dtype=np.int)
+        matrix = sp.lil_matrix(shape, dtype=np.ushort)
         
         for cluster, c_index in cluster_index_map.items():
             value_map = cluster.calc_all_membership()
             for item, value in value_map.items():
                 Assert.assert_not_equal(value, 0)
                 e_index = item_index_map[item]
-                matrix[e_index, c_index] = value
+                matrix[c_index, e_index] = value
         
-        # for row in matrix:
-        #     print(row.sum())
-        #     Assert.assert_equal(row.sum(), 5)
-        # np.savetxt("member_matrix_sum_0.txt", matrix.sum(axis=0), fmt='%d', delimiter=',', newline='\n\n')
-        # np.savetxt("member_matrix_sum_1.txt", matrix.sum(axis=1), fmt='%d', delimiter=',', newline='\n\n')
-        # np.savetxt("member_matrix.txt", matrix, fmt='%d', delimiter=',', newline='\n\n')
-        return MemberMatrix(matrix, cluster_index_map, item_index_map)
+        return MemberMatrix(matrix.tocsc(), cluster_index_map, item_index_map)
     
     
-    def __getitem__(self, tuple: Tuple[object, Cluster]) -> float:
+    def __getitem__(self, tuple: Tuple[object, Cluster]) -> int:
         item, cluster = tuple
         return self.getEntry(cluster, item)
     
@@ -180,7 +149,10 @@ class MemberMatrix:
         Assert.assert_key_exists(item, self.item_index_map)
         c_index = self.cluster_index_map[cluster]
         e_index = self.item_index_map[item]
-        return self.matrix[e_index, c_index]
+        return self.get_index(c_index, e_index)
+        
+    def get_index(self, cluster_idx: int, item_idx: int) -> int:
+        return self.matrix[cluster_idx, item_idx]
         
     def __len__(self) -> int:
         return len(self.cluster_index_map)
@@ -189,20 +161,20 @@ class MemberMatrix:
     def get_cluster_row(self, cluster: Cluster) -> Dict[object, int]:
         Assert.assert_key_exists(cluster, self.cluster_index_map)
         c_index = self.cluster_index_map[cluster]
-        return {item: self.matrix[e_index, c_index] for item, e_index in self.item_index_map.items()}
+        return {item: self.get_index(c_index, e_index) for item, e_index in self.item_index_map.items()}
     
-    def add_cluster(self, cluster: Cluster) -> None:
-        item_map = cluster.calc_all_membership()
-        column = [[item_map[item] if item in item_map else 0] for item, i in self.item_index_map.items()]
-        self.cluster_index_map[cluster] = len(self.cluster_index_map)
+    # def add_cluster(self, cluster: Cluster) -> None:
+    #     item_map = cluster.calc_all_membership()
+    #     column = [[item_map[item] if item in item_map else 0] for item, i in self.item_index_map.items()]
+    #     self.cluster_index_map[cluster] = len(self.cluster_index_map)
         
-        self.matrix = np.append(self.matrix, column, axis=1)
+    #     self.matrix = np.append(self.matrix, column, axis=1)
     
-    def BuildSimularityMatrix(self, clusters: List[Cluster]) -> MemberSimularityMatrix:
-        for cluster in clusters: # make sure every cluster exists inside the cluster_index_map
-            Assert.assert_key_exists(cluster, self.cluster_index_map)
+    # def BuildSimularityMatrix(self, clusters: List[Cluster]) -> MemberSimularityMatrix:
+    #     for cluster in clusters: # make sure every cluster exists inside the cluster_index_map
+    #         Assert.assert_key_exists(cluster, self.cluster_index_map)
         
-        return MemberSimularityMatrix.Build(self)       
+    #     return MemberSimularityMatrix.Build(self)       
     
     
     #returns a set of items
@@ -240,6 +212,7 @@ class MemberMatrix:
     def shape(self) -> Tuple[int, int]:
         return (len(self.item_index_map), len(self.cluster_index_map))
 
+
 class CoAssosiationMatrix:
     def __init__(self, matrix: np.matrix, index_map: Dict[object, int], partition_count: int) -> None:
         self.matrix = matrix
@@ -252,8 +225,9 @@ class CoAssosiationMatrix:
         item_lst = list((gamma.get_all_elements()).keys())
         index_map = {item_lst[i]: i for i in range(len(item_lst))}
         partition_count = len(gamma)
-        
-        matrix :np.matrix = np.full(shape=(len(item_lst), len(item_lst)), fill_value=0, dtype=np.float32)
+        shape = (len(item_lst), len(item_lst))
+        # matrix :np.matrix = np.full(shape=shape, fill_value=0, dtype=np.float32)
+        matrix = sp.lil_matrix(shape, dtype=np.float16)
         
         for item1 in tqdm(item_lst):
             matrix_index1 = index_map[item1]
@@ -265,7 +239,6 @@ class CoAssosiationMatrix:
                 matrix[matrix_index1, matrix_index2] = value
                 matrix[matrix_index2, matrix_index1] = value
         
-        np.savetxt('CoAssosiation', matrix, fmt='%f', delimiter=',', newline='\n\n')
         return CoAssosiationMatrix(matrix, index_map, partition_count)
     
     
