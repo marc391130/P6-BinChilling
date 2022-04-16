@@ -23,16 +23,15 @@ def Build_simularity_matrix(clusters: List[Cluster], gamma: PartitionSet) -> sp.
     return matrix
 
 
-class MemberSimularityMatrix2:
-    def __init__(self, matrix: SparseDictHashMatrix[object, float]) -> None:
-        self.matrix = matrix
+class MemberSimularityMatrix2(SparseDictHashMatrix):
+    def __init__(__self__) -> None:
+        pass
     
     @staticmethod
     def IndependentBuild(clusters: List[Cluster], gamma: PartitionSet):
         cluster_lst = list(clusters)
-        all_items = list(gamma.get_all_elements().keys())
         
-        matrix = SparseDictHashMatrix()
+        matrix = MemberSimularityMatrix2()
         # matrix = sp.csc_matrix(shape, dtype=np.float32)
         
         for cluster in cluster_lst:
@@ -41,29 +40,21 @@ class MemberSimularityMatrix2:
                 matrix[item, cluster] = simularity
         return MemberSimularityMatrix2(matrix)
     
-    
-    # def shape(self) -> Tuple[int, int]:
-    #     return (len(self.cluster_index_map), len(self.item_index_map))
-    
-    def __getitem__(self, tuple: Tuple[object, Cluster]) -> float:
-        return self.matrix[tuple]
-    
-    def __setitem__(self, __k: Tuple[object, Cluster], __v: float):
+    def set(self, __k: Tuple[object, Cluster], __v: float):
         if(__v > 1 or __v < 0):
-            raise ValueError("similarity value cannot be outside range 0-1")
-        item, cluster = __k
-        self.matrix[item, cluster] = __v
+            raise ValueError("similarity value cannot be outside range 0 to 1")
+        super().set(__k, __v)
             
     def Item_sum(self, item) -> float:
-        return sum(self.matrix.get_row(item).values())
+        return sum(self.get_row(item).values())
     
     def item_max(self, item) -> float:
-        return max(self.matrix.get_row(item).values())
+        return max(self.get_row(item).values())
     
     def item_argMax(self, item) -> Cluster:
         arg_max, max_value = None, 0 
         
-        for cluster, sim in self.matrix.get_row(item).items():
+        for cluster, sim in self.get_row(item).items():
             if sim > max_value:
                 arg_max, max_value = cluster, sim
         if arg_max is None:
@@ -71,14 +62,17 @@ class MemberSimularityMatrix2:
         return arg_max
         
     def assign_item_to(self, cluster: Cluster, item: object) -> None:
-        for cluster2, sim in self.matrix.get_row(item).items():
+        for cluster2 in self.get_row(item).keys():
             if cluster is cluster2:
                 continue
-            self.matrix.pop_entry(item, cluster)
+            self.pop_entry(item, cluster)
     
     
-    def GetEntry(self, cluster: Cluster, item: object) -> float:
-        return self.matrix[item, cluster]
+    def getEntry(self, item: object, cluster: Cluster) -> float:
+        tup = (item, cluster)
+        if self.has_entry(tup):
+            return self.get(tup)
+        return 0
 
 
 class MemberSimularityMatrix:
