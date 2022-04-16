@@ -39,7 +39,74 @@ class HashIterator(Iterator[Tuple[TK, TV]]):
         tupkey = self.keysort(self.pivot, self.control.__next__())
         return self.source[tupkey]
 
-class SparseHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
+class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
+    def __init__(self) -> None:
+        self.__internal__ : Dict[TK, Dict[TK, TV]] = dict()
+    
+    #READ FUNCTIONS
+    def getEntry(self, key1: TK, key2: TK) -> TV:
+        return self.__internal__[key1][key2]
+    
+    def keys(self) -> Iterable[Tuple[TK, TK]]:
+        return self.__internal__.keys()
+    
+    def values(self) -> Iterable[TV]:
+        return self.__internal__.values()
+    
+    def items(self) -> Iterable[TK, Dict[TK, TV]]:
+        return self.__internal__.items()
+    
+    def get(self, __k: Tuple[TK, TK]) -> TV:
+        return self.getEntry(__k[0], __k[1])
+    
+    def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
+        return self.get(__k)
+    
+    def get_row(self, __k: TK) -> Dict[TK, TV]:
+        return self.__internal__.get(__k)
+    
+    #SET FUNCTIONS
+    def __setitem__(self, __k: Tuple[TK, TK], __v: TV) -> None:
+        self.set(__k, __v)
+    
+    def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
+        k1, k2 = __k
+        if k1 not in self.__internal__: self.__internal__[k1] = {}
+        self.__internal__[k1][k2] = __v
+        
+    #DELETE FuNCTIONS
+    def __delitem__(self, __v: Tuple[TK, TK]) -> TV:
+        k1, k2 = __v
+        return self.__internal__[k1].pop(k2)
+    
+    def pop(self, __k: Tuple[TK, TK]) -> None:
+        return self.__delitem__(__k)
+    
+    def pop_entry(self, key1: TK, key2: TK) -> None:
+        return self.__delitem__( (key1, key2) )
+
+    def pop_contain(self, key: TK) -> None: #will always return none and never throw
+        for key, inner_dct in self.__internal__:
+            inner_dct.pop(key, None)
+        self.__internal__.pop(key, None)
+    
+    #UTILITY FUNCTIONS
+    def has_entry(self, key: Tuple[TK, TK]) -> bool:
+        k1, k2 = key
+        return k1 in self.__internal__ and k2 in self.__internal__[k1]
+    
+    def __contains__(self, __o: object) -> bool:
+        if type(__o) is Tuple:
+            return self.has_entry(__o)
+        return False
+    
+    def __len__(self) -> int:
+        return len(self.__internal__)
+    
+    def __iter__(self) -> Iterator[Tuple[TK, TK], TV]:
+        return self.__internal__.__iter__()
+    
+class SparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
     def __init__(self, keysort : Callable[[TK, TK], Tuple[TK, TK]] = None) -> None:
         self.__internal__ : Dict[Tuple[TK, TK], TV] = dict()
         self.keysort = keysort if keysort is not None else lambda x, y: (x, y) 
@@ -118,8 +185,8 @@ class SparseHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
 
     
 class SparseClustserSimularity:
-    def __init__(self, cluster_lst: List[Cluster], total_item_count: int, min_value: float, matrix: SparseHashMatrix[Cluster, float] = None) -> None:
-        self.matrix = SparseHashMatrix[Cluster, float](SortKeysByHash) if matrix is None else matrix
+    def __init__(self, cluster_lst: List[Cluster], total_item_count: int, min_value: float, matrix: SparseTupleHashMatrix[Cluster, float] = None) -> None:
+        self.matrix = SparseTupleHashMatrix[Cluster, float](SortKeysByHash) if matrix is None else matrix
         self.__all_clusters__ = set(cluster_lst)
         self.__non_similar_clusters__ = set(cluster_lst)
         self.total_item_count = total_item_count
@@ -142,7 +209,7 @@ class SparseClustserSimularity:
     @staticmethod
     def build_multithread(cluster_lst: List[Cluster], total_item_count: int, a1_min: float, processes: int, chunksize: int = 75) -> SparseClustserSimularity:
         if processes <= 1: return SparseClustserSimularity.build(cluster_lst, total_item_count, a1_min)
-        matrix_dct = SparseHashMatrix(SortKeysByHash)
+        matrix_dct = SparseTupleHashMatrix(SortKeysByHash)
         parameters = [(i, cluster_lst, total_item_count, a1_min) for i in range(len(cluster_lst))]
         result : List[List[Tuple[Cluster, Cluster, float]]] = None
         with Pool(processes) as p:

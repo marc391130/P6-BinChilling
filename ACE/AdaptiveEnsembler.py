@@ -10,7 +10,7 @@ import Assertions as Assert
 from sys import maxsize as MAXSIZE
 from time import time
 from Domain import ContigData
-from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, Build_simularity_matrix
+from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, MemberSimularityMatrix2, Build_simularity_matrix
 from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
 from io import TextIOWrapper
 
@@ -137,7 +137,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         del certain_clusters, available_clusters
         non_candidate_memberMatrix = MemberMatrix.build(non_candidate_clusters, all_items)
         # similarity_matrix = Build_simularity_matrix(candidate_clusters, gamma)
-        similarity_matrix = MemberSimularityMatrix.IndependentBuild(candidate_clusters, gamma)
+        similarity_matrix = MemberSimularityMatrix2.IndependentBuild(candidate_clusters, gamma)
         del all_items, all_clusters
         
         partition = self.assign_item_to_one_cluster(gamma, alpha2,\
