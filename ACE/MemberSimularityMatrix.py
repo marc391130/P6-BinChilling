@@ -25,7 +25,7 @@ def Build_simularity_matrix(clusters: List[Cluster], gamma: PartitionSet) -> sp.
 
 class MemberSimularityMatrix2(SparseDictHashMatrix):
     def __init__(__self__) -> None:
-        pass
+        super().__init__()
     
     @staticmethod
     def IndependentBuild(clusters: List[Cluster], gamma: PartitionSet):
