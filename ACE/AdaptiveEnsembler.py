@@ -370,7 +370,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         def find_merge_clusters() -> Tuple[List[Cluster], float]:
             merged_lst, skip_set, max_simularity = [], set(), -1 #only a set, so we dont have to convert it later 
-            for clusterTuple, similarity in tqdm(cluster_matrix.get_entries()):
+            for clusterTuple, similarity in cluster_matrix.get_entries():
                 cluster1, cluster2 = clusterTuple
                 if cluster1 in skip_set or cluster2 in skip_set: continue
                 if similarity >= alpha1:
@@ -382,19 +382,24 @@ class AdaptiveClusterEnsembler(Ensembler):
             # for cluster in skip_set: cluster_matrix.remove_cluster(cluster)
             cluster_matrix.remove_set_of_clusters(skip_set)
             return (merged_lst, max_simularity)
-            
+        
+        def sort_merged_clusters(merged_lst: List[Cluster]) -> float:
+            if len(merged_lst) < 3:
+                return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
+            return sort_merged_cluster_multithread(cluster_matrix, merged_lst, self.thread_count, self.chunksize)
+        
         while  alpha1 >= self.aplha1_min:
             i = i+1
             log_22()
             merged_clusters, max_merge_simularity = find_merge_clusters()
-            max_merged_simularity = sort_merged_cluster_multithread(cluster_matrix, merged_clusters)
+            max_merged_simularity = sort_merged_clusters(merged_clusters)
             alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.delta_alpha)
         
         return cluster_matrix.get_available_clusters()
     
-def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, merged_lst: List[Cluster]) -> float:
+def sort_merged_cluster_singlethread(cluster_matrix: SparseClustserSimularity, merged_lst: List[Cluster]) -> float:
     max_simularity = -1
-    for merged_cluster in merged_lst:
+    for merged_cluster in tqdm(merged_lst):
         cluster_matrix.add_cluster(merged_cluster)
         for cluster in cluster_matrix.__all_clusters__:
             if merged_cluster is cluster: continue
@@ -404,7 +409,37 @@ def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, me
             #elif similarity < alpha1: 
             max_simularity = max(max_simularity, similarity)
     return max_simularity
-        
+
+def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, merged_lst: List[Cluster],\
+    threads: int = cpu_count(), chunksize:int = 1) -> float:
+    max_simularity = -1
+    for c in merged_lst: cluster_matrix.add_cluster(c)
+    index_lst = list(cluster_matrix.__all_clusters__)
+    parameters = [(cluster, index_lst, cluster_matrix.total_item_count, cluster_matrix.min_value) for cluster in merged_lst]
+    
+    result: List[Tuple[int, List[Tuple[int, float], float]]] = None
+    with Pool(threads) as p:
+        result = tqdm(p.imap(partial_sort_merge, parameters, chunksize=chunksize), total=len(parameters))
+    for index, res, max_sim in result:
+        max_simularity = max(max_simularity, max_sim)
+        for index2, sim in res:
+            cluster_matrix.set_value(index_lst[index], index_lst[index2], sim)
+    return max_simularity
+
+def partial_sort_merge(tup: Tuple[Cluster, List[Cluster], int, float]) -> Tuple[int, List[Tuple[int, float], float]]:
+    merged_cluster, all_clusters, total_item_count, min_value = tup
+    own_index, max_similarity, result = -1, -1, []
+    for cluster_idx in range(len(all_clusters)):
+        cluster = all_clusters[cluster_idx]
+        if merged_cluster is cluster:
+            own_index = cluster_idx           
+            continue
+        similarity = cluster_simularity(merged_cluster, cluster, total_item_count)
+        max_similarity = max(similarity, max_similarity)
+        if similarity > min_value:
+            result.append( (cluster_idx, similarity) )
+    return own_index, result, max_similarity
+
 def MergeClusters(alpha1: float, clusters: List[Cluster], total_elements)\
     -> Tuple[List[Cluster], float]: #tuple of (all available cluster, next_higext_similarity) 
     result_clusters = []
