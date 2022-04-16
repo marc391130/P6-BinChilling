@@ -55,14 +55,14 @@ class MemberSimularityMatrix2(SparseDictHashMatrix):
         return max(self.get_row(item).values())
     
     def item_argMax(self, item) -> Tuple[Cluster, float]:
-        arg_max, max_value = None, 0 
+        arg_max, max_value = None, -1 
         
         row = self.get_row(item)
         if row is None or len(row) == 0:
             return (None, 0)
         
         for cluster, sim in row.items():
-            if sim > max_value:
+            if sim >= max_value:
                 arg_max, max_value = cluster, sim
         if arg_max is None:
             raise KeyError("Could not find index in argmax")
