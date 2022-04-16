@@ -77,12 +77,10 @@ class MemberSimularityMatrix2(SparseDictHashMatrix):
                 continue
             self.pop_entry(item, cluster)
     
-    
-    def getEntry(self, item: object, cluster: Cluster) -> float:
-        tup = (item, cluster)
-        if self.has_entry(tup):
-            return self.get(tup)
-        return 0
+    def get(self, __k: Tuple[object, Cluster]) -> float:
+        if self.has_entry(__k):
+            return super().get(__k)
+        return 0.0
 
 
 class MemberSimularityMatrix:
@@ -277,15 +275,15 @@ class MemberMatrix:
         return (len(self.item_index_map), len(self.cluster_index_map))
 
 
-class CoAssosiationMatrix:
-    def __init__(self, matrix: np.matrix, index_map: Dict[object, int], partition_count: int) -> None:
-        self.matrix = matrix
-        self.index_map = index_map
-        self.__parition_count__ = partition_count
+class CoAssosiationMatrix(SparseDictHashMatrix):
+    def __init__(self) -> None:
+        super().__init__()
+        # self.matrix = matrix
+        # self.index_map = index_map
         
     
     @staticmethod
-    def build(gamma: PartitionSet) -> CoAssosiationMatrix:
+    def build_old(gamma: PartitionSet) -> CoAssosiationMatrix:
         item_lst = list((gamma.get_all_elements()).keys())
         index_map = {item_lst[i]: i for i in range(len(item_lst))}
         partition_count = len(gamma)
@@ -305,28 +303,33 @@ class CoAssosiationMatrix:
         
         return CoAssosiationMatrix(matrix, index_map, partition_count)
     
+    @staticmethod
+    def build(gamma: PartitionSet) -> CoAssosiationMatrix:
+        item_lst = list((gamma.get_all_elements()).keys())
+        matrix = CoAssosiationMatrix()
+        
+        for item1 in tqdm(item_lst):
+            item_coasssiation =  gamma.calc_all_coassosiation(item1)
+            for item2, value in item_coasssiation.items():
+                matrix[item1, item2] = value
+        
+        return matrix
     
     def FindAssociatedItem(self, item: object) -> object or None:
         Assert.assert_key_exists(item, self.index_map)
-        index = self.index_map[item]
+        row = self.get_row(item)
         max_value, max_item = 0, None
-        for other_item, other_index in self.index_map.items():
-            if index == other_index:
-                continue
-            value = self.matrix[index, other_index]
+        for other_item, value in row.items():
+            if item is other_item: continue
             if value > max_value:
                 max_value = value
                 max_item = other_item
         return max_item
-        
     
+    def get(self, __k: Tuple[object, object]) -> float:
+        if self.has_entry(__k):
+            return super().get(__k)
+        return 0.0
     
-    def GetEntry(self, item1: object, item2: object) -> float:
-        Assert.assert_key_exists(item1, self.index_map)
-        Assert.assert_key_exists(item2, self.index_map)
-        i1, i2 = self.index_map[item1], self.index_map[item2]
-        return self.matrix[i1, i2]
-    
-    def __getitem__(self, tuple: Tuple[object, object]) -> float:
-        item1, item2 = tuple
-        return self.GetEntry(item1, item2)
+# def partial_build_coassosiation_row(gamma: PartitionSet) -> Tuple[int, Dict[object, float]]:
+#     pass

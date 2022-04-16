@@ -2,6 +2,8 @@ from __future__ import annotations
 from logging import exception
 from typing import Dict, List, Generic, TypeVar, Tuple, Iterable, Iterator
 from math import sqrt
+
+from sklearn import cluster
 import Constants as Constant
 
 import Assertions as Assert
@@ -91,7 +93,10 @@ class Cluster(Generic[T]):
         return self.membership(item) / max_member_value
 
     def mean_member_simularity(self, max_member_value: int) -> float:
-        return sum([self.member_simularity(item, max_member_value) for item in self]) / max_member_value
+        return self.sum_member_simularity(max_member_value) / len(self)
+    
+    def sum_member_simularity(self, max_member_value: int) -> float:
+        return sum([self.member_simularity(item, max_member_value) for item in self])
     
     def max_member_simularity(self, max_member_value: int) -> float:
         return self.max_membership() / max_member_value
@@ -103,8 +108,11 @@ class Cluster(Generic[T]):
     def membership(self, item: T) -> int:
         return self.__membership__[item] if item in self.__membership__ else 0
 
-    def mean_membership(self, partition_count: int) -> float:
-        return sum(self.__membership__.values()) / partition_count
+    def mean_membership(self) -> float:
+        return sum(self.__membership__.values()) / len(self)
+    
+    def sum_membership(self) -> float:
+        return sum(self.__membership__.values())
     
     def max_membership(self) -> int:
         return max(self.__membership__.values())

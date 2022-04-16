@@ -45,7 +45,7 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
     
     #READ FUNCTIONS
     def getEntry(self, key1: TK, key2: TK) -> TV:
-        return self.__internal__[key1][key2]
+        return self.get( (key1, key2) )
     
     def keys(self) -> Iterable[Tuple[TK, TK]]:
         return self.__internal__.keys()
@@ -57,7 +57,7 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         return self.__internal__.items()
     
     def get(self, __k: Tuple[TK, TK]) -> TV:
-        return self.getEntry(__k[0], __k[1])
+        return self.__internal__.get(__k[0]).get(__k[1])
     
     def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
         return self.get(__k)
@@ -213,9 +213,9 @@ class SparseClustserSimularity:
         parameters = [(i, cluster_lst, total_item_count, a1_min) for i in range(len(cluster_lst))]
         result : List[List[Tuple[Cluster, Cluster, float]]] = None
         with Pool(processes) as p:
-            result = tqdm(p.imap(partial_build_similarity_row, parameters, chunksize=chunksize), total=len(parameters))
-            p.close()
-            p.join()
+            result = list(tqdm(p.imap(partial_build_similarity_row, parameters, chunksize=chunksize), total=len(parameters)))
+            # p.close()
+            # p.join()
             
             
         for i1, i2, sim in itertools.chain.from_iterable(result):

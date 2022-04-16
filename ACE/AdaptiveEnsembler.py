@@ -33,20 +33,17 @@ class QualityMeasuerer:
         
         return sum_value / len(cluster)
     
-    def calculate_speculative_quality(self, initial_quality: float, item: object, \
+    def calculate_speculative_quality(self, initial_quality: float, include_item: object, \
         cluster: Cluster, gamma: PartitionSet) -> float:
-        if item in cluster:
+        if include_item in cluster:
             return initial_quality
-        
-        mean = cluster.mean_member_simularity(len(gamma))
-        member_val = cluster.membership(item)
-        new_simularity = (member_val+1) / (len(gamma)+1)
-        value = pow(new_simularity - mean, 2)
-        
-        total_val = initial_quality * len(cluster)
-        
-        return (total_val + value) / (len(cluster) +1)
 
+        new_total_participation = len(gamma)+1
+        new_mean = (cluster.sum_membership()+1) / (len(cluster)+1)
+        sum_value = sum([pow((1 / new_total_participation) - new_mean, 2)] +\
+            [pow(sim - new_mean, 2) for sim in cluster.calc_all_membersimularity(new_total_participation).values() ])
+
+        return sum_value / len(cluster)+1
 def target_bin_3_4th_count_estimator(gamma: PartitionSet) -> int:
     partition_ln = [len(partition) for partition in gamma]
     average = sum(partition_ln) / len(partition_ln)
@@ -313,9 +310,8 @@ class AdaptiveClusterEnsembler(Ensembler):
             #add it back into best cluster
             cluster.add(item)
         return candidate_clusters
-    
         
-            
+        
     def identify_object_certainy(self, items: List, similarity_matrix: MemberSimularityMatrix, alpha2: float) \
         -> Tuple[List[Tuple[object, Cluster]], List[Tuple[object, Cluster]], List[object], List[object]]:
         totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_lst  = [], [], [], []
@@ -323,6 +319,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         for item in tqdm(items):
             cluster, similarity = similarity_matrix.item_argMax(item)
+            
             item_cluster_tuple = (item, cluster)
             if similarity >= 1:
                 totally_certain_lst.append(item_cluster_tuple)
@@ -431,9 +428,9 @@ def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, me
     
     result: List[Tuple[int, List[Tuple[int, float], float]]] = None
     with Pool(threads) as p:
-        result = tqdm(p.imap(partial_sort_merge, parameters, chunksize=chunksize), total=len(parameters))
-        p.close()
-        p.join()
+        result = list(tqdm(p.imap(partial_sort_merge, parameters, chunksize=chunksize), total=len(parameters)))
+        # p.close()
+        # p.join()
     for index, res, max_sim in result:
         max_simularity = max(max_simularity, max_sim)
         for index2, sim in res:
