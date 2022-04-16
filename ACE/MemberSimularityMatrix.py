@@ -36,8 +36,8 @@ class MemberSimularityMatrix:
         del cluster_lst, all_items
         
         shape = (len(item_index_map), len(cluster_index_map)) 
-        # matrix = np.full(shape=shape, fill_value=0, dtype=np.float32)
-        matrix = sp.csr_matrix(shape, dtype=np.float32)
+        matrix = np.full(shape=shape, fill_value=0, dtype=np.float32)
+        # matrix = sp.csc_matrix(shape, dtype=np.float32)
         
         for cluster, c_index in cluster_index_map.items():
             membership_map = cluster.calc_all_membersimularity(max_member_value=len(gamma))
@@ -128,7 +128,7 @@ class MemberMatrix:
         cluster_index_map = {cluster_lst[i]: i for i in range(len(cluster_lst))}
         shape = (len(cluster_index_map), len(item_index_map))
         # matrix: np.matrix = np.zeros(shape=shape, dtype=np.int)
-        matrix = sp.lil_matrix(shape, dtype=np.ushort)
+        matrix = sp.lil_matrix(shape, dtype=np.uint8)
         
         for cluster, c_index in cluster_index_map.items():
             value_map = cluster.calc_all_membership()

@@ -20,32 +20,36 @@ def cluster_simularity(cluster1: Cluster, cluster2: Cluster, total_elements: int
     return counter / divisor if divisor != 0 else 0
 
 
-def SortKeys(key1: TK, key2: TK) -> Tuple[TK, TK]:
+def SortKeysByHash(key1: TK, key2: TK) -> Tuple[TK, TK]:
     return (key1, key2) if key1.__hash__() <= key2.__hash__() else (key2, key1)
 
-def SortTuple(__k: Tuple[TK, TK]) -> Tuple[TK, TK]:
-    return SortKeys(__k[0], __k[1])
 
 class HashIterator(Iterator[Tuple[TK, TV]]):
-    def __init__(self, source: Dict[Tuple[TK, TK], TV], pivot: TK, control: Iterator[TK], second_iterator: Iterator[TK] = None) -> None:
+    def __init__(self, source: Dict[Tuple[TK, TK], TV], keysort : Callable[[TK, TK], Tuple[TK, TK]],\
+        pivot: TK, control: Iterator[TK], second_iterator: Iterator[TK] = None) -> None:
         self.source = source
         self.pivot = pivot
         self.control = control if second_iterator is None else itertools.chain(control, second_iterator)
+        self.keysort = keysort
         
     def __iter__(self) -> Iterator[Tuple[TK, TV]]:
         return self
         
     def __next__(self) -> Tuple[TK, TV]:
-        tupkey = SortKeys(self.pivot, self.control.__next__())
+        tupkey = self.keysort(self.pivot, self.control.__next__())
         return self.source[tupkey]
 
 class SparseHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
-    def __init__(self) -> None:
+    def __init__(self, keysort : Callable[[TK, TK], Tuple[TK, TK]] = None) -> None:
         self.__internal__ : Dict[Tuple[TK, TK], TV] = dict()
-            
+        self.keysort = keysort if keysort is not None else lambda x, y: (x, y) 
+    
+    def sortTuple(self, tup: Tuple[TK, TK]) -> Tuple[TK, TK]:
+        return self.keysort(tup[0], tup[1])
+    
     #READ FUNCTIONS
     def getEntry(self, key1: TK, key2: TK) -> TV:
-        return self.get( SortKeys(key1, key2) )
+        return self.get( self.keysort(key1, key2) )
     
     def keys(self) -> Iterable[Tuple[TK, TK]]:
         return self.__internal__.keys()
@@ -57,7 +61,7 @@ class SparseHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         return self.__internal__.items()
     
     def get(self, __k: Tuple[TK, TK]) -> TV:
-        return self.__internal__[SortTuple(__k)]
+        return self.__internal__[self.sortTuple(__k)]
     
     def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
         return self.get(__k)
@@ -67,7 +71,7 @@ class SparseHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         self.set(__k, __v)
     
     def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
-        tup = SortTuple(__k)
+        tup = self.sortTuple(__k)
         self.__internal__[tup] = __v
         
     #DELETE FuNCTIONS
@@ -78,7 +82,7 @@ class SparseHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         self.__internal__.pop(__k)
     
     def pop_entry(self, key1: TK, key2: TK) -> None:
-        tup = SortKeys(key1, key2)
+        tup = self.keysort(key1, key2)
         Assert.assert_key_exists(tup, self.__internal__)
         self.__internal__.pop(tup)
 
@@ -98,7 +102,7 @@ class SparseHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
     
     #UTILITY FUNCTIONS
     def has_entry(self, key: Tuple[TK, TK]) -> bool:
-        tup = SortTuple(key)
+        tup = self.sortTuple(key)
         return tup in self.__internal__
     
     def __contains__(self, __o: object) -> bool:
@@ -115,7 +119,7 @@ class SparseHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
     
 class SparseClustserSimularity:
     def __init__(self, cluster_lst: List[Cluster], total_item_count: int, min_value: float, matrix: SparseHashMatrix[Cluster, float] = None) -> None:
-        self.matrix = SparseHashMatrix[Cluster, float]() if matrix is None else matrix
+        self.matrix = SparseHashMatrix[Cluster, float](SortKeysByHash) if matrix is None else matrix
         self.__all_clusters__ = set(cluster_lst)
         self.__non_similar_clusters__ = set(cluster_lst)
         self.total_item_count = total_item_count
@@ -138,14 +142,17 @@ class SparseClustserSimularity:
     @staticmethod
     def build_multithread(cluster_lst: List[Cluster], total_item_count: int, a1_min: float, processes: int, chunksize: int = 75) -> SparseClustserSimularity:
         if processes <= 1: return SparseClustserSimularity.build(cluster_lst, total_item_count, a1_min)
-        matrix_dct = SparseHashMatrix()
+        matrix_dct = SparseHashMatrix(SortKeysByHash)
         parameters = [(i, cluster_lst, total_item_count, a1_min) for i in range(len(cluster_lst))]
+        result : List[List[Tuple[Cluster, Cluster, float]]] = None
         with Pool(processes) as p:
-            result : List[List[Tuple[Cluster, Cluster, float]]] =\
-                tqdm(p.imap(partial_build_similarity_row, parameters, chunksize=chunksize), total=len(parameters))
+            result = tqdm(p.imap(partial_build_similarity_row, parameters, chunksize=chunksize), total=len(parameters))
+            p.close()
+            p.join()
             
-            for i1, i2, sim in itertools.chain.from_iterable(result):
-                matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
+            
+        for i1, i2, sim in itertools.chain.from_iterable(result):
+            matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
             
         return SparseClustserSimularity(cluster_lst, total_item_count, a1_min, matrix_dct)
     

@@ -332,7 +332,9 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         result = None
         with Pool(self.thread_count) as p:
-            result = p.map(__partial_cluster_certainty_degree__, parameters, chunksize=self.chunksize)
+            result = tqdm(p.imap(__partial_cluster_certainty_degree__, parameters, chunksize=self.chunksize), total=len(parameters))
+            p.close()
+            p.join()
             # result = list(tqdm(p.imap(__partial_cluster_certainty_degree__, parameters), total=len(parameters)))
             
         for item_id, similarity, cluster_index in result:
@@ -384,7 +386,7 @@ class AdaptiveClusterEnsembler(Ensembler):
             return (merged_lst, max_simularity)
         
         def sort_merged_clusters(merged_lst: List[Cluster]) -> float:
-            if len(merged_lst) < 3:
+            if len(merged_lst) < self.chunksize:
                 return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
             return sort_merged_cluster_multithread(cluster_matrix, merged_lst, self.thread_count, self.chunksize)
         
@@ -420,6 +422,8 @@ def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, me
     result: List[Tuple[int, List[Tuple[int, float], float]]] = None
     with Pool(threads) as p:
         result = tqdm(p.imap(partial_sort_merge, parameters, chunksize=chunksize), total=len(parameters))
+        p.close()
+        p.join()
     for index, res, max_sim in result:
         max_simularity = max(max_simularity, max_sim)
         for index2, sim in res:
