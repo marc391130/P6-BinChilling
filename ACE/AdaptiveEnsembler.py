@@ -426,7 +426,7 @@ def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, me
             cluster_matrix.set_value(index_lst[index], index_lst[index2], sim)
     return max_simularity
 
-def partial_sort_merge(tup: Tuple[Cluster, List[Cluster], int, float]) -> Tuple[int, List[Tuple[int, float], float]]:
+def partial_sort_merge(tup: Tuple[Cluster, List[Cluster], int, float]) -> Tuple[int, List[Tuple[int, float]], float]:
     merged_cluster, all_clusters, total_item_count, min_value = tup
     own_index, max_similarity, result = -1, -1, []
     for cluster_idx in range(len(all_clusters)):
