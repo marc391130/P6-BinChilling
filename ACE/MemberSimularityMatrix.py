@@ -57,7 +57,11 @@ class MemberSimularityMatrix2(SparseDictHashMatrix):
     def item_argMax(self, item) -> Tuple[Cluster, float]:
         arg_max, max_value = None, 0 
         
-        for cluster, sim in self.get_row(item).items():
+        row = self.get_row(item)
+        if row is None or len(row) == 0:
+            return (None, 0)
+        
+        for cluster, sim in row.items():
             if sim > max_value:
                 arg_max, max_value = cluster, sim
         if arg_max is None:
