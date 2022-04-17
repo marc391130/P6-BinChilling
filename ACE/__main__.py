@@ -155,7 +155,7 @@ def main():
     
     #partition folder
     partition_folder = args.partition_folder if args.partition_folder.endswith('/') else args.partition_folder + '/'
-    partition_folder = os.path.dirname(args.partition_folder)
+    partition_folder = os.path.dirname(partition_folder)
     if partition_folder and os.path.isdir(partition_folder) is False:
         raise NotADirectoryError(partition_folder)
     
