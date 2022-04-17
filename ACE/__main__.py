@@ -7,6 +7,7 @@ from random import randrange, random, seed
 from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler, target_bin_3_4th_count_estimator
 from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
+from EvaluationMethods import ARIEvaluator
 from PartitionSetReader import PartitionSetReader
 from ContigReader import ContigFilter, ContigReader
 from Domain import ContigData
@@ -48,6 +49,11 @@ def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath
             
     print_result(output_path, output)
     print("Completed successfully")
+
+    print("ARI Evaluating")
+    ARIEvaluation = ARIEvaluator.evaluate(output, partition_set[0])
+    print(f"ARI Evaluation completed with value: {ARIEvaluation}")
+
     sys.exit(0)
     
 def run_searchensemble(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
