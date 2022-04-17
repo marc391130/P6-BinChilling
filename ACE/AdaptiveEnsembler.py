@@ -43,7 +43,7 @@ class QualityMeasuerer:
         sum_value = sum([pow((1 / new_total_participation) - new_mean, 2)] +\
             [pow(sim - new_mean, 2) for sim in cluster.calc_all_membersimularity(new_total_participation).values() ])
 
-        return sum_value / len(cluster)+1
+        return sum_value / (len(cluster)+1)
 def target_bin_3_4th_count_estimator(gamma: PartitionSet) -> int:
     partition_ln = [len(partition) for partition in gamma]
     average = sum(partition_ln) / len(partition_ln)
@@ -393,7 +393,10 @@ class AdaptiveClusterEnsembler(Ensembler):
             return (merged_lst, max_simularity)
         
         def sort_merged_clusters(merged_lst: List[Cluster]) -> float:
-            if len(merged_lst) < self.chunksize:
+            if len(merged_lst) == 0:
+                print('No clusters to merge')
+                return -1
+            elif len(merged_lst) < self.chunksize:
                 return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
             return sort_merged_cluster_multithread(cluster_matrix, merged_lst, self.thread_count, self.chunksize)
         

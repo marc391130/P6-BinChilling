@@ -2,10 +2,7 @@ from __future__ import annotations
 from logging import exception
 from typing import Dict, List, Generic, TypeVar, Tuple, Iterable, Iterator
 from math import sqrt
-
-from sklearn import cluster
 import Constants as Constant
-
 import Assertions as Assert
 import sys
 
@@ -44,10 +41,7 @@ class Cluster(Generic[T]):
         #return list(set(self.__membership__.keys()) & set(other.__membership__.keys()))
         a, b = ((self, other) if len(self) > len(other) else (other, self))
         return [item for item in b if item in a]        
-    
-    # def union(self, c: Iterable[Cluster]) -> set[Cluster]:
-    #     return set(self.__membership__.keys()).union(c)
-    
+
     def append(self, __object: T) -> None:
         return self.add(__object)
     
@@ -79,10 +73,6 @@ class Cluster(Generic[T]):
             return False
         return self.__partition_id__ == other.__partition_id__
 
-    # def membership(self, item: T) -> int:
-    #     item_membership_values = self.calc_all_membership()
-    #     return item_membership_values[item] if item in item_membership_values else 0
-    
     def calc_all_membersimularity(self, max_member_value: int) -> Dict[T, float]:
         return { item: membersip / max_member_value for item, membersip in self.__membership__.items()}
     

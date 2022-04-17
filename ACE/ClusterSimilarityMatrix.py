@@ -4,19 +4,20 @@ import multiprocessing
 import numpy as np
 from tqdm import tqdm
 from Cluster import Cluster, PartitionSet
-from multiprocessing import Pool, get_context
+from multiprocessing import Pool, cpu_count
 from typing import Iterable, Iterator, MutableMapping, Tuple, Dict, List, Callable, TypeVar, Generic
 import Assertions as Assert 
 from math import sqrt
+import os
 
 TK = TypeVar("TK")
 TV = TypeVar("TV")
 
 def cluster_simularity(cluster1: Cluster, cluster2: Cluster, total_elements: int) -> float:    
     if cluster1.SamePartitionAs(cluster2): return np.NINF
-    intersection_len = len(cluster1.intersection(cluster2))
-    counter = intersection_len - ((len(cluster1) * len(cluster2)) / total_elements)
-    divisor = sqrt(len(cluster1) * len(cluster2) * (1 - (len(cluster1) / total_elements)) * (1 - (len(cluster2) / total_elements)))
+    intersection_len, len1, len2 = len(cluster1.intersection(cluster2)), len(cluster1), len(cluster2)
+    counter = intersection_len - ((len1 * len2) / total_elements)
+    divisor = sqrt(len1 * len2 * (1 - (len1 / total_elements)) * (1 - (len2 / total_elements)))
     return counter / divisor if divisor != 0 else 0
 
 
@@ -207,20 +208,18 @@ class SparseClustserSimularity:
         return matrix
     
     @staticmethod
-    def build_multithread(cluster_lst: List[Cluster], total_item_count: int, a1_min: float, processes: int, chunksize: int = 75) -> SparseClustserSimularity:
+    def build_multithread(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
+        processes: int, chunksize: int = 75) -> SparseClustserSimularity:
         if processes <= 1: return SparseClustserSimularity.build(cluster_lst, total_item_count, a1_min)
         matrix_dct = SparseTupleHashMatrix(SortKeysByHash)
+        
         parameters = [(i, cluster_lst, total_item_count, a1_min) for i in range(len(cluster_lst))]
-        result : List[List[Tuple[Cluster, Cluster, float]]] = None
-        with Pool(processes) as p:
-            result = list(tqdm(p.imap(partial_build_similarity_row, parameters, chunksize=chunksize), total=len(parameters)))
-            # p.close()
-            # p.join()
-            
-            
-        for i1, i2, sim in itertools.chain.from_iterable(result):
-            matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
-            
+        # result : List[List[Tuple[Cluster, Cluster, float]]] = None
+        with Pool(min(cpu_count(), processes)) as p:
+            for chunk_result in tqdm(p.imap(partial_build_similarity_row, parameters, chunksize=chunksize), total=len(cluster_lst)):
+                for i1, i2, sim in chunk_result:
+                    matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
+        
         return SparseClustserSimularity(cluster_lst, total_item_count, a1_min, matrix_dct)
     
     
@@ -284,11 +283,24 @@ class SparseClustserSimularity:
     
 def partial_build_similarity_row(tup: Tuple[int, List[Cluster], int, int]) -> List[Tuple[int, int, float]]:
     i1, cluster_lst, total_count, a1_min = tup
-    lst = []
-    c1 = cluster_lst[i1]
+    lst, c1 = [], cluster_lst[i1]
     for i2 in range(i1+1, len(cluster_lst)):
         c2 = cluster_lst[i2]
         similarity = cluster_simularity(c1, c2, total_count)
         if similarity >= a1_min:
             lst.append( (i1, i2, similarity) )
+    return lst
+
+def partial_build_similarity_row_double(tup: Tuple[int, List[Cluster], int, int]) -> List[Tuple[int, int, float]]:
+    i1, cluster_lst, total_count, a1_min = tup
+    lst, c1, total = [], cluster_lst[i1], len(cluster_lst)
+    for i2 in range(i1+1, total-1, 2):
+        c2, c3 = cluster_lst[i2], cluster_lst[i2+1]
+        similarity1, similarity2 = cluster_simularity(c1, c2, total_count), cluster_simularity(c1, c3, total_count)
+        if similarity1 >= a1_min: lst.append( (i1, i2, similarity1) )
+        if similarity2 >= a1_min: lst.append( (i1, i2+1, similarity2) )
+    if total % 2 == 1:
+        c2 = cluster_lst[len(cluster_lst)-1]
+        similarity = cluster_simularity(c1, c2, total_count)
+        if similarity >= a1_min: lst.append( (i1, i2, similarity) )
     return lst

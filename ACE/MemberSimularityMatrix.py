@@ -316,7 +316,6 @@ class CoAssosiationMatrix(SparseDictHashMatrix):
         return matrix
     
     def FindAssociatedItem(self, item: object) -> object or None:
-        Assert.assert_key_exists(item, self.index_map)
         row = self.get_row(item)
         max_value, max_item = 0, None
         for other_item, value in row.items():
