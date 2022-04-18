@@ -60,8 +60,10 @@ class MRIEvaluator:
                 if first:
                     divisor2 += Evaluator.__MRI_calc__(len(true_cluster), total_object_amount)
 
-                counter += Evaluator.__MRI_calc__(total_object_amount * len(eval_cluster.intersection(true_cluster)), \
-                     len(eval_cluster) * len(true_cluster), len(eval_cluster.intersection(true_cluster)))
+                intersection_len = len(eval_cluster.intersection(true_cluster))
+                if intersection_len <= 0: continue
+                counter += Evaluator.__MRI_calc__(total_object_amount * intersection_len, \
+                     len(eval_cluster) * len(true_cluster), intersection_len)
 
             first = False
 
