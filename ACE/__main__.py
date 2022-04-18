@@ -4,7 +4,8 @@
 
 from random import randrange, random, seed
 
-from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler, target_bin_3_4th_count_estimator
+from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
+from AdaptiveEnsemblerExtensions import target_bin_3_4th_count_estimator
 from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
 from EvaluationMethods import ARIEvaluator, MRIEvaluator

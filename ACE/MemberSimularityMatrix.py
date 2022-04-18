@@ -240,6 +240,7 @@ class MemberMatrix:
     
     
     #returns a set of items
+    
     def get_common_items(self, item1: object, item2: object) -> set:
         Assert.assert_index_exists(item1, self.item_index_map)
         Assert.assert_index_exists(item2, self.item_index_map)
@@ -247,10 +248,9 @@ class MemberMatrix:
         
         common_neighbors = set()
         for cluster, c_index in self.cluster_index_map.items():
-            if item1 not in cluster or item2 not in cluster:
-                continue
-            for item in cluster:
-                common_neighbors.add(item) #set.add does not add duplicates
+            if item1 in cluster and item2 in cluster: 
+                common_neighbors.update(cluster.__iter__())
+
                     
         return common_neighbors
     
