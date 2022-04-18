@@ -219,6 +219,7 @@ class SparseClustserSimularity:
             for chunk_result in tqdm(p.imap(partial_build_similarity_row, parameters, chunksize=chunksize), total=len(cluster_lst)):
                 for i1, i2, sim in chunk_result:
                     matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
+                    print('hello world!')
         
         return SparseClustserSimularity(cluster_lst, total_item_count, a1_min, matrix_dct)
     
