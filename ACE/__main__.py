@@ -51,7 +51,7 @@ def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath
     print("Completed successfully")
 
     print("ARI Evaluating")
-    ARIEvaluation = ARIEvaluator.evaluate(output, partition_set[0])
+    ARIEvaluation = ARIEvaluator.evaluate(output, partition_set[0], len(partition_set.get_all_elements()))
     print(f"ARI Evaluation completed with value: {ARIEvaluation}")
 
     sys.exit(0)
