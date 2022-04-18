@@ -1,7 +1,6 @@
 from Cluster import Cluster, Partition
 from typing import List, Dict, Tuple
-from math import factorial, floor
-from cmath import log, sqrt
+from math import factorial, floor, log, sqrt
 
 class Evaluator:
     @staticmethod
