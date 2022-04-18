@@ -22,9 +22,10 @@ class ARIEvaluator:
             ni_comp += Evaluator.__binomial_coefficient__(len(eval_cluster))
 
             for true_cluster in true_partition.values():
-                if not first or len(true_cluster) < 2: continue
+                if len(true_cluster) < 2: continue
                 nj_comp += Evaluator.__binomial_coefficient__(len(true_cluster))
                 
+                if not first: continue
                 cluster_intersection_len = len(eval_cluster.intersection(true_cluster))
                 if cluster_intersection_len < 2: continue
                 nij_comp += Evaluator.__binomial_coefficient__(cluster_intersection_len)
