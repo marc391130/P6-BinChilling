@@ -5,7 +5,7 @@ from Cluster import Cluster, PartitionSet
 from typing import Iterable, Tuple, Dict, List
 import Assertions as Assert 
 import scipy.sparse as sp  
-from ClusterSimilarityMatrix import SparseDictHashMatrix
+from ClusterSimilarityMatrix import SortKeysByHash, SparseDictHashMatrix, SparseTupleHashMatrix
 
 def average(ite :Iterable) -> float:
     return sum(ite) / len(ite)
@@ -241,17 +241,23 @@ class MemberMatrix:
     
     #returns a set of items
     
+    common_neighbor_cache = SparseTupleHashMatrix(SortKeysByHash)
+    
     def get_common_items(self, item1: object, item2: object) -> set:
         Assert.assert_index_exists(item1, self.item_index_map)
         Assert.assert_index_exists(item2, self.item_index_map)
         Assert.assert_not_equal(item1, item2)
         
+        if self.common_neighbor_cache.has_entry( (item1, item2) ):
+            return self.common_neighbor_cache[item1, item2]
+        
         common_neighbors = set()
         for cluster, c_index in self.cluster_index_map.items():
             if item1 in cluster and item2 in cluster: 
                 common_neighbors.update(cluster.__iter__())
-
-                    
+        
+        self.common_neighbor_cache[item1, item2] = common_neighbors
+                
         return common_neighbors
     
     def common_neighbors(self, coassociation_matrix: CoAssosiationMatrix, item1: object, item2: object) -> float:
@@ -267,8 +273,8 @@ class MemberMatrix:
             return 0
         if len(cluster) == 1 and item in cluster:
             return 0
-        values = [self.common_neighbors(coassociation_matrix, item, item2) for item2 in cluster if item != item2 ]
-        return sum(values) / len(values)
+        sumvalue = sum([self.common_neighbors(coassociation_matrix, item, item2) for item2 in cluster if item != item2 ])
+        return sumvalue / len(cluster)
         
     
     def shape(self) -> Tuple[int, int]:

@@ -365,7 +365,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         def sort_merged_clusters(merged_lst: List[Cluster]) -> float:
             if len(merged_lst) == 0:
-                print('No clusters to merge')
+                self.log('No clusters to merge')
                 return -1
             elif len(merged_lst) < self.chunksize:
                 return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
