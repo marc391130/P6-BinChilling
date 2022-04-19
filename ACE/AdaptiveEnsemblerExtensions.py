@@ -1,6 +1,6 @@
-from Cluster import Cluster, PartitionSet
+from Cluster import Cluster, Partition, PartitionSet
 import numpy as np
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Callable
 from tqdm import tqdm
 from ClusterSimilarityMatrix import SparseClustserSimularity
 from ClusterSimilarityMatrix import cluster_simularity
@@ -28,6 +28,30 @@ class QualityMeasuerer:
             [pow(sim - new_mean, 2) for sim in cluster.calc_all_membersimularity(new_total_participation).values() ])
 
         return sum_value / (len(cluster)+1)
+
+class MergeRegulator:
+    def __init__(self, a1_min: float, target_clusters_est: int or Callable[[PartitionSet], int]) -> None:
+        self.a1_min = a1_min
+        self.target_clsuters_est = target_clusters_est
+        self.target_clusters = 0
+    
+    def set_context(self, gamma: PartitionSet):
+        self.target_clusters = handle_estimate_target_clusters(gamma, self.target_clsuters_est)
+    
+    def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity, merged_clusters: List[Cluster]) -> bool:
+        if alpha1 < self.a1_min: return True
+        total_clusters = len(cluster_matrix) + len(merged_clusters)
+        return total_clusters < self.target_clusters
+        
+        
+def handle_estimate_target_clusters(gamma: PartitionSet,  taget_clusters_est: int or Callable[[PartitionSet], int]) -> int:
+        if isinstance(taget_clusters_est, int):
+            return taget_clusters_est
+        elif callable(taget_clusters_est):
+            return int(taget_clusters_est(gamma))
+        else:
+            return int(max([len(partition) for partition in gamma]))
+
 def target_bin_3_4th_count_estimator(gamma: PartitionSet) -> int:
     partition_ln = [len(partition) for partition in gamma]
     average = sum(partition_ln) / len(partition_ln)
@@ -54,15 +78,12 @@ def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, me
     index_lst = list(cluster_matrix.__all_clusters__)
     parameters = [(cluster, index_lst, cluster_matrix.total_item_count, cluster_matrix.min_value) for cluster in merged_lst]
     
-    result: List[Tuple[int, List[Tuple[int, float], float]]] = None
     with Pool(threads) as p:
-        result = list(tqdm(p.imap(partial_sort_merge, parameters, chunksize=chunksize), total=len(parameters)))
-        # p.close()
-        # p.join()
-    for index, res, max_sim in result:
-        max_simularity = max(max_simularity, max_sim)
-        for index2, sim in res:
-            cluster_matrix.set_value(index_lst[index], index_lst[index2], sim)
+        for index, res, max_sim in tqdm(p.imap(partial_sort_merge, parameters, chunksize=chunksize), total=len(parameters)):
+            max_simularity = max(max_simularity, max_sim)
+            for index2, sim in res:
+                cluster_matrix.set_value(index_lst[index], index_lst[index2], sim)
+    
     return max_simularity
 
 def partial_sort_merge(tup: Tuple[Cluster, List[Cluster], int, float]) -> Tuple[int, List[Tuple[int, float]], float]:

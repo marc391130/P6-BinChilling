@@ -301,6 +301,9 @@ class SparseClustserSimularity:
             return self.matrix[cluster1, cluster2]
         return default_value
     
+    def __len__(self):
+        return len(self.__all_clusters__)
+    
 def partial_build_similarity_row(tup: Tuple[int, List[Cluster], int, int]) -> List[Tuple[int, int, float]]:
     i1, cluster_lst, total_count, a1_min = tup
     lst, c1 = [], cluster_lst[i1]

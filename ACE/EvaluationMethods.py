@@ -65,7 +65,7 @@ class NMIEvaluator:
             for true_cluster in true_partition.values():
 
                 if first:
-                    if len(eval_cluster) < 1: continue
+                    if len(true_cluster) < 1: continue
                     divisor2 += Evaluator.__MRI_calc__(len(true_cluster), total_object_amount)
 
                 intersection_len = len(eval_cluster.intersection(true_cluster))

@@ -12,7 +12,7 @@ from time import time
 from Domain import ContigData
 from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, MemberSimularityMatrix2, Build_simularity_matrix
 from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
-from AdaptiveEnsemblerExtensions import QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__
+from AdaptiveEnsemblerExtensions import MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, target_bin_3_4th_count_estimator
 from io import TextIOWrapper
 
 __global_disable_tqdm = False
@@ -28,12 +28,13 @@ class Ensembler:
 class AdaptiveClusterEnsembler(Ensembler):
     def __init__(self, 
             initial_alpha1_thredshold: float = 0.8, 
-            initial_delta_aplha: float = 0.1,\
+            initial_delta_aplha: float = 0.1,
             alpha1_min: float = 0.6,
-            alpha2: float = 0.2, \
+            alpha2: float = 0.2,
             chunksize: int = None,
             taget_clusters_est: int or Callable[[PartitionSet], int] = None, 
             quality_measurer: QualityMeasuerer = None,
+            merge_regulator: MergeRegulator = None,
             logfile: TextIOWrapper = None, 
             should_log: bool = True, 
             threads: int = None):
@@ -47,15 +48,10 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.should_log = should_log #Should log to console
         self.thread_count = min(threads, THREAD_COUNT) if threads is not None else THREAD_COUNT
         self.chunksize = chunksize
+        self.merge_regulator = merge_regulator if merge_regulator is not None else MergeRegulator(alpha1_min, taget_clusters_est)
     
     
-    def __calc_target_clusters__(self, gamma: PartitionSet) -> int:
-        if isinstance(self.taget_clusters_est, int):
-            return self.taget_clusters_est
-        elif callable(self.taget_clusters_est):
-            return int(self.taget_clusters_est(gamma))
-        else:
-            return int(max([len(partition) for partition in gamma]))
+    
     
     def log(self, string: str) -> None:
         if self.should_log:
@@ -74,7 +70,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         all_clusters = gamma.get_all_clusters()
         
         self.log(f'Starting ensemblement using {len(all_items)} items distributed among {len(all_clusters)} clusters and {len(gamma)} partitions.')        
-        target_clusters = self.__calc_target_clusters__(gamma)
+        target_clusters = self.merge_regulator.set_context(gamma)
         
         self.log("Builing cluster similarity matrix...")
         cluster_matrix = SparseClustserSimularity.build_multithread(\
@@ -305,31 +301,6 @@ class AdaptiveClusterEnsembler(Ensembler):
             else:
                 raise Exception("something went wrong, simularity value outside bound [0, 1]")
         
-        # reverse_cluster_index_map = {value: key for key, value in similarity_matrix.cluster_index_map.items()}
-        # reverse_item_index_map = {value: key for key, value in similarity_matrix.item_index_map.items()}
-
-        # parameters = [(similarity_matrix.item_index_map[item], similarity_matrix.matrix) for item in items ]
-        
-        # result = None
-        # with Pool(self.thread_count) as p:
-        #     result = tqdm(p.imap(__partial_cluster_certainty_degree__, parameters, chunksize=self.chunksize), total=len(parameters))
-        #     p.close()
-        #     p.join()
-        #     # result = list(tqdm(p.imap(__partial_cluster_certainty_degree__, parameters), total=len(parameters)))
-            
-        # for item_id, similarity, cluster_index in result:
-        #     item_cluster_tuple = (reverse_item_index_map[item_id], reverse_cluster_index_map[cluster_index])
-            
-        #     if similarity >= 1:
-        #         totally_certain_lst.append(item_cluster_tuple)
-        #     elif similarity > alpha2 and similarity < 1:
-        #         certain_lst.append(item_cluster_tuple)
-        #     elif similarity <= alpha2 and similarity > 0:
-        #         uncertain_lst.append(item_cluster_tuple[0]) #only add item
-        #     elif similarity == 0:
-        #         totally_uncertain_lst.append(item_cluster_tuple[0]) #only add item
-        #     else:
-        #         raise Exception("something went wrong, simularity value outside bound [0, 1]")
         return totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_lst
         
     def build_final_partition(self, gamma: PartitionSet, candidate_clusters: List[Cluster]):
@@ -373,13 +344,17 @@ class AdaptiveClusterEnsembler(Ensembler):
                 return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
             return sort_merged_cluster_multithread(cluster_matrix, merged_lst, self.thread_count, self.chunksize)
         
-        while  alpha1 >= self.aplha1_min:
+        cache = list(cluster_matrix.__all_clusters__)
+        while True:
             i = i+1
             log_22()
             merged_clusters, max_merge_simularity = find_merge_clusters()
+            if self.merge_regulator.evaluate(alpha1, cluster_matrix, merged_clusters):
+                return cache
+            
             max_merged_simularity = sort_merged_clusters(merged_clusters)
             alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.delta_alpha)
+            cache = list(cluster_matrix.__all_clusters__)
         
-        return cluster_matrix.get_available_clusters()
     
 

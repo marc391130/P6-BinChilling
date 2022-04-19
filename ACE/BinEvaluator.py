@@ -1,18 +1,18 @@
 import sys
 from typing import List, Dict, Tuple
 from tqdm import tqdm
-from CheckMFilter import BinDto, CheckMFilter
-
-sys.path.insert(1, "../ACE")
 
 from Cluster import Cluster
 from Domain import ContigData
 from ContigReader import ContigReader
 
-
 class BinEvaluator:
     def __init__(self, all_SCGs: set) -> None:
         self.all_SCGs = all_SCGs
+
+    def score(self, cluster_lst: List[Cluster]) -> Dict[Cluster, float]:
+        return { cluster: self.calculate_score(cluster) for cluster in cluster_lst }
+
 
     def evaluate(self, cluster_lst: List[Cluster]) -> Dict[Cluster, Tuple[float, float]]:
         result = {}
@@ -22,6 +22,29 @@ class BinEvaluator:
             #print((self.__calculate_completeness__(cluster)) - (0.5 * self.__calculate_contamination__(cluster)) - (0.5 * self.__calculate_megabin_penalty__(cluster)))
 
         return result
+
+    def calculate_score(self, cluster: Cluster) -> float:
+        completeness, contamination, megabin_pen =\
+                (self.__calculate_completeness__(cluster),\
+                self.__calculate_contamination__(cluster),\
+                self.__calculate_megabin_penalty__(cluster))
+        return completeness - (contamination * 0.5) - (megabin_pen * 0.5)
+
+    def calc_cluster_sight(self, cluster_lst: List[Cluster]) -> Tuple[int, int, int, int, int]:
+        pass
+
+    def __calculate_sight__(self, completeness, contamination) -> str:
+        if completeness > 90 and contamination < 5:
+            return 'near'
+        if contamination > 5 and contamination <= 10 and\
+            completeness < 90 and completeness >= 70:
+            return 'substantial'
+        if contamination > 10 and contamination <= 15 and\
+            completeness < 70 and completeness >= 50:
+            return 'moderate'
+        if contamination > 15 and completeness < 50:
+            return 'partial'
+        return 'bad'
 
     def __calculate_completeness__(self, cluster: Cluster[ContigData]) -> float:
         uniques = self.__calculate_unqiues__(cluster)
@@ -88,36 +111,3 @@ class ClusterReader:
                 cluster.add(contig_scg_dct[edge])
             result_clusters.append(cluster)
         return result_clusters
-
-                
-if __name__ == '__main__': 
-    if len(sys.argv) != 5:
-        print("arguments need to be:\n", \
-            "1: SCG_Filepath\n", \
-            "2: Numpy_filepath\n", \
-            "3: Cluster_filepath\n", \
-            "4: Output path")
-    else:
-        reader = ContigReader("", "", sys.argv[1], sys.argv[2])
-        cluster_reader = ClusterReader(sys.argv[3], reader)
-        clusters = cluster_reader.clusters
-
-        all_scgs = reader.read_total_SCGs_set() # 
-        evaluator = BinEvaluator(all_scgs)
-        data = evaluator.evaluate(clusters)
-
-        result_dto_lst = []
-        data_lst = list(data.items())
-        for data_idx in range(len(data_lst)):
-            cluster_idx, tuple = data_lst[data_idx]
-            completeness, contamination = tuple
-
-            dto = BinDto(f"bin_{data_idx}", contamination, completeness)
-            result_dto_lst.append(dto)
-        
-        checkMfilter = CheckMFilter(None, sys.argv[4], lambda x: True)
-        checkMfilter.write_output(result_dto_lst)
-
-
-    
-    
