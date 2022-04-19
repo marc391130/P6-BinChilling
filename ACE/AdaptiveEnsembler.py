@@ -84,11 +84,9 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         available_clusters = self.merge_clusters(cluster_matrix, 1)
         
-        self.log("Building simularity matrix (step 2.3)...")
-
         certain_clusters = [cluster for cluster in available_clusters if cluster.max_member_simularity(partition_count)  > alpha2]
         
-        self.log(f"Found {len(certain_clusters)} clusters with certain objects")
+        self.log(f"Found {len(certain_clusters)} clusters with certain objects\n")
         candidate_clusters, non_candidate_clusters = None, None
         if len(certain_clusters) == target_clusters:
             candidate_clusters = certain_clusters
@@ -99,6 +97,7 @@ class AdaptiveClusterEnsembler(Ensembler):
             candidate_clusters: List[Cluster] = [x[0] for x in islice(cluster_certainty_lst, target_clusters)]
             non_candidate_clusters = [x[0] for x in islice(cluster_certainty_lst, target_clusters, None)]
             alpha2 = candidate_clusters[len(candidate_clusters)-1].max_member_simularity(partition_count)
+            self.log(f'alpha2 has been adapted to {alpha2}\n')
             del cluster_certainty_lst
         
         #calculate new membership and simularity based on candidate and non-candidate
@@ -180,10 +179,13 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.log("Building coassociation matrix...")
         coassosiation_matrix = CoAssosiationMatrix.build(gamma)
         
+        self.log("Building common items matrix...")
+        common_items_matrix = non_can_membership.get_all_common_items(set(totally_uncertain_item_lst))
+        
         def recalculate_simularity(item: object) -> None:
             Assert.assert_item_in_list(totally_uncertain_item_lst, item)
             for cluster in candidate_clusters:
-                v = non_can_membership.average_common_neighbors(coassosiation_matrix, item, cluster)
+                v = non_can_membership.average_common_neighbors(coassosiation_matrix, item, cluster, common_items_matrix)
                 simularity_matrix[item, cluster] = v
             return None
         

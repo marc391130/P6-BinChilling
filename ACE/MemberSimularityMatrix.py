@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from tqdm import tqdm
+from itertools import product
 from Cluster import Cluster, PartitionSet
 from typing import Iterable, Tuple, Dict, List
 import Assertions as Assert 
@@ -78,7 +79,7 @@ class MemberSimularityMatrix2(SparseDictHashMatrix):
             self.pop_entry(item, cluster)
     
     def get(self, __k: Tuple[object, Cluster]) -> float:
-        if self.has_entry(__k):
+        if self.has_tuple(__k):
             return super().get(__k)
         return 0.0
 
@@ -241,6 +242,20 @@ class MemberMatrix:
     
     #returns a set of items
     
+    def get_all_common_items(self, totally_uncertain_items: set[object]) -> SparseDictHashMatrix[object, set[object]]:
+        all_common_neighbors = SparseDictHashMatrix[object, set](SortKeysByHash, default_value=[])
+
+        for cluster in tqdm(self.cluster_index_map.keys()):
+            intersection = totally_uncertain_items.intersection(cluster)
+            for item1, item2 in [ (x, y) for x in intersection for y in cluster if x is not y]:
+                if all_common_neighbors.has_entry(item1, item2) is False: all_common_neighbors[item1, item2] = set() 
+                for item in [x for x in cluster if x is not item1 and x is not item2]:
+                    all_common_neighbors[item1, item2].add(item)
+
+                
+        return all_common_neighbors
+    
+    
     common_neighbor_cache = SparseTupleHashMatrix(SortKeysByHash)
     
     def get_common_items(self, item1: object, item2: object) -> set:
@@ -252,7 +267,7 @@ class MemberMatrix:
             return self.common_neighbor_cache[item1, item2]
         
         common_neighbors = set()
-        for cluster, c_index in self.cluster_index_map.items():
+        for cluster in self.cluster_index_map.keys():
             if item1 in cluster and item2 in cluster: 
                 common_neighbors.update(cluster.__iter__())
         
@@ -260,20 +275,22 @@ class MemberMatrix:
                 
         return common_neighbors
     
-    def common_neighbors(self, coassociation_matrix: CoAssosiationMatrix, item1: object, item2: object) -> float:
-        common_items = self.get_common_items(item1, item2)
-        if len(common_items) == 0:
+    def common_neighbors(self, coassociation_matrix: CoAssosiationMatrix, item1: object, item2: object,\
+        common_items_matrix: SparseDictHashMatrix[object, set[object]] = None) -> float:
+        common_items = self.get_common_items(item1, item2) if common_items_matrix is None else common_items_matrix[item1, item2]
+        if common_items is None or len(common_items) == 0:
             return 0
         sum_value = sum([coassociation_matrix[item1, c_item] + coassociation_matrix[c_item, item2] for c_item in common_items])
         div = 2* len(common_items)
         return sum_value / div if div != 0 else 0
 
-    def average_common_neighbors(self, coassociation_matrix: CoAssosiationMatrix, item: object, cluster: Cluster) -> float:
+    def average_common_neighbors(self, coassociation_matrix: CoAssosiationMatrix, item: object, cluster: Cluster,\
+        common_items_matrix: SparseDictHashMatrix[object, set[object]] = None) -> float:
         if len(cluster) <= 0:
             return 0
         if len(cluster) == 1 and item in cluster:
             return 0
-        sumvalue = sum([self.common_neighbors(coassociation_matrix, item, item2) for item2 in cluster if item != item2 ])
+        sumvalue = sum([self.common_neighbors(coassociation_matrix, item, item2, common_items_matrix) for item2 in cluster if item != item2 ])
         return sumvalue / len(cluster)
         
     
@@ -332,7 +349,7 @@ class CoAssosiationMatrix(SparseDictHashMatrix):
         return max_item
     
     def get(self, __k: Tuple[object, object]) -> float:
-        if self.has_entry(__k):
+        if self.has_tuple(__k):
             return super().get(__k)
         return 0.0
     

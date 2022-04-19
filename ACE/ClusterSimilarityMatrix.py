@@ -41,12 +41,15 @@ class HashIterator(Iterator[Tuple[TK, TV]]):
         return self.source[tupkey]
 
 class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
-    def __init__(self) -> None:
+    def __init__(self, keysort: Callable[[TK, TK], Tuple[TK, TK]] = None, default_value = None) -> None:
         self.__internal__ : Dict[TK, Dict[TK, TV]] = dict()
-    
+        self.keysort = keysort if keysort is not None else lambda x,y: (x,y)
+        self.__default__ = default_value
+        
     #READ FUNCTIONS
     def getEntry(self, key1: TK, key2: TK) -> TV:
-        return self.get( (key1, key2) )
+        k1, k2 = self.keysort(key1, key2)
+        return self.get( (k1, k2) )
     
     def keys(self) -> Iterable[Tuple[TK, TK]]:
         return self.__internal__.keys()
@@ -58,7 +61,8 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         return self.__internal__.items()
     
     def get(self, __k: Tuple[TK, TK]) -> TV:
-        return self.__internal__.get(__k[0]).get(__k[1])
+        k1, k2 = self.keysort(__k[0], __k[1])
+        return self.__internal__.get(k1, {}).get(k2, self.__default__)
     
     def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
         return self.get(__k)
@@ -71,20 +75,25 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         self.set(__k, __v)
     
     def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
-        k1, k2 = __k
+        k1, k2 = self.keysort(__k[0], __k[1])
         if k1 not in self.__internal__: self.__internal__[k1] = {}
         self.__internal__[k1][k2] = __v
-        
+    
+    def set_dict(self, key: TK, dct: Dict[TK, TV]) -> None:
+        for other_key, value in dct.items():
+            self.set( self.keysort( key, other_key ), value)
+
+    
     #DELETE FuNCTIONS
     def __delitem__(self, __v: Tuple[TK, TK]) -> TV:
-        k1, k2 = __v
+        k1, k2 = self.keysort(__v[0], __v[1])
         return self.__internal__[k1].pop(k2)
     
     def pop(self, __k: Tuple[TK, TK]) -> None:
         return self.__delitem__(__k)
     
     def pop_entry(self, key1: TK, key2: TK) -> None:
-        return self.__delitem__( (key1, key2) )
+        return self.__delitem__( self.keysort(key1, key2) )
 
     def pop_contain(self, key: TK) -> None: #will always return none and never throw
         for key, inner_dct in self.__internal__:
@@ -92,8 +101,15 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         self.__internal__.pop(key, None)
     
     #UTILITY FUNCTIONS
-    def has_entry(self, key: Tuple[TK, TK]) -> bool:
-        k1, k2 = key
+    def has_row_key(self, key: TK) -> bool:
+        return key in self.__internal__
+    
+    def has_tuple(self, key: Tuple[TK, TK]) -> bool:
+        k1, k2 = self.keysort(key[0], key[1])
+        return self.has_entry(k1, k2)
+    
+    def has_entry(self, k1: TK, k2: TK) -> bool:
+        k1, k2 = self.keysort(k1, k2)
         return k1 in self.__internal__ and k2 in self.__internal__[k1]
     
     def __contains__(self, __o: object) -> bool:
@@ -141,7 +157,11 @@ class SparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
     def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
         tup = self.sortTuple(__k)
         self.__internal__[tup] = __v
-        
+    
+    def set_dict(self, key: TK, dct: Dict[TK, TV] ):
+        for other_key, value in dct.items():
+            self.set( (key, other_key), value )
+    
     #DELETE FuNCTIONS
     def __delitem__(self, __v: Tuple[TK, TK]) -> None:
         return self.pop(__v)
