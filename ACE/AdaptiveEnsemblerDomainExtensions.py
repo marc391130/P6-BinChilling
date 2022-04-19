@@ -22,6 +22,7 @@ class MergeSCGEvaluator(MergeRegulator):
     def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity,\
         merged_clusters: List[Cluster[ContigData]]) -> bool:
         if alpha1 < self.a1_min: return self.__log_result__(True, {}, -1, alpha1)
+
         all_clusters : List[Cluster[ContigData]] = cluster_matrix.get_available_clusters() + merged_clusters
         
         total_dct = self.bin_evaluator.score(all_clusters)
@@ -39,17 +40,32 @@ class MergeSCGEvaluator(MergeRegulator):
     
     def __log_result__(self, result: bool, values: Dict[Cluster, float], result_value: float, a1: float) -> bool:
         if not self.debug: result
-        
+
         if result is True:
             with open('./bin_merge_regulator.txt', 'w') as f:
                 for i in range(len(self.log_container)):
-                    result_value, zero_values, cluster_count, a1 = self.log_container[i]
-                    f.write( f'{i}> result: {result_value}, zero_values: {zero_values}, total_cluster: {cluster_count}, a1: {a1}\n' )
+                    result_value, zero_values, cluster_count, a1, tup = self.log_container[i]
+                    near, substantial, moderate, partial, bad = tup
+                    f.write( f'{i}> result: {result_value}, zero_values: {zero_values}, total_cluster: {cluster_count}, a1: {a1}' + \
+                         f' {near}, {substantial}, {moderate}, {partial}, {bad}\n' )
             
             self.log_container = []
         else:
+            near, substantial, moderate, partial, bad = 0, 0, 0, 0, 0
+
+            for cluster in values.keys():
+                completeness, contamination = self.bin_evaluator.__calculate_completeness__(cluster), self.bin_evaluator.__calculate_contamination__(cluster) 
+                result1 = self.bin_evaluator.__calculate_sight__(completeness, contamination)
+
+                if result1 == 'near': near += 1
+                elif result1 == 'substantial': substantial += 1
+                elif result1 == 'moderate': moderate += 1
+                elif result1 == 'partial': partial += 1
+                elif result1 == 'bad': bad += 1
+                else: print("I fucked up whoops")
+
             non_zero_count = len([x for x in values.values() if x > 0]) 
-            self.log_container.append( (result_value, len(values) - non_zero_count, len(values), a1 ) )
+            self.log_container.append( (result_value, len(values) - non_zero_count, len(values), a1, (near, substantial, moderate, partial, bad) ) )
             
         return result
         

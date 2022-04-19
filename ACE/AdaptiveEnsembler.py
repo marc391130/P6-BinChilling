@@ -29,7 +29,7 @@ class AdaptiveClusterEnsembler(Ensembler):
     def __init__(self, 
             initial_alpha1_thredshold: float = 0.8, 
             initial_delta_aplha: float = 0.1,
-            alpha1_min: float = 0.6,
+            alpha1_min: float = 0.85,
             alpha2: float = 0.2,
             chunksize: int = None,
             taget_clusters_est: int or Callable[[PartitionSet], int] = None, 
