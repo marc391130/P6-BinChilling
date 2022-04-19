@@ -8,7 +8,7 @@ from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
 from AdaptiveEnsemblerExtensions import target_bin_3_4th_count_estimator
 from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
-from EvaluationMethods import ARIEvaluator, MRIEvaluator
+from EvaluationMethods import ARIEvaluator, NMIEvaluator
 from PartitionSetReader import PartitionSetReader
 from ContigReader import ContigFilter, ContigReader
 from Domain import ContigData
@@ -50,13 +50,11 @@ def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath
             
     print_result(output_path, output)
     print("Completed successfully")
-
-    print("ARI Evaluating")
-    true_partition = partition_set[0]
     all_elements_len = len(partition_set.get_all_elements())
-    ARIEvaluation = ARIEvaluator.evaluate(output, true_partition, all_elements_len)
-    MRIEvaluation = MRIEvaluator.evaluate(output, true_partition, all_elements_len)
-    print(f"ARI Evaluation completed with ARI value: {ARIEvaluation} and MRI value: {MRIEvaluation}")
+    true_cluster = partition_set[0]
+    print(ARIEvaluator.evaluate(output, true_cluster, all_elements_len))
+    print(NMIEvaluator.evaluate(output, true_cluster, all_elements_len))
+    print(f'Can now be run on Evaluator: it has {all_elements_len} objects!')
 
     sys.exit(0)
     
@@ -149,7 +147,7 @@ def main():
         raise argparse.ArgumentError(None, 'Either JGI or NPZ option required')
     
     if os.path.isfile(abundance_path) is False:
-            raise FileNotFoundError(abundance_path)
+        raise FileNotFoundError(abundance_path)
     
     #Single copy genes file
     SCG_path = os.path.abspath(args.SCG)

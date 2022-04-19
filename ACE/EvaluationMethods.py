@@ -1,6 +1,9 @@
 from Cluster import Cluster, Partition
 from typing import List, Dict, Tuple
 from math import factorial, floor, log, sqrt
+import PartitionSetReader
+import argparse
+import os
 
 class Evaluator:
     @staticmethod
@@ -20,6 +23,8 @@ class ARIEvaluator:
     @staticmethod
     def evaluate(eval_partition: Partition, true_partition: Partition, total_object_amount: int) -> float:
         nij_comp, ni_comp, nj_comp = 0, 0, 0
+
+        print(len(eval_partition), len(true_partition), total_object_amount)
 
         first = True
         for eval_cluster in eval_partition.values():
@@ -45,10 +50,12 @@ class ARIEvaluator:
         score = counter / divisor
         return score
 
-class MRIEvaluator:
+class NMIEvaluator:
     @staticmethod
     def evaluate(eval_partition: Partition, true_partition: Partition, total_object_amount: int) -> float:
         counter, divisor1, divisor2 = 0, 0, 0
+
+        print(len(eval_partition), len(true_partition), total_object_amount)
 
         first = True
         for eval_cluster in eval_partition.values():
@@ -70,3 +77,40 @@ class MRIEvaluator:
         divisor = sqrt(divisor1 * divisor2)
         result = counter / divisor
         return result
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        prog='ACE',
+        description="""ACE BINNING ENSEMBLER""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        usage="%(prog)s WRITE THIS LATER PLZ",
+        add_help=True
+        )
+    
+    p_args = parser.add_argument_group(title='Setup options', description=None)
+    p_args.add_argument('--method', metavar='', required=True, \
+        dest='method', help='Methods:\n1: ARI.\n2: NMI')
+    p_args.add_argument('--p1', metavar='', required=True, \
+        dest='p1', help='Path to result Partition.')
+    p_args.add_argument('--p2', metavar='', required=True, \
+        dest='p2', help='Path to true Partition.')
+    p_args.add_argument('-e', metavar='', required=True, \
+        dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
+
+    args = parser.parse_args()
+
+    p1_path = os.path.abspath(args.p1)
+    if os.path.isfile(p1_path) is False:
+        raise FileNotFoundError(p1_path)
+
+    p2_path = os.path.abspath(args.p2)
+    if os.path.isfile(p2_path) is False:
+        raise FileNotFoundError(p2_path)
+
+    number_of_elements = int(args.e)
+
+    p1 = PartitionSetReader.PartitionSetReader.__read_single_partition__(p1_path)
+    p2 = PartitionSetReader.PartitionSetReader.__read_single_partition__(p2_path)
+
+    if args.method == '1': print(ARIEvaluator.evaluate(p1, p2, number_of_elements))
+    elif args.method == '2': print(NMIEvaluator.evaluate(p1, p2, number_of_elements))

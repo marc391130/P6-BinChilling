@@ -116,11 +116,12 @@ class Cluster(Generic[T]):
 # Do not use normal set item of this dict, use add instead
 class Partition(Dict[str, Cluster[T]], Generic[T]):
 
-    def __init__(self, data: List[T]) -> None:
-        self.__data__ = set(data)
+    def __init__(self, data: List[T] = None) -> None:
+        self.__data__ = set(data) if data is not None else set()
+        self.__bypass_assert__ = False if data is not None else True
 
     def add(self, cluster_name: str, item: T) -> None:
-        Assert.assert_partition_content(self.__data__, item)
+        if not self.__bypass_assert__: Assert.assert_partition_content(self.__data__, item)
         # self.__assert_item_not_in_other_cluster__(item)
 
         if cluster_name not in self:

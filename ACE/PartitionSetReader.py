@@ -39,12 +39,23 @@ class PartitionSetReader:
     def __parse_partition__(self, filename: str, partition: Partition, contigs: Dict[str, ContigData]) -> None:
         with open(join(self.folder_path, filename), 'r') as f:
             for line in tqdm(f.readlines()):
-                cluster_name, edge_name = self.__parse_cluster_line__(line) 
+                cluster_name, edge_name = PartitionSetReader.__parse_cluster_line__(line) 
                 if edge_name in contigs:
                     partition.add(cluster_name, contigs[edge_name])
 
+
+    @staticmethod
+    def __read_single_partition__(filename: str) -> Partition:
+        partition = Partition()
+        with open(filename, 'r') as f:
+            for line in f.readlines():
+                cluster_name, edge_name = PartitionSetReader.__parse_cluster_line__(line)
+                partition.add(cluster_name, edge_name)
+        return partition
+
                 
     #returns tuple of cluster_name, edge_name
-    def __parse_cluster_line__(self, line: str) -> Tuple[str, str]:
+    @staticmethod
+    def __parse_cluster_line__(line: str) -> Tuple[str, str]:
         split_line = line.split('\t')
         return (split_line[0], split_line[1].replace('\n', ''))
