@@ -158,7 +158,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         candidate_clusters = self.assign_certains_objects(certain_lst, candidate_clusters)
         
         self.log("Assign uncertain objects")
-        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, similarity_matrix, gamma)
+        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, gamma)
     
         #Handling lost items. 
         candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)    
@@ -239,7 +239,7 @@ class AdaptiveClusterEnsembler(Ensembler):
     
     
     def assign_uncertain_objects(self, uncertain_item_lst: List, candidate_clusters: List[Cluster],\
-        simularity_matrix: MemberSimularityMatrix, gamma: PartitionSet) -> List[Cluster]:
+        gamma: PartitionSet) -> List[Cluster]:
         
         self.log("Calculate initial quality...")
         initial_quality = {}
