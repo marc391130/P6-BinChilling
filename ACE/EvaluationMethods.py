@@ -4,6 +4,7 @@ from math import factorial, floor, log, sqrt
 import PartitionSetReader
 import argparse
 import os
+from tqdm import tqdm
 
 class Evaluator:
     @staticmethod
@@ -27,7 +28,7 @@ class ARIEvaluator:
         print(len(eval_partition), len(true_partition), total_object_amount)
 
         first = True
-        for eval_cluster in eval_partition.values():
+        for eval_cluster in tqdm(eval_partition.values()):
             if len(eval_cluster) < 2: continue
             ni_comp += Evaluator.__binomial_coefficient__(len(eval_cluster))
 
