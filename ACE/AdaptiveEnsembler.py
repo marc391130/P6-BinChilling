@@ -78,7 +78,8 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         self.log("Merging initial clusters (step 2.1)")
         
-        available_clusters = self.merge_clusters(cluster_matrix, 1)
+        available_clusters = self.merge_clusters(cluster_matrix, self.alpha1_thredshold)
+        
         
         certain_clusters = [cluster for cluster in available_clusters if cluster.max_member_simularity(partition_count)  > alpha2]
         
@@ -340,21 +341,19 @@ class AdaptiveClusterEnsembler(Ensembler):
             if len(merged_lst) == 0:
                 self.log('No clusters to merge')
                 return -1
-            elif len(merged_lst) < self.chunksize:
-                return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
+            # elif len(merged_lst) < self.chunksize:
+            #     return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
             return sort_merged_cluster_multithread(cluster_matrix, merged_lst, self.thread_count, self.chunksize)
         
-        cache = list(cluster_matrix.__all_clusters__)
         while True:
             i = i+1
             log_22()
             merged_clusters, max_merge_simularity = find_merge_clusters()
             if self.merge_regulator.evaluate(alpha1, cluster_matrix, merged_clusters):
-                return cache
+                return self.merge_regulator.get_merge_result()
             
             max_merged_simularity = sort_merged_clusters(merged_clusters)
             alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.delta_alpha)
-            cache = list(cluster_matrix.__all_clusters__)
         
     
 

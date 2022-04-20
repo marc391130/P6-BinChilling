@@ -24,7 +24,7 @@ class ARIEvaluator:
     def evaluate(eval_partition: Partition, true_partition: Partition, total_object_amount: int) -> float:
         nij_comp, ni_comp, nj_comp = 0, 0, 0
 
-        print(len(eval_partition), len(true_partition), total_object_amount)
+        # print(len(eval_partition), len(true_partition), total_object_amount)
 
         first = True
         for eval_cluster in eval_partition.values():
@@ -55,7 +55,7 @@ class NMIEvaluator:
     def evaluate(eval_partition: Partition, true_partition: Partition, total_object_amount: int) -> float:
         counter, divisor1, divisor2 = 0, 0, 0
 
-        print(len(eval_partition), len(true_partition), total_object_amount)
+        # print(len(eval_partition), len(true_partition), total_object_amount)
 
         first = True
         for eval_cluster in eval_partition.values():

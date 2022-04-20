@@ -35,10 +35,12 @@ class ContigReader:
     def __init__(self, 
                  fasta_file: str, 
                  depth_file: str = None, 
-                 SCG_filepath: str = None, 
+                 SCG_filepath: str = None,
+                 SCG_db_path: str = None,
                  numpy_file: str = None,
                  max_threads: int or None = None, 
                  contig_filter: ContigFilter = None ):
+        self.all_scg_db_path = SCG_db_path
         self.fasta_file = fasta_file
         self.SCG_filepath = SCG_filepath
         self.depth_file = depth_file
@@ -196,13 +198,10 @@ class ContigReader:
 
 
     def read_total_SCGs_set(self) -> set:
-        contig_SCGs = self.read_contig_SCGs()
-        result = set()
-        
-        for SCG_lst in contig_SCGs.values():
-            SCG_set = set(SCG_lst)
-            result = result.union(SCG_set)
-        return result
+        string = ''
+        with open(self.all_scg_db_path, 'r') as f:
+            string = ''.join(f.readlines())
+        return set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string))
         
     
     

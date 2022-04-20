@@ -17,10 +17,7 @@ import Constants as Const
 import argparse
 import sys
 import os
-from multiprocessing import set_start_method
 import scipy as sp
-# set_start_method('spawn')
-# set_start_method('spawn2')
 
 
 # import numpy
@@ -40,16 +37,19 @@ def print_result(file_path: str, parititon: Partition[ContigData]):
 
 
 def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
-    numpy_cachepath: str, partition_folder: str, output_path: str, max_threads: int or None, min_contigs: int):
+    numpy_cachepath: str, partition_folder: str, output_path: str, max_threads: int or None, min_contigs: int, use_old: bool):
     
     contigFilter = ContigFilter(min_contigs)
-    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, numpy_cachepath, max_threads=max_threads, contig_filter=contigFilter)
+    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, SCG_db_path='../Dataset/Bacteria.ms',\
+        numpy_file=numpy_cachepath, max_threads=max_threads, contig_filter=contigFilter)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"))
     partition_set = partitionSetReader.read_file()
 
     #TODO MOVE THIS TO A BETTER PLACE LATER!
-    # regulator = MergeSCGEvaluator(ensembler.aplha1_min, contigReader.read_total_SCGs_set(), debug=True)
-    regulator = MergeRegulator(ensembler.aplha1_min, ensembler.taget_clusters_est)
+    regulator =  MergeRegulator(ensembler.aplha1_min, ensembler.taget_clusters_est) \
+        if use_old else\
+            MergeSCGEvaluator(ensembler.aplha1_min, contigReader.read_total_SCGs_set(), debug=True)
+    # regulator = MergeRegulator(ensembler.aplha1_min, ensembler.taget_clusters_est)
     ensembler.merge_regulator = regulator
 
     output = ensembler.ensemble(partition_set)
@@ -67,7 +67,7 @@ def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath
 def run_searchensemble(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
     numpy_cachepath: str, partition_folder: str, output_path: str):
     
-    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, numpy_cachepath)
+    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, '../Dataset/Bacteria.ms', numpy_cachepath)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"))
     partition_set = partitionSetReader.read_file()
 
@@ -127,17 +127,19 @@ def main():
         default=None, help='The number of bins to target during the process [default = 3rd quartile average]')
     ensemble_args.add_argument('-c', type=int, dest='chunksize', metavar='',
         default=50, help='The chinksize to split a list into when multithreading [default = 50, ignored if -t = 1]')
+    ensemble_args.add_argument('--old', type=bool, dest='use_old', metavar='', default=False, \
+        help='Use default ACE criterea for breaking merging process')
     
     if(len(sys.argv) <= 1):
         parser.print_help()
         sys.exit()
         
     args = parser.parse_args()
-    
+    print(args.use_old)
     ###### BINNING ARGS ######
     
     #fasta file exist 
-    fasta_path = os.path.abspath(args.fasta)
+    fasta_path = os.path.abspath(args.fasta)    
     if os.path.isfile(fasta_path) is False:
         raise FileNotFoundError(fasta_path)
     
@@ -211,7 +213,8 @@ def main():
                 chunksize=args.chunksize
             )
         
-        run(ensembler, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, outfile, args.threads, args.min_contigs)
+        run(ensembler, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder,\
+            outfile, args.threads, args.min_contigs, args.use_old)
     finally:
         if logfile is not None:
             logfile.close()

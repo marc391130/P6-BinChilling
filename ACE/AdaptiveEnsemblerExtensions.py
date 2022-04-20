@@ -34,15 +34,23 @@ class MergeRegulator:
         self.a1_min = a1_min
         self.target_clsuters_est = target_clusters_est
         self.target_clusters = 0
+        self.result = []
     
     def set_context(self, gamma: PartitionSet):
         self.target_clusters = handle_estimate_target_clusters(gamma, self.target_clsuters_est)
+        return self.target_clusters
     
     def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity, merged_clusters: List[Cluster]) -> bool:
         if alpha1 < self.a1_min: return True
-        total_clusters = len(cluster_matrix) + len(merged_clusters)
-        return total_clusters < self.target_clusters
+        self.result = cluster_matrix.get_available_clusters() + merged_clusters
         
+        return len(self.result) < self.target_clusters
+    
+    def get_merge_result(self) -> List[Cluster]:
+        self.target_clusters = 0
+        result = self.result
+        self.result = []
+        return result
         
 def handle_estimate_target_clusters(gamma: PartitionSet,  taget_clusters_est: int or Callable[[PartitionSet], int]) -> int:
         if isinstance(taget_clusters_est, int):
@@ -62,6 +70,8 @@ def sort_merged_cluster_singlethread(cluster_matrix: SparseClustserSimularity, m
     max_simularity = -1
     for merged_cluster in tqdm(merged_lst):
         cluster_matrix.add_cluster(merged_cluster)
+    
+    for merged_cluster in tqdm(merged_lst):
         for cluster in cluster_matrix.__all_clusters__:
             if merged_cluster is cluster: continue
             similarity = cluster_simularity(merged_cluster, cluster, cluster_matrix.total_item_count)

@@ -11,16 +11,19 @@ from BinEvaluator import BinEvaluator, ClusterReader
 
 
 if __name__ == '__main__': 
-    if len(sys.argv) != 6:
+    if len(sys.argv) != 8:
         print("arguments need to be:\n", \
             "1: Fasta filepath\n", \
             "2: SCG_Filepath\n", \
-            "3: Numpy_filepath\n", \
-            "4: Cluster_filepath\n", \
-            "5: Output path")
+            "3: gene db file\n",\
+            "4: Numpy_filepath\n", \
+            "5: Cluster_filepath\n", \
+            "6: depth_filepath\n",\
+            "7: Output path")
     else:
-        reader = ContigReader(sys.argv[1], "", sys.argv[2], sys.argv[3])
-        cluster_reader = ClusterReader(sys.argv[4], reader)
+        reader = ContigReader(fasta_file=sys.argv[1], depth_file=sys.argv[6], \
+            SCG_filepath=sys.argv[2], SCG_db_path=sys.argv[3], numpy_file=sys.argv[4])
+        cluster_reader = ClusterReader(file_path=sys.argv[5], contig_reader=reader)
         clusters = cluster_reader.clusters
 
         all_scgs = reader.read_total_SCGs_set() # 
@@ -36,5 +39,5 @@ if __name__ == '__main__':
             dto = BinDto(f"bin_{data_idx}", contamination, completeness)
             result_dto_lst.append(dto)
         
-        checkMfilter = CheckMFilter(None, sys.argv[5], lambda x: True)
+        checkMfilter = CheckMFilter(None, sys.argv[7], lambda x: True)
         checkMfilter.write_output(result_dto_lst)

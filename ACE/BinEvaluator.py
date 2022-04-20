@@ -6,6 +6,7 @@ from Cluster import Cluster
 from Domain import ContigData
 from ContigReader import ContigReader
 
+
 class BinEvaluator:
     def __init__(self, all_SCGs: set) -> None:
         self.all_SCGs = all_SCGs
@@ -28,7 +29,7 @@ class BinEvaluator:
                 (self.__calculate_completeness__(cluster),\
                 self.__calculate_contamination__(cluster),\
                 self.__calculate_megabin_penalty__(cluster))
-        return completeness - (contamination * 0.5) - (megabin_pen * 0.5)
+        return completeness - (contamination * 0.5) - (megabin_pen)
 
     def __calculate_sight__(self, completeness, contamination) -> str:
         if completeness > 90 and contamination < 5:
@@ -105,6 +106,7 @@ class ClusterReader:
         for cluster_idx, edge_lst in cluster_data_map.items():
             cluster = Cluster()
             for edge in edge_lst:
-                cluster.add(contig_scg_dct[edge])
+                r = contig_scg_dct.get(edge, None)
+                if r is not None: cluster.add(r)
             result_clusters.append(cluster)
         return result_clusters
