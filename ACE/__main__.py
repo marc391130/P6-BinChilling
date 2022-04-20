@@ -5,7 +5,7 @@
 from random import randrange, random, seed
 
 from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
-from AdaptiveEnsemblerExtensions import target_bin_3_4th_count_estimator, QualityMeasuerer
+from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, QualityMeasuerer
 from AdaptiveEnsemblerDomainExtensions import  MergeSCGEvaluator
 from Cluster import Cluster, Partition, PartitionSet
 from tqdm import tqdm
@@ -48,7 +48,8 @@ def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath
     partition_set = partitionSetReader.read_file()
 
     #TODO MOVE THIS TO A BETTER PLACE LATER!
-    regulator = MergeSCGEvaluator(ensembler.aplha1_min, contigReader.read_total_SCGs_set(), debug=True)
+    # regulator = MergeSCGEvaluator(ensembler.aplha1_min, contigReader.read_total_SCGs_set(), debug=True)
+    regulator = MergeRegulator(ensembler.aplha1_min, ensembler.taget_clusters_est)
     ensembler.merge_regulator = regulator
 
     output = ensembler.ensemble(partition_set)

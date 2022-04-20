@@ -179,73 +179,24 @@ class MemberSimularityMatrix:
         return self.matrix[e_index, c_index]
 
 class MemberMatrix:
-    def __init__(self, matrix: np.matrix, cluster_index_map: Dict[Cluster, int], item_index_map: Dict[object, int]) -> None:
-        self.item_index_map = item_index_map
-        self.cluster_index_map = cluster_index_map
-        self.matrix = matrix
+    def __init__(self, cluster_index_map: set[Cluster], item_index_map: set[object]) -> None:
+        self.items = item_index_map
+        self.clusters = cluster_index_map
+        self.common_neighbor_cache = SparseTupleHashMatrix(SortKeysByHash)
         
         
     @staticmethod
     def build(cluster_lst: List[Cluster], item_lst: List[object]) -> MemberMatrix:
-        item_index_map = {item_lst[i]: i for i in range(len(item_lst))}
-        cluster_index_map = {cluster_lst[i]: i for i in range(len(cluster_lst))}
-        shape = (len(cluster_index_map), len(item_index_map))
-        # matrix: np.matrix = np.zeros(shape=shape, dtype=np.int)
-        matrix = sp.lil_matrix(shape, dtype=np.uint8)
+        item_index_map = set(item_lst)
+        cluster_index_map = set(cluster_lst)
         
-        for cluster, c_index in cluster_index_map.items():
-            value_map = cluster.calc_all_membership()
-            for item, value in value_map.items():
-                Assert.assert_not_equal(value, 0)
-                e_index = item_index_map[item]
-                matrix[c_index, e_index] = value
-        
-        return MemberMatrix(matrix.tocsc(), cluster_index_map, item_index_map)
+        return MemberMatrix(cluster_index_map, item_index_map)
     
-    
-    def __getitem__(self, tuple: Tuple[object, Cluster]) -> int:
-        item, cluster = tuple
-        return self.getEntry(cluster, item)
-    
-    def getEntry(self, cluster: Cluster, item: object) -> int:
-        Assert.assert_key_exists(cluster, self.cluster_index_map)
-        Assert.assert_key_exists(item, self.item_index_map)
-        c_index = self.cluster_index_map[cluster]
-        e_index = self.item_index_map[item]
-        return self.get_index(c_index, e_index)
-        
-    def get_index(self, cluster_idx: int, item_idx: int) -> int:
-        return self.matrix[cluster_idx, item_idx]
-        
-    def __len__(self) -> int:
-        return len(self.cluster_index_map)
-    
-    
-    def get_cluster_row(self, cluster: Cluster) -> Dict[object, int]:
-        Assert.assert_key_exists(cluster, self.cluster_index_map)
-        c_index = self.cluster_index_map[cluster]
-        return {item: self.get_index(c_index, e_index) for item, e_index in self.item_index_map.items()}
-    
-    # def add_cluster(self, cluster: Cluster) -> None:
-    #     item_map = cluster.calc_all_membership()
-    #     column = [[item_map[item] if item in item_map else 0] for item, i in self.item_index_map.items()]
-    #     self.cluster_index_map[cluster] = len(self.cluster_index_map)
-        
-    #     self.matrix = np.append(self.matrix, column, axis=1)
-    
-    # def BuildSimularityMatrix(self, clusters: List[Cluster]) -> MemberSimularityMatrix:
-    #     for cluster in clusters: # make sure every cluster exists inside the cluster_index_map
-    #         Assert.assert_key_exists(cluster, self.cluster_index_map)
-        
-    #     return MemberSimularityMatrix.Build(self)       
-    
-    
-    #returns a set of items
     
     def get_all_common_items(self, totally_uncertain_items: set[object]) -> SparseDictHashMatrix[object, set[object]]:
         all_common_neighbors = SparseDictHashMatrix[object, set](SortKeysByHash, default_value=[])
 
-        for cluster in tqdm(self.cluster_index_map.keys()):
+        for cluster in tqdm(self.clusters):
             intersection = totally_uncertain_items.intersection(cluster)
             for item1, item2 in [ (x, y) for x in intersection for y in cluster if x is not y]:
                 if all_common_neighbors.has_entry(item1, item2) is False: all_common_neighbors[item1, item2] = set() 
@@ -255,19 +206,16 @@ class MemberMatrix:
                 
         return all_common_neighbors
     
-    
-    common_neighbor_cache = SparseTupleHashMatrix(SortKeysByHash)
-    
     def get_common_items(self, item1: object, item2: object) -> set:
-        Assert.assert_index_exists(item1, self.item_index_map)
-        Assert.assert_index_exists(item2, self.item_index_map)
+        Assert.assert_index_exists(item1, self.items)
+        Assert.assert_index_exists(item2, self.items)
         Assert.assert_not_equal(item1, item2)
         
         if self.common_neighbor_cache.has_entry( (item1, item2) ):
             return self.common_neighbor_cache[item1, item2]
         
         common_neighbors = set()
-        for cluster in self.cluster_index_map.keys():
+        for cluster in self.clusters:
             if item1 in cluster and item2 in cluster: 
                 common_neighbors.update(cluster.__iter__())
         
@@ -293,10 +241,6 @@ class MemberMatrix:
         sumvalue = sum([self.common_neighbors(coassociation_matrix, item, item2, common_items_matrix) for item2 in cluster if item != item2 ])
         return sumvalue / len(cluster)
         
-    
-    def shape(self) -> Tuple[int, int]:
-        return (len(self.item_index_map), len(self.cluster_index_map))
-
 
 class CoAssosiationMatrix(SparseDictHashMatrix):
     def __init__(self) -> None:

@@ -44,28 +44,28 @@ class MergeSCGEvaluator(MergeRegulator):
         if result is True:
             with open('./bin_merge_regulator.txt', 'w') as f:
                 for i in range(len(self.log_container)):
-                    result_value, zero_values, cluster_count, a1, tup = self.log_container[i]
+                    result_value, zero_values, cluster_count, a1, tup, com_tup = self.log_container[i]
                     near, substantial, moderate, partial, bad = tup
-                    f.write( f'{i}> result: {result_value}, zero_values: {zero_values}, total_cluster: {cluster_count}, a1: {a1}' + \
-                         f' {near}, {substantial}, {moderate}, {partial}, {bad}\n' )
+                    completeness, contamination = com_tup
+                    f.write( f'{i}> result: {result_value}, zero_values: {zero_values}, total_cluster: {cluster_count} | Comp: {completeness}, cont: {contamination}, avg: { (completeness - contamination) / cluster_count }\n' )
             
             self.log_container = []
         else:
             near, substantial, moderate, partial, bad = 0, 0, 0, 0, 0
-
+            total_completeness, total_contamination = 0, 0
             for cluster in values.keys():
                 completeness, contamination = self.bin_evaluator.__calculate_completeness__(cluster), self.bin_evaluator.__calculate_contamination__(cluster) 
                 result1 = self.bin_evaluator.__calculate_sight__(completeness, contamination)
-
+                total_completeness += completeness
+                total_contamination += contamination
                 if result1 == 'near': near += 1
                 elif result1 == 'substantial': substantial += 1
                 elif result1 == 'moderate': moderate += 1
                 elif result1 == 'partial': partial += 1
                 elif result1 == 'bad': bad += 1
                 else: print("I fucked up whoops")
-
             non_zero_count = len([x for x in values.values() if x > 0]) 
-            self.log_container.append( (result_value, len(values) - non_zero_count, len(values), a1, (near, substantial, moderate, partial, bad) ) )
+            self.log_container.append( (result_value, len(values) - non_zero_count, len(values), a1, (near, substantial, moderate, partial, bad), (total_completeness, total_contamination) ) )
             
         return result
         

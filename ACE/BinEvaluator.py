@@ -30,9 +30,6 @@ class BinEvaluator:
                 self.__calculate_megabin_penalty__(cluster))
         return completeness - (contamination * 0.5) - (megabin_pen * 0.5)
 
-    def calc_cluster_sight(self, cluster_lst: List[Cluster]) -> Tuple[int, int, int, int, int]:
-        pass
-
     def __calculate_sight__(self, completeness, contamination) -> str:
         if completeness > 90 and contamination < 5:
             return 'near'
