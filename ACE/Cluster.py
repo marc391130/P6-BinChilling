@@ -57,6 +57,8 @@ class Cluster(Generic[T]):
     def remove(self, __value: T) -> bool:
         if __value in self:
             self.__membership__.pop(__value)
+            return True
+        return False
 
     def descriminatory_union(self, other: Cluster[T]) -> List[T]:
         result = []

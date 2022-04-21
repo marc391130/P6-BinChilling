@@ -173,16 +173,20 @@ class AdaptiveClusterEnsembler(Ensembler):
             Tuple[List, List, List, Dict[object, object], List]:
         
         
-        self.log("Building coassociation matrix...")
-        coassosiation_matrix = CoAssosiationMatrix.build(gamma)
+        # self.log("Building coassociation matrix...")
+        # coassosiation_matrix = CoAssosiationMatrix.build(gamma)
         
-        self.log("Building common items matrix...")
-        common_items_matrix = non_can_membership.get_all_common_items(set(totally_uncertain_item_lst))
+        # self.log("Building common items matrix...")
+        # non_can_membership.initialize_cache(set(totally_uncertain_item_lst))
+
+        self.log("Building common co-assosiation matrix...")
+        common_coassosiation = non_can_membership.get_all_coassosiation_items(set(totally_uncertain_item_lst), gamma)
         
         def recalculate_simularity(item: object) -> None:
             Assert.assert_item_in_list(totally_uncertain_item_lst, item)
             for cluster in candidate_clusters:
-                v = non_can_membership.average_common_neighbors(coassosiation_matrix, item, cluster, common_items_matrix)
+                # v = non_can_membership.average_common_neighbors(coassosiation_matrix, item, cluster, None)
+                v = non_can_membership.sum_common_neighbors(item, cluster, common_coassosiation)
                 simularity_matrix[item, cluster] = v
             return None
         
@@ -195,20 +199,20 @@ class AdaptiveClusterEnsembler(Ensembler):
             totally_uncertain_item_lst, simularity_matrix, alpha2)
         tot_uncertain_map, lost_item_lst = {}, []
         
-        if len(tot_uncertain) != 0:
-            self.log(f'{len(tot_uncertain)} items could not be reidentified, trying to place with most associated item...')
-            for uncertain_obj in tot_uncertain:
-                #this can contain circular references, watch out
-                closest_associate = coassosiation_matrix.FindAssociatedItem(uncertain_obj)
-                if closest_associate is not None:
-                    tot_uncertain_map[uncertain_obj] = closest_associate
-                else:
-                    lost_item_lst.append(uncertain_obj)
+        # if len(tot_uncertain) != 0:
+        #     self.log(f'{len(tot_uncertain)} items could not be reidentified, trying to place with most associated item...')
+        #     for uncertain_obj in tot_uncertain:
+        #         #this can contain circular references, watch out
+        #         closest_associate = coassosiation_matrix.FindAssociatedItem(uncertain_obj)
+        #         if closest_associate is not None:
+        #             tot_uncertain_map[uncertain_obj] = closest_associate
+        #         else:
+        #             lost_item_lst.append(uncertain_obj)
             
-            if len(lost_item_lst) != 0:
-                self.log(f'{len(tot_uncertain)} have no associations, placing in isolated clusters')
-                #this is done later, as the last thing being calculated
-                
+        #     if len(lost_item_lst) != 0:
+        #         self.log(f'{len(tot_uncertain)} have no associations, placing in isolated clusters')
+        #         #this is done later, as the last thing being calculated
+        # del non_can_membership.common_neighbor_cache
         
         return tot_certain, certain, uncertain, tot_uncertain_map, lost_item_lst
         

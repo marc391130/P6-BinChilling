@@ -46,7 +46,7 @@ class MemberSimularityMatrix2(SparseDictHashMatrix):
     
     def set(self, __k: Tuple[object, Cluster], __v: float):
         if(__v > 1 or __v < 0):
-            raise ValueError("similarity value cannot be outside range 0 to 1")
+            raise ValueError(f"similarity value '{__v}' is outside range 0-1")
         super().set(__k, __v)
             
     def Item_sum(self, item) -> float:
@@ -99,7 +99,7 @@ class MemberSimularityMatrix:
         del cluster_lst, all_items
         
         shape = (len(item_index_map), len(cluster_index_map)) 
-        matrix = np.full(shape=shape, fill_value=0, dtype=np.float32)
+        matrix = np.full(shape=shape, fill_value=0, dtype=np.float16)
         # matrix = sp.csc_matrix(shape, dtype=np.float32)
         
         for cluster, c_index in cluster_index_map.items():
@@ -119,7 +119,7 @@ class MemberSimularityMatrix:
     
     def __setitem__(self, __k: Tuple[object, Cluster], __v: float):
         if(__v > 1 or __v < 0):
-            raise ValueError("similarity value cannot be outside range 0-1")
+            raise ValueError(f"similarity value '{__v}' is outside range 0-1")
         item, cluster = __k
         i_index, c_index = self.item_index_map[item], self.cluster_index_map[cluster]
         self.matrix[i_index, c_index] = __v
@@ -182,7 +182,7 @@ class MemberMatrix:
     def __init__(self, cluster_index_map: set[Cluster], item_index_map: set[object]) -> None:
         self.items = item_index_map
         self.clusters = cluster_index_map
-        self.common_neighbor_cache = SparseTupleHashMatrix(SortKeysByHash)
+        self.common_neighbor_cache: Dict[object, List[object]] = None
         
         
     @staticmethod
@@ -194,7 +194,7 @@ class MemberMatrix:
     
     
     def get_all_common_items(self, totally_uncertain_items: set[object]) -> SparseDictHashMatrix[object, set[object]]:
-        all_common_neighbors = SparseDictHashMatrix[object, set](SortKeysByHash, default_value=[])
+        all_common_neighbors = SparseDictHashMatrix[object, set](default_value=[])
 
         for cluster in tqdm(self.clusters):
             intersection = totally_uncertain_items.intersection(cluster)
@@ -202,30 +202,88 @@ class MemberMatrix:
                 if all_common_neighbors.has_entry(item1, item2) is False: all_common_neighbors[item1, item2] = set() 
                 for item in [x for x in cluster if x is not item1 and x is not item2]:
                     all_common_neighbors[item1, item2].add(item)
+                    all_common_neighbors[item2, item1].add(item)
 
-                
         return all_common_neighbors
     
-    def get_common_items(self, item1: object, item2: object) -> set:
+    def get_all_coassosiation_items(self, totally_uncertain_items: set[object], gamma: PartitionSet) -> SparseDictHashMatrix[object, Tuple[float, int]]:
+        all_common_neighbors = SparseDictHashMatrix[object, Tuple[float, int]](SortKeysByHash, default_value=(0,0))
+        dct = {item: gamma.calc_all_coassosiation(item) for item in totally_uncertain_items}
+
+        def get(item1, item2) -> float:
+            if item1 in dct and item2 in dct[item1]:
+                return dct[item1][item2]
+            if item2 in dct and item1 in dct[item2]:
+                return dct[item2][item1]
+            return 0.0
+
+        for cluster in tqdm(self.clusters):
+            intersection = totally_uncertain_items.intersection(cluster)
+            for item1, item2 in [ (x, y) for x in intersection for y in cluster if x is not y and y not in intersection]:
+                if all_common_neighbors.has_entry(item1, item2) is False: all_common_neighbors[item1, item2] = (0, 0)
+                for common_item in [x for x in cluster if x is not item1 and x is not item2]:
+                    value, count = all_common_neighbors[item1, item2]
+                    all_common_neighbors[item1, item2] = (value + get(item1, common_item) + get(item2, common_item), count+1)
+                    
+        
+        return all_common_neighbors
+    
+    
+    def sum_common_neighbors(self, item: object, cluster: Cluster, common_coassosiation_matrix: SparseDictHashMatrix[object, Tuple[float, int]] ) -> float:
+        if len(cluster) <= 0:
+            return 0
+        if len(cluster) == 1 and item in cluster:
+            return 0
+        
+        sum_value = sum([sum / (2*count) for sum, count in [common_coassosiation_matrix[item, item2] \
+            for item2 in cluster if item != item2 ] if count != 0 ])
+        
+        return sum_value / len(cluster)
+    
+    # def initialize_cocache(self, totally_uncertain_items: set[object], coassociation_matrix: CoAssosiationMatrix) -> None:
+    #     all_common_neighbors: Dict[object, float] = {}
+        
+    #     def add(item, cluster):
+    #         if item not in all_common_neighbors: all_common_neighbors[item] = []
+    #         all_common_neighbors[item].append(cluster)
+        
+    #     for cluster in tqdm(self.clusters):
+    #         for item in totally_uncertain_items.intersection(cluster):
+    #             add(item, cluster)
+
+    #     self.common_neighbor_cache = all_common_neighbors
+    
+    # def initialize_cache(self, totally_uncertain_items: set[object]) -> None:
+    #     all_common_neighbors: Dict[object, List[Cluster]] = {}
+        
+    #     def add(item, cluster):
+    #         if item not in all_common_neighbors: all_common_neighbors[item] = []
+    #         all_common_neighbors[item].append(cluster)
+        
+    #     for cluster in tqdm(self.clusters):
+    #         for item in totally_uncertain_items.intersection(cluster):
+    #             add(item, cluster)
+
+    #     self.common_neighbor_cache = all_common_neighbors
+    
+    def get_common_items(self, item1: object, item2: object) -> set[object]:
         Assert.assert_index_exists(item1, self.items)
         Assert.assert_index_exists(item2, self.items)
+        # Assert.assert_not_none(self.common_neighbor_cache)
+        # Assert.assert_key_exists(item1, self.common_neighbor_cache)
         Assert.assert_not_equal(item1, item2)
-        
-        if self.common_neighbor_cache.has_entry( (item1, item2) ):
-            return self.common_neighbor_cache[item1, item2]
         
         common_neighbors = set()
         for cluster in self.clusters:
             if item1 in cluster and item2 in cluster: 
                 common_neighbors.update(cluster.__iter__())
-        
-        self.common_neighbor_cache[item1, item2] = common_neighbors
-                
         return common_neighbors
     
     def common_neighbors(self, coassociation_matrix: CoAssosiationMatrix, item1: object, item2: object,\
         common_items_matrix: SparseDictHashMatrix[object, set[object]] = None) -> float:
-        common_items = self.get_common_items(item1, item2) if common_items_matrix is None else common_items_matrix[item1, item2]
+        #
+
+        common_items = self.get_common_items(item1, item2) 
         if common_items is None or len(common_items) == 0:
             return 0
         sum_value = sum([coassociation_matrix[item1, c_item] + coassociation_matrix[c_item, item2] for c_item in common_items])
@@ -244,7 +302,7 @@ class MemberMatrix:
 
 class CoAssosiationMatrix(SparseDictHashMatrix):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(SortKeysByHash)
         # self.matrix = matrix
         # self.index_map = index_map
         
@@ -296,6 +354,6 @@ class CoAssosiationMatrix(SparseDictHashMatrix):
         if self.has_tuple(__k):
             return super().get(__k)
         return 0.0
-    
+        
 # def partial_build_coassosiation_row(gamma: PartitionSet) -> Tuple[int, Dict[object, float]]:
 #     pass
