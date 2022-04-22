@@ -6,28 +6,32 @@ from ClusterSimilarityMatrix import SparseClustserSimularity
 from ClusterSimilarityMatrix import cluster_simularity
 from multiprocessing import cpu_count, Pool
 
+from MemberSimularityMatrix import MemberSimularityMatrix
+
 
 class QualityMeasuerer:
-    def calculate_quality(self, cluster: Cluster, partition_count: int) -> float:
+    def calculate_quality(self, cluster: Cluster, partition_count: int, simularity_matrix: MemberSimularityMatrix) -> float:
         if len(cluster) == 0:
             return 0.0
         
-        mean = cluster.mean_member_simularity(partition_count)
-        sum_value = sum([ pow(cluster.member_simularity(item, partition_count) - mean, 2) for item in cluster])
+        cluster_sim_dct = simularity_matrix.get_column(cluster)
+        mean = sum(cluster_sim_dct.values()) / len(cluster_sim_dct)
+        
+        sum_value = sum([ (sim - mean)**2 for sim in cluster_sim_dct.values() ])
         
         return sum_value / len(cluster)
     
     def calculate_speculative_quality(self, initial_quality: float, include_item: object, \
-        cluster: Cluster, gamma: PartitionSet) -> float:
+        cluster: Cluster, gamma: PartitionSet, simularity_matrix: MemberSimularityMatrix) -> float:
         if include_item in cluster:
             return initial_quality
 
-        new_total_participation = len(gamma)+1
-        new_mean = (cluster.sum_membership()+1) / (len(cluster)+1)
-        sum_value = sum([pow((1 / new_total_participation) - new_mean, 2)] +\
-            [pow(sim - new_mean, 2) for sim in cluster.calc_all_membersimularity(new_total_participation).values() ])
+        mean = simularity_matrix.cluster_mean(cluster)
+        total_var = initial_quality * len(cluster)
+        simularity = simularity_matrix.getEntry(include_item, cluster) - mean
+        
 
-        return sum_value / (len(cluster)+1)
+        return (total_var + simularity) / (len(cluster) +1)
 
 class MergeRegulator:
     def __init__(self, a1_min: float, target_clusters_est: int or Callable[[PartitionSet], int]) -> None:
@@ -68,7 +72,7 @@ def target_bin_3_4th_count_estimator(gamma: PartitionSet) -> int:
 
 def sort_merged_cluster_singlethread(cluster_matrix: SparseClustserSimularity, merged_lst: List[Cluster]) -> float:
     max_simularity = -1
-    for merged_cluster in tqdm(merged_lst):
+    for merged_cluster in merged_lst:
         cluster_matrix.add_cluster(merged_cluster)
     
     for merged_cluster in tqdm(merged_lst):

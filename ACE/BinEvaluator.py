@@ -63,6 +63,16 @@ class BinEvaluator:
 
         return (counter / divisor) * 100 if divisor != 0 else 0
 
+    def __calculate_purity__(self, cluster: Cluster[ContigData]) -> float:
+        uniques = self.__calculate_unqiues__(cluster)
+        SCGs = self.__calculate_number_of_SCGs__(cluster)
+        dSCG = [scg for scg, count in SCGs.items() if count > 1]
+        
+        counter = len(uniques)
+        divisor = len(uniques) + len(dSCG)
+        
+        return counter / divisor if divisor != 0 else 0
+
     def __calculate_megabin_penalty__(self, cluster: Cluster[ContigData]) -> float:
         SCGs = self.__calculate_number_of_SCGs__(cluster)
         uniques = self.__calculate_unqiues__(cluster)

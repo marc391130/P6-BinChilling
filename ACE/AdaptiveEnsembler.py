@@ -10,7 +10,7 @@ import Assertions as Assert
 from sys import maxsize as MAXSIZE
 from time import time
 from Domain import ContigData
-from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, MemberSimularityMatrix2, Build_simularity_matrix
+from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, Build_simularity_matrix
 from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
 from AdaptiveEnsemblerExtensions import MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, target_bin_3_4th_count_estimator
 from io import TextIOWrapper
@@ -50,9 +50,6 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.chunksize = chunksize
         self.merge_regulator = merge_regulator if merge_regulator is not None else MergeRegulator(alpha1_min, taget_clusters_est)
     
-    
-    
-    
     def log(self, string: str) -> None:
         if self.should_log:
             print(string)
@@ -79,7 +76,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.log("Merging initial clusters (step 2.1)")
         
         available_clusters = self.merge_clusters(cluster_matrix, self.alpha1_thredshold)
-        
+        self.log(f"Finished merging process with {len(available_clusters)} clusters and lambda of {target_clusters}")
         
         certain_clusters = [cluster for cluster in available_clusters if cluster.max_member_simularity(partition_count)  > alpha2]
         
@@ -101,7 +98,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         del certain_clusters, available_clusters
         non_candidate_memberMatrix = MemberMatrix.build(non_candidate_clusters, all_items)
         # similarity_matrix = Build_simularity_matrix(candidate_clusters, gamma)
-        similarity_matrix = MemberSimularityMatrix2.IndependentBuild(candidate_clusters, gamma)
+        similarity_matrix = MemberSimularityMatrix.IndependentBuild(candidate_clusters, gamma)
         del all_items, all_clusters
         
         partition = self.assign_item_to_one_cluster(gamma, alpha2,\
@@ -159,7 +156,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         candidate_clusters = self.assign_certains_objects(certain_lst, candidate_clusters)
         
         self.log("Assign uncertain objects")
-        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, gamma)
+        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, gamma, similarity_matrix)
     
         #Handling lost items. 
         candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)    
@@ -172,21 +169,13 @@ class AdaptiveClusterEnsembler(Ensembler):
         non_can_membership: MemberMatrix, simularity_matrix: MemberSimularityMatrix, gamma: PartitionSet, alpha2: float) -> \
             Tuple[List, List, List, Dict[object, object], List]:
         
-        
-        # self.log("Building coassociation matrix...")
-        # coassosiation_matrix = CoAssosiationMatrix.build(gamma)
-        
-        # self.log("Building common items matrix...")
-        # non_can_membership.initialize_cache(set(totally_uncertain_item_lst))
-
         self.log("Building common co-assosiation matrix...")
-        common_coassosiation = non_can_membership.get_all_coassosiation_items(set(totally_uncertain_item_lst), gamma)
+        common_coassosiation = non_can_membership.calculate_coassosiation_matrix(set(totally_uncertain_item_lst), gamma)
         
         def recalculate_simularity(item: object) -> None:
             Assert.assert_item_in_list(totally_uncertain_item_lst, item)
             for cluster in candidate_clusters:
-                # v = non_can_membership.average_common_neighbors(coassosiation_matrix, item, cluster, None)
-                v = non_can_membership.sum_common_neighbors(item, cluster, common_coassosiation)
+                v = non_can_membership.average_common_neighbors(item, cluster, common_coassosiation)
                 simularity_matrix[item, cluster] = v
             return None
         
@@ -261,12 +250,12 @@ class AdaptiveClusterEnsembler(Ensembler):
     
     
     def assign_uncertain_objects(self, uncertain_item_lst: List, candidate_clusters: List[Cluster],\
-        gamma: PartitionSet) -> List[Cluster]:
+        gamma: PartitionSet, simularity_matrix: MemberSimularityMatrix) -> List[Cluster]:
         
         self.log("Calculate initial quality...")
         initial_quality = {}
         for cluster in tqdm(candidate_clusters):
-            quality = self.quality_measure.calculate_quality(cluster, len(gamma))
+            quality = self.quality_measure.calculate_quality(cluster, len(gamma), simularity_matrix)
             initial_quality[cluster] = quality
         
         self.log("Assigning uncertain clusters...")
@@ -276,7 +265,7 @@ class AdaptiveClusterEnsembler(Ensembler):
             #then finds the cluster and new quality with the smallest delta quality,
             # by taking the abselute value of initial quality - speculative quality
             min_changed_cluster, new_quality = min([(cluster, self.quality_measure.calculate_speculative_quality( \
-                initial_quality[cluster], item, cluster, gamma)) \
+                initial_quality[cluster], item, cluster, gamma, simularity_matrix)) \
                 for cluster in candidate_clusters], key= lambda x: abs(initial_quality[x[0]] - x[1]) )
             initial_quality[min_changed_cluster] = new_quality
             
@@ -362,8 +351,8 @@ class AdaptiveClusterEnsembler(Ensembler):
             if len(merged_lst) == 0:
                 self.log('No clusters to merge')
                 return -1
-            # elif len(merged_lst) < self.chunksize:
-            #     return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
+            elif len(merged_lst) < 10:
+                return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
             return sort_merged_cluster_multithread(cluster_matrix, merged_lst, self.thread_count, self.chunksize)
         
         while True:
@@ -374,7 +363,8 @@ class AdaptiveClusterEnsembler(Ensembler):
                 return self.merge_regulator.get_merge_result()
             
             max_merged_simularity = sort_merged_clusters(merged_clusters)
-            alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.delta_alpha)
+            alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1) - self.delta_alpha 
+            # alpha1 = alpha1 - self.delta_alpha
         
     
 

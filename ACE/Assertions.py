@@ -105,3 +105,10 @@ def assert_equal(value1, value2) -> None:
 def assert_not_equal(value1, value2) -> None:
     if value1 == value2:
         raise Exception(f"{value1} == {value2}")
+    
+def assert_in_range(value, minv, maxv) -> None:
+    minv, maxv = (minv, maxv) if minv <= maxv else (maxv, minv)
+    
+    if minv <= value <= maxv is False:
+        raise Exception(f"'{value}' is not in range {minv} - {maxv}")
+        
