@@ -6,7 +6,6 @@ import re
 import numpy as np
 from multiprocessing import Pool, cpu_count
 
-CONTIG_MIN_LEN = 1000
 class ContigFilter:
     def __init__(self, min_len: int) -> None:
         self.min_len = min_len
@@ -38,15 +37,13 @@ class ContigReader:
                  SCG_filepath: str = None,
                  SCG_db_path: str = None,
                  numpy_file: str = None,
-                 max_threads: int or None = None, 
-                 contig_filter: ContigFilter = None ):
+                 max_threads: int or None = None ):
         self.all_scg_db_path = SCG_db_path
         self.fasta_file = fasta_file
         self.SCG_filepath = SCG_filepath
         self.depth_file = depth_file
         self.numpy_file = numpy_file
         self.max_threads = max_threads if max_threads is not None else cpu_count()
-        self.contig_filter = contig_filter if contig_filter is not None else ContigFilter(CONTIG_MIN_LEN)
 
     def read_file_fast(self, numpy_file: str or None = None, load_SCGs:bool = False) -> Dict[str, ContigData]:
         numpy_path = numpy_file if numpy_file is not None else self.numpy_file
@@ -139,8 +136,7 @@ class ContigReader:
         contig_lst = []
         print("Analysing contig compositions...")
         with Pool(min(self.max_threads, cpu_count())) as p:
-            contig_lst: List[ContigData] = [x for x in\
-                tqdm(p.imap(__build_contig_multithread__, parameters), total=len(parameters)) if self.contig_filter.predicate(x)]
+            contig_lst: List[ContigData] = list(tqdm(p.imap(__build_contig_multithread__, parameters), total=len(parameters)))
         result = {contig.name: contig for contig in contig_lst}
         
         if load_SCGs:

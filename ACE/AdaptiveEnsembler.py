@@ -83,7 +83,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         certain_clusters = [cluster for cluster in available_clusters if cluster.max_member_simularity(partition_count)  > alpha2]
         
-        self.log(f"Found {len(certain_clusters)} clusters with certain objects\n")
+        self.log(f"Found {len(certain_clusters)} clusters clusters with certain objects of { target_clusters } target \n")
         candidate_clusters, non_candidate_clusters = None, None
         if len(certain_clusters) == target_clusters:
             candidate_clusters = certain_clusters
@@ -199,20 +199,37 @@ class AdaptiveClusterEnsembler(Ensembler):
             totally_uncertain_item_lst, simularity_matrix, alpha2)
         tot_uncertain_map, lost_item_lst = {}, []
         
-        # if len(tot_uncertain) != 0:
-        #     self.log(f'{len(tot_uncertain)} items could not be reidentified, trying to place with most associated item...')
-        #     for uncertain_obj in tot_uncertain:
-        #         #this can contain circular references, watch out
-        #         closest_associate = coassosiation_matrix.FindAssociatedItem(uncertain_obj)
-        #         if closest_associate is not None:
-        #             tot_uncertain_map[uncertain_obj] = closest_associate
-        #         else:
-        #             lost_item_lst.append(uncertain_obj)
+        def coassosiation_argmax(item: object) -> Tuple[object, float]:
+            max_item, max_value = None, -1
             
-        #     if len(lost_item_lst) != 0:
-        #         self.log(f'{len(tot_uncertain)} have no associations, placing in isolated clusters')
-        #         #this is done later, as the last thing being calculated
-        # del non_can_membership.common_neighbor_cache
+            def set_argmax(found_item, found_value):
+                nonlocal max_item, max_value
+                max_item, max_value = (found_item, found_value) if found_value > max_value else (max_item, max_value)
+                
+            for fk, map in common_coassosiation.items():
+                if fk is item and len(map) != 0:
+                    found_item, found_value = max(map.items(), key=lambda x: x[1][0])
+                    set_argmax(found_item, found_value[0])
+                elif item in map: 
+                    found_value = map[item][0]
+                    set_argmax(fk, found_value)
+            return max_item, max_value
+
+        
+        if len(tot_uncertain) != 0:
+            self.log(f'{len(tot_uncertain)} items could not be reidentified, trying to place with most associated item...')
+            for uncertain_obj in tqdm(tot_uncertain):
+                #this can contain circular references, watch out
+                closest_associate = coassosiation_argmax(uncertain_obj)[0]
+                if closest_associate is not None:
+                    tot_uncertain_map[uncertain_obj] = closest_associate
+                else:
+                    lost_item_lst.append(uncertain_obj)
+            
+            if len(lost_item_lst) != 0:
+                self.log(f'{len(tot_uncertain)} have no associations, placing in isolated clusters')
+                #this is done later, as the last thing being calculated
+        del non_can_membership.common_neighbor_cache
         
         return tot_certain, certain, uncertain, tot_uncertain_map, lost_item_lst
         

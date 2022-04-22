@@ -57,7 +57,7 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
     def values(self) -> Iterable[TV]:
         return self.__internal__.values()
     
-    def items(self) -> Iterable[TK, Dict[TK, TV]]:
+    def items(self) -> Iterable[Tuple[TK, Dict[TK, TV]]]:
         return self.__internal__.items()
     
     def get(self, __k: Tuple[TK, TK]) -> TV:
@@ -120,7 +120,7 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
     def __len__(self) -> int:
         return len(self.__internal__)
     
-    def __iter__(self) -> Iterator[Tuple[TK, TK], TV]:
+    def __iter__(self) -> Iterator[Tuple[TK, Dict[TK, TV]]]:
         return self.__internal__.__iter__()
     
 class SparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):

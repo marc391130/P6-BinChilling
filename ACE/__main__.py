@@ -37,12 +37,13 @@ def print_result(file_path: str, parititon: Partition[ContigData]):
 
 
 def run(ensembler: AdaptiveClusterEnsembler, fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
-    numpy_cachepath: str, partition_folder: str, output_path: str, max_threads: int or None, min_contigs: int, use_old: bool):
+    numpy_cachepath: str, partition_folder: str, output_path: str, max_threads: int or None, min_contig_len: int, use_old: bool):
     
-    contigFilter = ContigFilter(min_contigs)
+    contigFilter = ContigFilter(min_contig_len)
     contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, SCG_db_path='../Dataset/Bacteria.ms',\
-        numpy_file=numpy_cachepath, max_threads=max_threads, contig_filter=contigFilter)
-    partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"))
+        numpy_file=numpy_cachepath, max_threads=max_threads)
+    partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"),\
+        contig_filter=contigFilter)
     partition_set = partitionSetReader.read_file()
 
     #TODO MOVE THIS TO A BETTER PLACE LATER!
@@ -114,7 +115,7 @@ def main():
     
     ensemble_args = parser.add_argument_group(title='Ensemble variables', description=None)
     ensemble_args.add_argument('-a1', type=float, dest='a1', metavar='',
-        default=0.9, help='initial a1 value, for merging similar clusters [default = 0.9]')
+        default=1, help='initial a1 value, for merging similar clusters [default = 1]')
 
     ensemble_args.add_argument('-a1min', type=float, dest='a1_min', metavar='',
         default=0.85, help='the minimum threshold for merging clusters. (recommended between 0.5 and 0.9) [default = 0.85]')

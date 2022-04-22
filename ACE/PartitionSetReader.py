@@ -2,23 +2,26 @@ from os import listdir
 from os.path import join
 from Cluster import Cluster, Partition, PartitionSet
 from typing import Callable, Tuple, Dict, List
-from ContigReader import ContigReader
+from ContigReader import ContigFilter, ContigReader
 import Constants as CONSTANT
 from Domain import ContigData
 from tqdm import tqdm
 
+CONTIG_MIN_LEN = 100
 
 class PartitionSetReader:
-    def __init__(self, cluster_folder_path: str, contig_reader: ContigReader, file_predicate: Callable[[str], bool] = lambda x: True) -> None:
+    def __init__(self, cluster_folder_path: str, contig_reader: ContigReader, file_predicate: Callable[[str], bool] = lambda x: True, contig_filter: ContigFilter = None) -> None:
         self.folder_path = cluster_folder_path
         self.file_predicate = file_predicate
         self.contig_reader = contig_reader
+        self.contig_filter = contig_filter if contig_filter is not None else ContigFilter(CONTIG_MIN_LEN)
+        
 
     def read_partisionSet(self) -> PartitionSet:
         return self.read_file()
 
     def read_file(self, show_warnings: bool = True) -> PartitionSet:
-        contig_dct = self.contig_reader.read_file_fast(None, True)
+        contig_dct = {name: contig for name, contig in self.contig_reader.read_file_fast(None, True).items() if self.contig_filter.predicate(contig)}
         files = [f for f in listdir(self.folder_path) if self.file_predicate(f)]
         
         partition_set = PartitionSet[ContigData](list(contig_dct.values()))

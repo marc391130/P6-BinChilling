@@ -74,7 +74,7 @@ class MergeSCGEvaluator(MergeRegulator):
         is_better = value > max(self.buffer)
         r_val = 1 if is_better else 0
         # return return_val
-        return self.__log_result__(is_better, total_dct, score , r_val)
+        return self.__log_result__(False, total_dct, score , r_val)
     
         
     def get_merge_result(self) -> List[Cluster]:
