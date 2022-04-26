@@ -1,4 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=1342;seqhdr="edge_602"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="46|Tropheryma_whipplei_TW08_27|B|46.3|11|1";gc_cont=46.30;transl_table=11;uses_sd=1
-edge_602	Prodigal_v2.6.3	CDS	20	1024	33.9	-	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.516;conf=99.96;score=33.95;cscore=32.84;sscore=1.11;rscore=-3.16;uscore=2.14;tscore=2.13;

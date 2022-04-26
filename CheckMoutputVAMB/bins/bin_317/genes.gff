@@ -1,4 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=1370;seqhdr="edge_52"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="28|Methanothermobacter_thermautotrophicus_Delta_H|B|49.5|11|1";gc_cont=49.50;transl_table=11;uses_sd=1
-edge_52	Prodigal_v2.6.3	CDS	1	996	114.1	-	0	ID=1_1;partial=10;start_type=ATG;rbs_motif=AGGAGG;rbs_spacer=5-10bp;gc_cont=0.504;conf=100.00;score=114.12;cscore=101.24;sscore=12.88;rscore=9.61;uscore=0.94;tscore=2.33;

@@ -1,8 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=4071;seqhdr="edge_1085"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="42|Synechococcus_CC9605|B|59.2|11|0";gc_cont=59.20;transl_table=11;uses_sd=0
-edge_1085	Prodigal_v2.6.3	CDS	362	1726	73.7	-	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.542;conf=100.00;score=73.72;cscore=68.41;sscore=5.31;rscore=0.00;uscore=0.83;tscore=4.48;
-edge_1085	Prodigal_v2.6.3	CDS	2215	2604	42.4	+	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.636;conf=99.99;score=42.44;cscore=38.66;sscore=3.78;rscore=0.00;uscore=-0.70;tscore=4.48;
-edge_1085	Prodigal_v2.6.3	CDS	2601	3137	27.0	+	0	ID=1_3;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.672;conf=99.86;score=28.67;cscore=31.03;sscore=-2.36;rscore=0.00;uscore=-0.35;tscore=-3.66;
-edge_1085	Prodigal_v2.6.3	CDS	3259	3450	4.6	+	0	ID=1_4;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.589;conf=74.39;score=4.64;cscore=3.58;sscore=1.05;rscore=0.00;uscore=-2.34;tscore=3.39;
-edge_1085	Prodigal_v2.6.3	CDS	3724	3882	2.3	-	0	ID=1_5;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.623;conf=63.01;score=2.32;cscore=-0.15;sscore=2.46;rscore=0.00;uscore=0.17;tscore=2.80;

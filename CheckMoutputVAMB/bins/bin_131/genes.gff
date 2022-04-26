@@ -1,6 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=1405;seqhdr="edge_136"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="19|Erythrobacter_litoralis_HTCC2594|B|63.1|11|1";gc_cont=63.10;transl_table=11;uses_sd=1
-edge_136	Prodigal_v2.6.3	CDS	89	1099	113.6	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.653;conf=100.00;score=113.61;cscore=98.76;sscore=14.84;rscore=7.63;uscore=3.57;tscore=3.65;
-edge_136	Prodigal_v2.6.3	CDS	1041	1319	9.5	+	0	ID=1_2;partial=00;start_type=GTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.656;conf=89.95;score=9.54;cscore=19.00;sscore=-9.46;rscore=-4.72;uscore=0.12;tscore=-4.87;
-edge_136	Prodigal_v2.6.3	CDS	1316	1405	20.3	+	0	ID=1_3;partial=01;start_type=GTG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.600;conf=99.37;score=21.99;cscore=17.71;sscore=4.28;rscore=7.85;uscore=-0.39;tscore=-4.87;

@@ -1,6 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=1979;seqhdr="edge_423"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="49|_Nostoc_azollae__0708|B|38.5|11|1";gc_cont=38.40;transl_table=11;uses_sd=1
-edge_423	Prodigal_v2.6.3	CDS	74	760	59.8	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.408;conf=100.00;score=59.82;cscore=44.85;sscore=14.97;rscore=6.90;uscore=3.86;tscore=4.21;
-edge_423	Prodigal_v2.6.3	CDS	775	1644	40.8	+	0	ID=1_2;partial=00;start_type=TTG;rbs_motif=None;rbs_spacer=None;gc_cont=0.401;conf=99.99;score=41.97;cscore=51.50;sscore=-9.53;rscore=-1.19;uscore=-0.37;tscore=-9.10;
-edge_423	Prodigal_v2.6.3	CDS	1790	1978	20.9	-	0	ID=1_3;partial=01;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.529;conf=99.19;score=20.94;cscore=17.72;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;

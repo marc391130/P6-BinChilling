@@ -1,7 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=3593;seqhdr="edge_538"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="17|Desulfotomaculum_acetoxidans_DSM_771|B|41.5|11|1";gc_cont=41.60;transl_table=11;uses_sd=1
-edge_538	Prodigal_v2.6.3	CDS	94	378	14.8	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.407;conf=96.77;score=14.79;cscore=20.73;sscore=-5.94;rscore=-10.82;uscore=2.05;tscore=2.83;
-edge_538	Prodigal_v2.6.3	CDS	394	1527	88.6	+	0	ID=1_2;partial=00;start_type=TTG;rbs_motif=4Base/6BMM;rbs_spacer=13-15bp;gc_cont=0.366;conf=100.00;score=89.74;cscore=94.04;sscore=-4.30;rscore=-2.07;uscore=0.29;tscore=-3.64;
-edge_538	Prodigal_v2.6.3	CDS	1824	2894	101.4	-	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.444;conf=100.00;score=100.75;cscore=109.77;sscore=-9.02;rscore=-10.82;uscore=-0.38;tscore=2.83;
-edge_538	Prodigal_v2.6.3	CDS	3076	3441	49.3	-	0	ID=1_4;partial=00;start_type=ATG;rbs_motif=AGGA;rbs_spacer=5-10bp;gc_cont=0.421;conf=100.00;score=49.33;cscore=43.12;sscore=6.21;rscore=2.89;uscore=0.48;tscore=2.83;

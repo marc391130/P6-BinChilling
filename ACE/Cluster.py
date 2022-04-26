@@ -39,8 +39,9 @@ class Cluster(Generic[T]):
     
     def intersection(self, other: Cluster) -> List[T]:
         #return list(set(self.__membership__.keys()) & set(other.__membership__.keys()))
-        a, b = ((self, other) if len(self) > len(other) else (other, self))
-        return [item for item in b if item in a]        
+        a, b = ((self, other) if len(self) < len(other) else (other, self))
+        return set(a).intersection(b)
+        # return [item for item in b if item in a]        
 
     def append(self, __object: T) -> None:
         return self.add(__object)

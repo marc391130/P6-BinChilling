@@ -185,19 +185,19 @@ def main():
     ###### ENSEMBLER ARGS ######
     
     if  0 > args.a1 or args.a1 > 1: 
-        raise argparse.ArgumentError("a1 is not in range 0 to 1")
+        raise argparse.ArgumentError(args.a1, "a1 is not in range 0 to 1")
     
     if 0 > args.a1_min or args.a1_min > 1:
-        raise argparse.ArgumentError("a1_min is not in range 0 to 1") 
+        raise argparse.ArgumentError(args.a1_min, "a1_min is not in range 0 to 1") 
     
     if 0 > args.a2 or args.a2 > 1:
-        raise argparse.ArgumentError("a2 is not in range 0 to 1") 
+        raise argparse.ArgumentError(args.a2, "a2 is not in range 0 to 1") 
 
     target_clusters = args.target_clusters if args.target_clusters is not None\
         else target_bin_3_4th_count_estimator
     
     if args.chunksize < 1:
-        raise argparse.ArgumentError('chunksize must be larger than 0')
+        raise argparse.ArgumentError(args.chunksize, 'chunksize must be larger than 0')
     
     try: 
         logfile = open(args.logdest, 'w') if args.logdest is not None else None

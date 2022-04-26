@@ -1,7 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=3194;seqhdr="edge_913"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="34|Prochlorococcus_marinus_MIT_9313|B|50.7|11|0";gc_cont=50.70;transl_table=11;uses_sd=0
-edge_913	Prodigal_v2.6.3	CDS	3	101	3.9	-	0	ID=1_1;partial=10;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.596;conf=70.79;score=3.85;cscore=1.59;sscore=2.26;rscore=0.00;uscore=-2.34;tscore=4.60;
-edge_913	Prodigal_v2.6.3	CDS	197	745	33.6	-	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.563;conf=99.96;score=33.58;cscore=28.50;sscore=5.07;rscore=0.00;uscore=0.47;tscore=4.60;
-edge_913	Prodigal_v2.6.3	CDS	820	1479	46.0	-	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.558;conf=100.00;score=47.27;cscore=40.59;sscore=6.68;rscore=0.00;uscore=0.80;tscore=4.60;
-edge_913	Prodigal_v2.6.3	CDS	1479	3053	121.3	-	0	ID=1_4;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.568;conf=100.00;score=121.31;cscore=115.71;sscore=5.60;rscore=0.00;uscore=1.00;tscore=4.60;

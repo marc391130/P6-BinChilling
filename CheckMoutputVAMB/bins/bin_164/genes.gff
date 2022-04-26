@@ -1,4 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=1147;seqhdr="edge_290"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="8|Bacteroides_fragilis_NCTC_9343|B|43.2|11|0";gc_cont=43.20;transl_table=11;uses_sd=0
-edge_290	Prodigal_v2.6.3	CDS	3	1010	116.2	-	0	ID=1_1;partial=10;start_type=ATG;rbs_motif=AAAAA;rbs_spacer=8bp;gc_cont=0.398;conf=100.00;score=116.23;cscore=106.67;sscore=9.56;rscore=6.25;uscore=-0.81;tscore=4.12;

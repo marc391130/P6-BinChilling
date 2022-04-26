@@ -1,4 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=1446;seqhdr="edge_315"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="39|Rickettsia_conorii_Malish_7|B|32.4|11|1";gc_cont=32.40;transl_table=11;uses_sd=1
-edge_315	Prodigal_v2.6.3	CDS	3	1424	204.0	+	0	ID=1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.364;conf=99.99;score=203.97;cscore=200.75;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;

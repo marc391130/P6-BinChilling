@@ -62,28 +62,31 @@ class MergeSCGEvaluator(MergeRegulator):
     def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity,\
         merged_clusters: List[Cluster[ContigData]]) -> bool:
         self.merge_count += 1
-        if alpha1 < self.a1_min: return self.__log_result__(True, {}, -1, -1)
+        if alpha1 < self.a1_min: return self.__log_result__(True, {}, -1, alpha1)
+        partitions_count = len(self.__context__)
 
         all_clusters: List[Cluster[ContigData]] = cluster_matrix.get_available_clusters() + merged_clusters
         non_merged_clusters = [cluster for cluster in all_clusters if cluster.__partition_id__ is not None]
         merged_clusters = [cluster for cluster in all_clusters if cluster.__partition_id__ is None]
         
-        total_dct = self.bin_evaluator.score(merged_clusters)
-        zero_count = len([x for x in total_dct.values() if x <= 0])
-        pentalty =  zero_count / len(total_dct)
-        pentalty2 = 1 - ((len(non_merged_clusters)**2 / len(all_clusters)))
-        print(pentalty2)
-        score = ( sum(total_dct.values()) / (1+len(merged_clusters)) ) * (1 - pentalty) * pentalty2
+        total_dct = self.bin_evaluator.score(all_clusters)
+        # zero_count = len([x for x in total_dct.values() if x <= 0])
+        # pentalty =  zero_count / len(total_dct)
+        pentalty2 = 1 / sum(total_dct.values()) #- ( (len(non_merged_clusters) / len(all_clusters)) **2 )
+        score = sum([value * (cluster.mean_member_simularity(partitions_count)**2)for cluster, value in total_dct.items()])
+        score *= pentalty2
+        print(score)
+        
         
         value = self.buffer.put( (score, all_clusters) )
         
         if self.buffer.full() is False:
-            return self.__log_result__(False, total_dct, score, len(non_merged_clusters))
+            return self.__log_result__(False, total_dct, score, alpha1)
         
-        is_better = value > max(self.buffer)
-        r_val = 1 if is_better else 0
+        is_better = value > max(self.buffer) 
+        
         # return return_val
-        return self.__log_result__(is_better, total_dct, score , len(non_merged_clusters))
+        return self.__log_result__(is_better, total_dct, score , alpha1)
     
         
     def get_merge_result(self) -> List[Cluster]:
@@ -108,7 +111,7 @@ class MergeSCGEvaluator(MergeRegulator):
             plot.plot([x[0] for x in self.log_container], label='score')
             plot.plot([x[4][0] / x[2] for x in self.log_container], label='completeness')
             plot.plot([x[4][1] / x[2] for x in self.log_container], label='contaminatin')
-            plot.plot([x[4][2] / x[2] for x in self.log_container], label='purity')
+            plot.plot([x[4][2]*100 / x[2] for x in self.log_container], label='purity')
             plot.plot([(x[4][0] - x[4][1]) / x[2] for x in self.log_container], label='total')
             plot.plot([(x[4][0] / x[4][1]) if x[4][1] > 0 else 0 for x in self.log_container], label='ratio')
             plot.plot([x[3] for x in self.log_container], label='alpha1')
@@ -125,7 +128,7 @@ class MergeSCGEvaluator(MergeRegulator):
                 total_contamination += contamination
                 total_purity += purity
             non_zero_count = len([x for x in values.values() if x > 0]) 
-            self.log_container.append( (result_value, len(values) - non_zero_count, len(values), a1, (total_completeness, total_contamination, total_purity) ) )
+            self.log_container.append( (result_value, len(values) - non_zero_count, len(values), a1, (total_completeness*100 / len(values), total_contamination*100 / len(values), total_purity*100 / len(values)) ) )
             
         return result
         

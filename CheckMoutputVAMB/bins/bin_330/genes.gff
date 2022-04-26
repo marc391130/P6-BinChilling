@@ -1,4 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=1212;seqhdr="edge_772"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="15|Chlorobium_phaeobacteroides_BS1|B|48.9|11|0";gc_cont=48.90;transl_table=11;uses_sd=0
-edge_772	Prodigal_v2.6.3	CDS	3	1148	72.1	+	0	ID=1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.538;conf=100.00;score=72.13;cscore=68.91;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;

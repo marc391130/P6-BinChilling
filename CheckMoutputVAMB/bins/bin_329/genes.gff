@@ -1,6 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=853;seqhdr="edge_422"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="49|_Nostoc_azollae__0708|B|38.5|11|1";gc_cont=38.40;transl_table=11;uses_sd=1
-edge_422	Prodigal_v2.6.3	CDS	67	246	19.6	-	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.406;conf=99.13;score=20.59;cscore=8.17;sscore=12.43;rscore=7.61;uscore=0.87;tscore=2.98;
-edge_422	Prodigal_v2.6.3	CDS	275	667	15.0	-	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.326;conf=97.60;score=16.11;cscore=6.86;sscore=9.25;rscore=10.75;uscore=-6.86;tscore=4.21;
-edge_422	Prodigal_v2.6.3	CDS	679	852	17.1	-	0	ID=1_3;partial=01;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.523;conf=98.08;score=17.10;cscore=13.88;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;

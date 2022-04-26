@@ -1,9 +1,10 @@
 from Cluster import Cluster, Partition
 from typing import List, Dict, Tuple
 from math import factorial, floor, log, sqrt
-import PartitionSetReader
+from PartitionSetReader import PartitionSetReader
 import argparse
 import os
+from os.path import join
 from tqdm import tqdm
 
 class Evaluator:
@@ -80,6 +81,8 @@ class NMIEvaluator:
         result = counter / divisor
         return result
 
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         prog='ACE',
@@ -90,29 +93,55 @@ if __name__ == '__main__':
         )
     
     p_args = parser.add_argument_group(title='Setup options', description=None)
-    p_args.add_argument('--method', metavar='', required=True, \
-        dest='method', help='Methods:\n1: ARI.\n2: NMI')
-    p_args.add_argument('--p1', metavar='', required=True, \
-        dest='p1', help='Path to result Partition.')
-    p_args.add_argument('--p2', metavar='', required=True, \
-        dest='p2', help='Path to true Partition.')
+    p_args.add_argument('--method', metavar='', required=False, \
+        dest='method', default='BOTH', choices=('ARI', 'NMI', 'BOTH'), help='Choices: ARI, NMI, BOTH)')
+    # p_args.add_argument('--p1', metavar='', required=True, \
+    #     dest='p1', help='Path to result Partition.')
+    # p_args.add_argument('--p2', metavar='', required=True, \
+    #     dest='p2', help='Path to true Partition.')
+    p_args.add_argument('-F', metavar='', required=False, default=None, \
+        dest='folder', help='The partitions folder to compare all tsv files from' )
+    p_args.add_argument('-P', metavar='', required=False, nargs='+', default=None, \
+        dest='path', help='The partitions to compare' )
     p_args.add_argument('-e', metavar='', required=True, \
         dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
 
     args = parser.parse_args()
 
-    p1_path = os.path.abspath(args.p1)
-    if os.path.isfile(p1_path) is False:
-        raise FileNotFoundError(p1_path)
+    if args.path is None and args.folder is None:
+        raise argparse.ArgumentError(args.folder, 'must provide either -F or -P')
 
-    p2_path = os.path.abspath(args.p2)
-    if os.path.isfile(p2_path) is False:
-        raise FileNotFoundError(p2_path)
+    if args.path is not None and args.folder is not None:
+        raise argparse.ArgumentError(args.folder, 'Only provide either -F or -P')
+
+    partition_paths = args.path if args.path is not None else [join(args.folder, x) for x in os.listdir(args.folder) if x.endswith('.tsv')]
+    print(args.folder, partition_paths)
+    if len(partition_paths) <= 1:
+        raise argparse.ArgumentError(args.path, 'must have at least 2 partitions')
+
+
 
     number_of_elements = int(args.e)
+    partitionLst = [(PartitionSetReader.__read_single_partition__(pat), pat) for pat in partition_paths]
+    tuple_lst = [(i, j) for i in range(len(partitionLst)) for j in range(i+1, len(partitionLst))  ]
+    ARI_results, NMI_results = [], []
 
-    p1 = PartitionSetReader.PartitionSetReader.__read_single_partition__(p1_path)
-    p2 = PartitionSetReader.PartitionSetReader.__read_single_partition__(p2_path)
-
-    if args.method == '1': print(ARIEvaluator.evaluate(p1, p2, number_of_elements))
-    elif args.method == '2': print(NMIEvaluator.evaluate(p1, p2, number_of_elements))
+    for p1, p2 in tuple_lst:
+        part1, path1 = partitionLst[p1]
+        part2, path2 = partitionLst[p2]
+        print('Evaluationg: ', path1, path2)
+        if args.method == 'ARI' or args.method == 'BOTH': 
+            ari_result = ARIEvaluator.evaluate(part1, part2, number_of_elements)
+            ARI_results.append(ari_result), print('>ARI: ', ari_result)
+            
+        if args.method == 'NMI' or args.method == 'BOTH': 
+            nmi_result = NMIEvaluator.evaluate(part1, part2, number_of_elements)
+            NMI_results.append(nmi_result), print('>NMI: ' ,nmi_result)
+            
+            
+    print('\n____________________\n')
+    if len(ARI_results) > 1:
+        print('>ARI: ', 'gns:',sum(ARI_results) / len(ARI_results), 'max:', max(ARI_results) )
+        
+    if len(NMI_results) > 1:
+        print('>NMI: ', 'gns:',sum(NMI_results) / len(NMI_results), 'max:', max(NMI_results) )

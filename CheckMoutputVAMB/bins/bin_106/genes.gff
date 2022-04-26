@@ -1,6 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=2366;seqhdr="edge_404"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="1|Mycoplasma_pneumoniae_M129|B|40.0|4|0";gc_cont=40.00;transl_table=4;uses_sd=0
-edge_404	Prodigal_v2.6.3	CDS	7	510	12.1	-	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.369;conf=94.16;score=12.10;cscore=6.12;sscore=5.98;rscore=0.02;uscore=0.56;tscore=5.40;
-edge_404	Prodigal_v2.6.3	CDS	614	1117	9.4	-	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.423;conf=88.29;score=8.79;cscore=6.12;sscore=2.67;rscore=0.02;uscore=-2.09;tscore=5.40;
-edge_404	Prodigal_v2.6.3	CDS	1406	1990	20.5	-	0	ID=1_3;partial=00;start_type=ATG;rbs_motif=AAAAA;rbs_spacer=15bp;gc_cont=0.350;conf=99.12;score=20.53;cscore=11.99;sscore=8.54;rscore=2.94;uscore=0.20;tscore=5.40;

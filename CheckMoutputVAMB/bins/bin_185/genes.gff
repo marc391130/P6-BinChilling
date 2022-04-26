@@ -1,5 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=1228;seqhdr="edge_526"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="20|Escherichia_coli_UMN026|B|50.7|11|1";gc_cont=50.70;transl_table=11;uses_sd=1
-edge_526	Prodigal_v2.6.3	CDS	1	510	22.4	+	0	ID=1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.486;conf=99.42;score=22.38;cscore=19.16;sscore=3.22;rscore=0.00;uscore=0.00;tscore=3.22;
-edge_526	Prodigal_v2.6.3	CDS	507	1037	36.5	+	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.439;conf=99.98;score=37.75;cscore=16.13;sscore=21.62;rscore=14.84;uscore=1.54;tscore=3.95;

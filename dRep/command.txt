@@ -1,1 +1,0 @@
-docker run --rm -v ${pwd}:/Data pip-drep dRep compare /Data/ooutoutput/ -g Data/edges.fasta

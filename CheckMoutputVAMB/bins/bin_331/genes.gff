@@ -1,5 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=2208;seqhdr="edge_553"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="47|Xenorhabdus_nematophila_ATCC_19061|B|44.1|11|1";gc_cont=44.20;transl_table=11;uses_sd=1
-edge_553	Prodigal_v2.6.3	CDS	259	855	22.2	-	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.352;conf=99.53;score=23.33;cscore=25.37;sscore=-2.04;rscore=-7.00;uscore=-0.20;tscore=3.99;
-edge_553	Prodigal_v2.6.3	CDS	865	1824	83.4	-	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=AGGAG;rbs_spacer=5-10bp;gc_cont=0.479;conf=100.00;score=83.44;cscore=66.20;sscore=17.24;rscore=14.77;uscore=-1.52;tscore=3.99;

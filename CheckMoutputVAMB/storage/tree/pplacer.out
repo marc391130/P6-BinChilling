@@ -1,7 +1,0 @@
-Running pplacer v1.1.alpha19-0-g807f6f3 analysis on output/storage/tree/concatenated.fasta...
-Didn't find any reference sequences in given alignment file. Using supplied reference alignment.
-Pre-masking sequences... sequence length cut from 6988 to 6967.
-Warning: pplacer results make the most sense when the given tree is multifurcating at the root. See manual for details.
-Determining figs... figs disabled.
-Allocating memory for internal nodes... done.
-Caching likelihood information on reference tree... 

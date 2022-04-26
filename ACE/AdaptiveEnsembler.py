@@ -1,5 +1,6 @@
 from functools import partialmethod
 import itertools
+from logging import exception
 from multiprocessing import cpu_count, Pool, get_context
 from typing import Callable, Dict, List, Tuple, Generic, TypeVar
 from Cluster import Cluster, Partition, PartitionSet
@@ -18,7 +19,7 @@ from io import TextIOWrapper
 __global_disable_tqdm = False
 tqdm.__init__ = partialmethod(tqdm.__init__, disable=__global_disable_tqdm)
 
-THREAD_COUNT = min(cpu_count(), 8) 
+THREAD_COUNT = cpu_count()
 
 class Ensembler:
     def ensemble(self, gamma: PartitionSet) -> Partition:
@@ -63,8 +64,13 @@ class AdaptiveClusterEnsembler(Ensembler):
         alpha2 = self.alpha2
         
         partition_count = len(gamma)
+        
         all_items = list(gamma.get_all_elements().keys())
         all_clusters = gamma.get_all_clusters()
+        
+        if partition_count == 0 or len(all_clusters) == 0 or len(all_items) == 0:
+            raise Exception('Enesemble is missing input. Either no partitions, clusters or items.')
+        
         
         self.log(f'Starting ensemblement using {len(all_items)} items distributed among {len(all_clusters)} clusters and {len(gamma)} partitions.')        
         target_clusters = self.merge_regulator.set_context(gamma)
@@ -363,7 +369,8 @@ class AdaptiveClusterEnsembler(Ensembler):
                 return self.merge_regulator.get_merge_result()
             
             max_merged_simularity = sort_merged_clusters(merged_clusters)
-            alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1) - self.delta_alpha 
+            alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.delta_alpha )
+            alpha1 = min(1, alpha1) #make sure float doesnt end up in 1.00000002
             # alpha1 = alpha1 - self.delta_alpha
         
     

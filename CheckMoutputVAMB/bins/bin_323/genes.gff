@@ -1,5 +1,0 @@
-##gff-version  3
-# Sequence Data: seqnum=1;seqlen=3038;seqhdr="edge_54"
-# Model Data: version=Prodigal.v2.6.3;run_type=Metagenomic;model="7|Archaeoglobus_fulgidus_DSM_4304|A|48.6|11|0";gc_cont=48.60;transl_table=11;uses_sd=0
-edge_54	Prodigal_v2.6.3	CDS	301	1611	157.6	+	0	ID=1_1;partial=00;start_type=ATG;rbs_motif=GGTG;rbs_spacer=8bp;gc_cont=0.503;conf=100.00;score=157.58;cscore=142.29;sscore=15.29;rscore=7.35;uscore=4.25;tscore=3.68;
-edge_54	Prodigal_v2.6.3	CDS	1615	3027	166.9	+	0	ID=1_2;partial=00;start_type=ATG;rbs_motif=AGGTG;rbs_spacer=6bp;gc_cont=0.473;conf=100.00;score=168.13;cscore=152.62;sscore=15.50;rscore=11.98;uscore=-1.40;tscore=3.68;
