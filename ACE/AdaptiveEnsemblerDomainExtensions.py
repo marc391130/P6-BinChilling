@@ -187,19 +187,23 @@ class SCGAssignRegulator(AssignRegulator):
         certain_lst = [x for x, y in certain_lst]
 
         self.log("Assign Certain Objects...")
-        candidate_clusters = self.__handle_SCG_certain__(certain_lst, similarity_matrix, candidate_clusters)
+        candidate_clusters = self.__handle_SCG_certain__(certain_lst, similarity_matrix, candidate_clusters, gamma)
 
         self.log("Assign uncertain objects...")
-        candidate_clusters = self.__handle_SCG_certain__(uncertain_lst, similarity_matrix, candidate_clusters)
+        candidate_clusters = self.__handle_SCG_certain__(uncertain_lst, similarity_matrix, candidate_clusters, gamma)
 
         self.log("handling lost objects...")
         candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)
 
         return candidate_clusters
 
-    def __handle_SCG_certain__(self, item_lst: List[object], similarity_matrix:MemberSimularityMatrix, candidate_clusters: List[Cluster]) -> List[Cluster]:
+    def __handle_SCG_certain__(self, item_lst: List[ContigData], similarity_matrix: MemberSimularityMatrix, candidate_clusters: List[Cluster], \
+        gamma: PartitionSet) -> List[Cluster]:
         for item in item_lst:
             row_data = similarity_matrix.get_row(item)
+            if len(item.SCG_genes) == 0:
+                self.__handle_item_without_SCGs__(item, row_data, gamma, similarity_matrix)
+                continue
 
             best_cluster: Cluster = None
             best_score: float = np.NINF
@@ -217,9 +221,29 @@ class SCGAssignRegulator(AssignRegulator):
                 if cand_cluster is not best_cluster and item in cand_cluster:
                     cand_cluster.remove(item)
 
-        return candidate_clusters    
+        return candidate_clusters
+    
+    def __handle_item_without_SCGs__(self, item: ContigData, related_clusters: Dict[Cluster, float], gamma: PartitionSet, similarity_matrix: MemberSimularityMatrix) -> None:
         
+        best_value = np.NINF
+        best_clusters = []
+        for cluster, similarity in related_clusters.items():
+            if similarity > best_value:
+                best_clusters = [cluster]
+            elif similarity == best_value:
+                best_clusters.append(cluster)
         
-        
-        
-        
+        best_cluster = None
+        if len(best_clusters) > 1:
+            biggest_change = np.NINF
+            for cluster in best_clusters:
+                quality_change: float = self.quality_measure.calculate_excluding_quality(cluster, item, len(gamma) - 1, similarity_matrix)
+                if quality_change > biggest_change:
+                    best_cluster = cluster
+                    biggest_change = quality_change
+        else:
+            best_cluster = best_clusters[0]
+
+        for cluster in related_clusters.keys():
+            if cluster is not best_cluster:
+                cluster.remove(item)

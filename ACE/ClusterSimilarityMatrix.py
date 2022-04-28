@@ -158,10 +158,10 @@ class DoubleSparseDictHashMatrix(MutableMapping[Tuple[TK, TK2], TV]):
         return self.get(__k)
     
     def get_row(self, __k: TK) -> Dict[TK2, TV]:
-        return self.__internal_row__.get(__k, {})
+        return dict(self.__internal_row__.get(__k, {}))
     
     def get_column(self, __k: TK2) -> Dict[TK, TV] or None:
-        return self.__internal_column__.get(__k, {})
+        return dict(self.__internal_column__.get(__k, {}))
     
     #SET FUNCTIONS
     def __setitem__(self, __k: Tuple[TK, TK2], __v: TV) -> None:

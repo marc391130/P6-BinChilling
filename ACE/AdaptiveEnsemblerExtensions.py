@@ -28,10 +28,34 @@ class QualityMeasuerer:
 
         mean = simularity_matrix.cluster_mean(cluster)
         total_var = initial_quality * len(cluster)
-        simularity = simularity_matrix.getEntry(include_item, cluster) - mean
+        simularity = (simularity_matrix.getEntry(include_item, cluster) - mean)**2
         
 
         return (total_var + simularity) / (len(cluster) +1)
+    
+    def calculate_excluding_quality(self, cluster: Cluster, exclude_item: object, partition_count: int, similarity_maxtrix: MemberSimularityMatrix) -> float:
+
+        if len(cluster) == 0:
+            return 0
+
+        if len(cluster) == 1 and exclude_item in cluster:
+            return 0
+
+        if exclude_item not in cluster:
+            return self.calculate_quality(cluster, partition_count, similarity_maxtrix)
+
+        all_member_similarity = similarity_maxtrix.get_column(cluster)
+
+        fuckery = all_member_similarity.get(exclude_item)
+
+        all_member_similarity.pop(exclude_item, None)
+
+        mean = sum(all_member_similarity.values()) / (len(cluster) - 1)
+
+        fuckery = (fuckery - mean)**2
+
+        quality = sum([(value - mean)**2 for value in all_member_similarity.values()])
+        return (quality + fuckery / len(cluster)) - (quality / (len(cluster) - 1))
 
 class MergeRegulator:
     def __init__(self, a1_min: float, target_clusters_est: int or Callable[[PartitionSet], int]) -> None:
@@ -58,9 +82,9 @@ class MergeRegulator:
 
 class AssignRegulator:
     def __init__(self, should_log, logfile, quality_measure) -> None:
-        self.logfile = logfile
-        self.should_log = should_log
-        self.quality_measure = quality_measure
+        self.logfile: str = logfile
+        self.should_log: bool = should_log
+        self.quality_measure: QualityMeasuerer = quality_measure
         pass
 
     def log(self, string: str) -> None:
