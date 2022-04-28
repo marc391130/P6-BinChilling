@@ -25,11 +25,13 @@ class BinEvaluator:
         return result
 
     def calculate_score(self, cluster: Cluster) -> float:
-        completeness, contamination, megabin_pen =\
+        completeness, contamination, megabin =\
                 (self.__calculate_completeness__(cluster),\
                 self.__calculate_contamination__(cluster),\
-                self.__calculate_megabin_penalty__(cluster))
-        return completeness - (contamination * 0.5) - (megabin_pen)
+                #0,\
+                self.__calculate_megabin_penalty__ (cluster))
+                
+        return completeness - (0.5*contamination) - (megabin*0.5)
 
     def __calculate_sight__(self, completeness, contamination) -> str:
         if completeness > 90 and contamination < 5:
@@ -42,7 +44,8 @@ class BinEvaluator:
             return 'moderate'
         if contamination > 15 and completeness < 50:
             return 'partial'
-        return 'bad'
+        if (completeness - contamination) > 0: return 'bad'
+        return 'zero'
 
     def __calculate_completeness__(self, cluster: Cluster[ContigData]) -> float:
         uniques = self.__calculate_unqiues__(cluster)
@@ -50,7 +53,7 @@ class BinEvaluator:
         counter = len(uniques)
         divisor = len(self.all_SCGs)
 
-        return (counter / divisor) * 100 if divisor != 0 else 0
+        return (counter / divisor)*100 if divisor != 0 else 0
 
     def __calculate_contamination__(self, cluster: Cluster[ContigData]) -> float:
         SCGs = self.__calculate_number_of_SCGs__(cluster)
@@ -61,7 +64,7 @@ class BinEvaluator:
         counter = len(dSCG)
         divisor = len(uniques)
 
-        return (counter / divisor) * 100 if divisor != 0 else 0
+        return (counter / divisor)*100 if divisor != 0 else 0
 
     def __calculate_purity__(self, cluster: Cluster[ContigData]) -> float:
         uniques = self.__calculate_unqiues__(cluster)
@@ -71,14 +74,14 @@ class BinEvaluator:
         counter = len(uniques)
         divisor = len(uniques) + len(dSCG)
         
-        return counter / divisor if divisor != 0 else 0
+        return (counter / divisor)*100 if divisor != 0 else 0
 
     def __calculate_megabin_penalty__(self, cluster: Cluster[ContigData]) -> float:
         SCGs = self.__calculate_number_of_SCGs__(cluster)
         uniques = self.__calculate_unqiues__(cluster)
         nr_SCGs = sum(list(SCGs.values())) - len(uniques)
 
-        return nr_SCGs / len(self.all_SCGs) if len(self.all_SCGs) != 0 else 0
+        return (nr_SCGs / len(self.all_SCGs))*100 if len(self.all_SCGs) != 0 else 0
 
     def __calculate_unqiues__(self, cluster: Cluster) -> set:
         uniques = set()

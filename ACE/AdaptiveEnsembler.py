@@ -331,6 +331,19 @@ class AdaptiveClusterEnsembler(Ensembler):
                 
         self.log(f"Found {len(partition)} total clusters")
         return partition
+    
+    def get_item_cluster_grouping(self, clusters: List[Cluster]) -> Dict[object, List[Cluster]]:
+        result: Dict[object, List[Cluster]]
+        def safe_get(item: object) -> List[Cluster]:
+            nonlocal result
+            if item not in result:
+                result[item].append( [] )
+            return result[item]
+
+        for cluster in tqdm(clusters):
+            for item in cluster:
+                safe_get(item).append(cluster)
+        return result
             
     def merge_clusters(self, cluster_matrix: SparseClustserSimularity, alpha1: float) -> List[Cluster]:
         i, start_22 = 0, time()

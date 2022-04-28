@@ -12,17 +12,17 @@ import numpy as np
 
 from matplotlib import pyplot as plot
 
-BUFFER_COUNT = 10
+BUFFER_COUNT = 100
 
 class ACEqueue:
     def __init__(self, maxsize) -> None:
         self.maxsize = maxsize
         self.container = []
-        self.best_result: List[Cluster] = []
+        self.best_value, self.best_result = np.NINF, []
         
     def put(self, item: Tuple[float, List[Cluster]]):
-        if len(self.container) == 0 or item[0] > max(self.container):
-            self.best_result = item[1]
+        if len(self.container) == 0 or item[0] > self.best_value:
+            self.best_value, self.best_result = item[0], item[1]
         r = np.NINF
         if self.full():
             r = self.pop()
@@ -69,11 +69,19 @@ class MergeSCGEvaluator(MergeRegulator):
         non_merged_clusters = [cluster for cluster in all_clusters if cluster.__partition_id__ is not None]
         merged_clusters = [cluster for cluster in all_clusters if cluster.__partition_id__ is None]
         
+        # xxx_dct = self.bin_evaluator.score(non_merged_clusters)
         total_dct = self.bin_evaluator.score(all_clusters)
         # zero_count = len([x for x in total_dct.values() if x <= 0])
         # pentalty =  zero_count / len(total_dct)
-        pentalty2 = 1 / sum(total_dct.values()) #- ( (len(non_merged_clusters) / len(all_clusters)) **2 )
-        score = sum([value * (cluster.mean_member_simularity(partitions_count)**2)for cluster, value in total_dct.items()])
+        pentalty2 = 100 / len(all_clusters ) #- ( (len(non_merged_clusters) / len(all_clusters)) **2 )
+        
+        # value_lst = [(value, cluster.mean_member_simularity(partitions_count)**2) for cluster, value in total_dct.items()]
+        score = sum([value for cluster, value in total_dct.items()])
+        #harmonic mean
+        # divisor = sum([(x[1] / x[0] if x[0] != 0 else 0) for x in value_lst])
+        # score = sum([x[1] for x in value_lst]) / divisor if divisor != 0 else 0
+        # values_lst = [(self.bin_evaluator.__calculate_completeness__(cluster), self.bin_evaluator.__calculate_purity__(cluster), cluster.mean_member_simularity(partitions_count)) for cluster in all_clusters]
+        # score = 3 * (sum([x[0] * x[1] * x[2] for x in values_lst]) / sum([x[0] + x[1] + x[2] for x in values_lst]))
         score *= pentalty2
         print(score)
         
@@ -83,10 +91,11 @@ class MergeSCGEvaluator(MergeRegulator):
         if self.buffer.full() is False:
             return self.__log_result__(False, total_dct, score, alpha1)
         
-        is_better = value > max(self.buffer) 
+        complete = value > max(self.buffer)
         
         # return return_val
-        return self.__log_result__(is_better, total_dct, score , alpha1)
+        print('>Best value', self.buffer.best_value)
+        return self.__log_result__(complete, total_dct, score , alpha1)
     
         
     def get_merge_result(self) -> List[Cluster]:
@@ -99,36 +108,57 @@ class MergeSCGEvaluator(MergeRegulator):
     def __log_result__(self, result: bool, values: Dict[Cluster, float], result_value: float, a1: float) -> bool:
         if not self.debug: return result
         if result == True:
-            print('hello world!', result)
+            score2 = []
             with open('./bin_merge_regulator.txt', 'w') as f:
                 for i in range(len(self.log_container)):
-                    result_value, zero_values, cluster_count, a1, com_tup = self.log_container[i]
+                    result_value, average_sim, cluster_count, a1, com_tup, sco_tup = self.log_container[i]
                     completeness, contamination, purity = com_tup
-                    average = (completeness - contamination) / cluster_count
-                    f.write( f'{i}> result: {result_value}, zero_values: {zero_values}, total_cluster: {cluster_count} | a1: { a1 } | Comp: {completeness}, cont: {contamination}, purity: { purity }\n' )
+                    near, substanitial, moderate, partial, bad = sco_tup
+                    score2.append( (5*near + 4*substanitial + 3* moderate + 2*partial + bad) /cluster_count  )
+                    f.write( f'{i}> result: {result_value}, average_sim: {average_sim}, total_cluster: {cluster_count} | a1: { a1 }, ratio: { cluster_count / a1 if a1 > 0.0 else -1 } | Comp: {completeness}, cont: {contamination}, purity: { purity } | near: {near}, sub: {substanitial}, mode: {moderate}, part: {partial}, bad: {bad}\n' )
 
+            z = self.log_container
             xAxis = [i for i in range(len(self.log_container))]
             plot.plot([x[0] for x in self.log_container], label='score')
+            # plot.plot([x for x in score2], label='score2')
             plot.plot([x[4][0] / x[2] for x in self.log_container], label='completeness')
             plot.plot([x[4][1] / x[2] for x in self.log_container], label='contaminatin')
-            plot.plot([x[4][2]*100 / x[2] for x in self.log_container], label='purity')
+            plot.plot([(x[4][2]*100) / x[2] for x in self.log_container], label='purity')
+            
+            # plot.plot([ 2*((x[4][2]*x[4][0]) / (x[4][2] + x[4][0]) ) for x in self.log_container], label='F1-score')
+            # plot.plot([ 3*((x[4][2]*x[4][0]*x[1]) / (x[4][2] + x[4][0] + x[1]) ) for x in self.log_container], label='F1-score * average sim')
+            plot.plot([ x[1]*(x[3]**2) for x in self.log_container], label='average_sim * a1^2')
+            
+            
             plot.plot([(x[4][0] - x[4][1]) / x[2] for x in self.log_container], label='total')
             plot.plot([(x[4][0] / x[4][1]) if x[4][1] > 0 else 0 for x in self.log_container], label='ratio')
-            plot.plot([x[3] for x in self.log_container], label='alpha1')
+            plot.plot([(x[1] * x[4][0] / x[4][1]) if x[4][1] > 0 else 0 for x in self.log_container], label='avg_sim * ratio')
+            # plot.plot([z[i][0]* (self.target_clusters / z[i][2]) for i in range(len(self.log_container)) ], label='Marcus *score')
+            # plot.plot([0.1*i* (1 - (self.target_clusters / z[i][2])) for i in range(len(self.log_container)) ], label='Marcus 0.1*score')
+            # plot.plot([(1 - (self.target_clusters / z[i][2])) for i in range(len(self.log_container)) ], label='Marcus 1 -(lambda/c) score')
+            # plot.plot([x[3] for x in self.log_container], label='alpha1')
             plot.legend()
             plot.show()
 
             self.log_container = []
         else:
             total_completeness, total_contamination, total_purity = 0, 0, 0
+            near, substanitial, moderate, partial, bad = 0, 0, 0, 0, 0
             for cluster in values.keys():
                 completeness, contamination, purity = self.bin_evaluator.__calculate_completeness__(cluster), self.bin_evaluator.__calculate_contamination__(cluster) , self.bin_evaluator.__calculate_purity__(cluster)
                 result1 = self.bin_evaluator.__calculate_sight__(completeness, contamination)
+                if result1 == 'near': near+=1
+                elif result1 == 'substanitial': substanitial+=1
+                elif result1 == 'moderate': moderate+=1
+                elif result1 == 'partial': partial+=1
+                elif result == 'bad': bad+=1
+                
                 total_completeness += completeness
                 total_contamination += contamination
                 total_purity += purity
-            non_zero_count = len([x for x in values.values() if x > 0]) 
-            self.log_container.append( (result_value, len(values) - non_zero_count, len(values), a1, (total_completeness*100 / len(values), total_contamination*100 / len(values), total_purity*100 / len(values)) ) )
+            average_sim = sum([x.mean_member_simularity(25) for x in values.keys()]) / len(values)
+            # non_zero_count = len([x for x in values.values() if x > 0]) 
+            self.log_container.append( (result_value, average_sim, len(values), a1, (total_completeness*10000 / len(values), total_contamination*100 / len(values), total_purity*100 / len(values)), (near, substanitial, moderate, partial, bad) ) )
             
         return result
         
