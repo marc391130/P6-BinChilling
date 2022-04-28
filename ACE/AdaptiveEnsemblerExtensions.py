@@ -1,3 +1,4 @@
+from AdaptiveEnsemblerDomainExtensions import MergeSCGEvaluator
 from Cluster import Cluster, Partition, PartitionSet
 import numpy as np
 from typing import List, Dict, Tuple, Callable
@@ -55,6 +56,138 @@ class MergeRegulator:
         result = self.result
         self.result = []
         return result
+
+class AssignRegulator:
+    def __init__(self, should_log, logfile, quality_measure) -> None:
+        self.logfile = logfile
+        self.should_log = should_log
+        self.quality_measure = quality_measure
+        pass
+
+    def log(self, string: str) -> None:
+        if self.should_log:
+            print(string)
+        if self.logfile is not None:
+            print(string, file=self.logfile)
+
+    def assign_certains_objects(self, certain_lst: List[Tuple[object, Cluster]],\
+        candidate_clusters: List[Cluster]) -> List[Cluster]:
+        
+        for item_cluster in tqdm(certain_lst):
+            #done so type hinting can actually be done. Damn you tqdm
+            item: object = item_cluster[0]
+            cluster: Cluster = item_cluster[1]
+            
+            
+            #remove item from all other clusters in candidate clusters
+            for can_cluster in candidate_clusters:
+                can_cluster.remove(item)
+            #add it back into best cluster
+            cluster.add(item)
+        return candidate_clusters
+
+    def assign_uncertain_objects(self, uncertain_item_lst: List, candidate_clusters: List[Cluster],\
+        gamma: PartitionSet, simularity_matrix: MemberSimularityMatrix) -> List[Cluster]:
+        
+        self.log("Calculate initial quality...")
+        initial_quality = {}
+        for cluster in tqdm(candidate_clusters):
+            quality = self.quality_measure.calculate_quality(cluster, len(gamma), simularity_matrix)
+            initial_quality[cluster] = quality
+        
+        self.log("Assigning uncertain clusters...")
+        for item in tqdm(uncertain_item_lst):
+            #this is cursed
+            #takes all candidate clusters, makes a tuple of (cluster, speculative_quality)
+            #then finds the cluster and new quality with the smallest delta quality,
+            # by taking the abselute value of initial quality - speculative quality
+            min_changed_cluster, new_quality = min([(cluster, self.quality_measure.calculate_speculative_quality( \
+                initial_quality[cluster], item, cluster, gamma, simularity_matrix)) \
+                for cluster in candidate_clusters], key= lambda x: abs(initial_quality[x[0]] - x[1]) )
+            initial_quality[min_changed_cluster] = new_quality
+            
+            for cluster in candidate_clusters:
+                cluster.remove(item)
+                
+            min_changed_cluster.add(item)
+        return candidate_clusters
+
+    def assign_lost_objects(self, candidate_clusters: List[Cluster], assosiation_map: Dict[object, object],\
+        lost_items: List[object]) -> List[Cluster]:
+        if len(assosiation_map) > 0:
+            self.log('Trying to assigning remaining totally uncertain objects using co-assosiation..')
+            for item, assosiate_item in tqdm(assosiation_map.items()):
+                found = False
+                for cluster in candidate_clusters:
+                    if assosiate_item in cluster:
+                        cluster.append(item)
+                        found = True
+                        break
+                if not found: #This eliminates the circular reference problem 
+                    isolated_cluster = Cluster()
+                    isolated_cluster.add(item)
+                    candidate_clusters.append(isolated_cluster)
+                    
+        if len(lost_items) > 0:
+            self.log(f"Adding remaining '{len(lost_items)}' items to isolated clusters...")
+            for item in lost_items:
+                isolated_cluster = Cluster()
+                isolated_cluster.add(item)
+                candidate_clusters.append(isolated_cluster)
+        return candidate_clusters
+    
+    def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[object], certain_lst: List[object], \
+        uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet, similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
+
+        self.log("Assigning totally certain objects...")
+        candidate_clusters = self.assign_certains_objects(totally_certain_lst, candidate_clusters)
+        
+        self.log("Assign certain objects...")
+        candidate_clusters = self.assign_certains_objects(certain_lst, candidate_clusters)
+        
+        self.log("Assign uncertain objects")
+        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, gamma, similarity_matrix)
+    
+        #Handling lost items. 
+        candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)
+        return candidate_clusters
+
+class SCGAssignRegulator(AssignRegulator):
+    def __init__(self, should_log: bool, log_file: str, quality_measure: QualityMeasuerer, merge_regulator: MergeSCGEvaluator) -> None:
+        super().__init__(should_log, log_file, quality_measure)
+        if type(merge_regulator) != MergeSCGEvaluator:
+            raise Exception(f"Merge regulator is not of type {type(MergeRegulator)}")
+        self.bin_evaluator = merge_regulator.bin_evaluator
+
+    def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[object], certain_lst: List[object], \
+        uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet, similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
+
+        self.log("Assigning totally certain objects...")
+        candidate_clusters = self.assign_certains_objects(totally_certain_lst, candidate_clusters)
+
+        candidate_clusters = self.__handle_SCG_certain__(certain_lst, similarity_matrix, candidate_clusters)
+
+        pass
+
+    def __handle_SCG_certain__(self, item_lst: List[object], similarity_matrix:MemberSimularityMatrix, candidate_clusters: List[Cluster]) -> List[Cluster]:
+        best_values_dct: Dict[object, List[Tuple[Cluster, float]]] = {}
+        
+        for item in item_lst:
+            row_data = similarity_matrix.get_row(item)
+
+            for cluster in row_data.keys():
+                score1 = self.bin_evaluator.calculate_score(cluster)
+                score2 = self.bin_evaluator.calculate_score(cluster)
+                score = similarity_matrix[item, cluster] * (score1 - score2)
+
+                if item not in best_values_dct:
+                    best_values_dct[item] = []
+
+                best_values_dct[item].append((cluster, score))
+        
+
+
+        return candidate_clusters    
         
 def handle_estimate_target_clusters(gamma: PartitionSet,  taget_clusters_est: int or Callable[[PartitionSet], int]) -> int:
         if isinstance(taget_clusters_est, int):

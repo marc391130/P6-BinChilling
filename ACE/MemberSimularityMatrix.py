@@ -87,10 +87,6 @@ class MemberSimularityMatrix(DoubleSparseDictHashMatrix[object, Cluster, float])
                 continue
             self.pop_entry(item, cluster)
     
-    def get_row(self, item: object) -> Dict[Cluster, float]:
-        if item not in self.__internal_row__: return {}
-        return dict(self.__internal_row__[item])
-    
     def get(self, __k: Tuple[object, Cluster]) -> float:
         if self.has_tuple(__k):
             return super().get(__k)

@@ -157,7 +157,7 @@ class DoubleSparseDictHashMatrix(MutableMapping[Tuple[TK, TK2], TV]):
     def __getitem__(self, __k: Tuple[TK, TK2]) -> TV:
         return self.get(__k)
     
-    def get_row(self, __k: TK) -> Dict[TK, TV] or None:
+    def get_row(self, __k: TK) -> Dict[TK2, TV]:
         return self.__internal_row__.get(__k, {})
     
     def get_column(self, __k: TK2) -> Dict[TK, TV] or None:

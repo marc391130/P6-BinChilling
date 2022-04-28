@@ -24,7 +24,7 @@ class BinEvaluator:
 
         return result
 
-    def calculate_score(self, cluster: Cluster) -> float:
+    def calculate_score(self, cluster: Cluster, skip_item: object = None) -> float:
         completeness, contamination, megabin =\
                 (self.__calculate_completeness__(cluster),\
                 self.__calculate_contamination__(cluster),\

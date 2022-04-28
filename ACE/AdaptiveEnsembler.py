@@ -13,7 +13,7 @@ from time import time
 from Domain import ContigData
 from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, Build_simularity_matrix
 from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
-from AdaptiveEnsemblerExtensions import MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, target_bin_3_4th_count_estimator
+from AdaptiveEnsemblerExtensions import AssignRegulator, MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, target_bin_3_4th_count_estimator
 from io import TextIOWrapper
 
 __global_disable_tqdm = False
@@ -155,18 +155,8 @@ class AdaptiveClusterEnsembler(Ensembler):
             self.log("no totally uncertain objects found, skipping reidentification step")
         
         
-        self.log("Assigning totally certain objects...")
-        candidate_clusters = self.assign_certains_objects(totally_certain_lst, candidate_clusters)
-        
-        self.log("Assign certain objects...")
-        candidate_clusters = self.assign_certains_objects(certain_lst, candidate_clusters)
-        
-        self.log("Assign uncertain objects")
-        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, gamma, similarity_matrix)
-    
-        #Handling lost items. 
-        candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)    
-                        
+        regulator = AssignRegulator(should_log=self.should_log, logfile=self.logfile, quality_measure=self.quality_measure)
+        candidate_clusters = regulator.assign_items(candidate_clusters, totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_map, gamma, similarity_matrix, lost_items)
         return self.build_final_partition(gamma, candidate_clusters)
     
     
@@ -227,75 +217,6 @@ class AdaptiveClusterEnsembler(Ensembler):
         del non_can_membership.common_neighbor_cache
         
         return tot_certain, certain, uncertain, tot_uncertain_map, lost_item_lst
-        
-    
-    def assign_lost_objects(self, candidate_clusters: List[Cluster], assosiation_map: Dict[object, object],\
-        lost_items: List[object]) -> List[Cluster]:
-        if len(assosiation_map) > 0:
-            self.log('Trying to assigning remaining totally uncertain objects using co-assosiation..')
-            for item, assosiate_item in tqdm(assosiation_map.items()):
-                found = False
-                for cluster in candidate_clusters:
-                    if assosiate_item in cluster:
-                        cluster.append(item)
-                        found = True
-                        break
-                if not found: #This eliminates the circular reference problem 
-                    isolated_cluster = Cluster()
-                    isolated_cluster.add(item)
-                    candidate_clusters.append(isolated_cluster)
-                    
-        if len(lost_items) > 0:
-            self.log(f"Adding remaining '{len(lost_items)}' items to isolated clusters...")
-            for item in lost_items:
-                isolated_cluster = Cluster()
-                isolated_cluster.add(item)
-                candidate_clusters.append(isolated_cluster)
-        return candidate_clusters
-        
-    
-    
-    def assign_uncertain_objects(self, uncertain_item_lst: List, candidate_clusters: List[Cluster],\
-        gamma: PartitionSet, simularity_matrix: MemberSimularityMatrix) -> List[Cluster]:
-        
-        self.log("Calculate initial quality...")
-        initial_quality = {}
-        for cluster in tqdm(candidate_clusters):
-            quality = self.quality_measure.calculate_quality(cluster, len(gamma), simularity_matrix)
-            initial_quality[cluster] = quality
-        
-        self.log("Assigning uncertain clusters...")
-        for item in tqdm(uncertain_item_lst):
-            #this is cursed
-            #takes all candidate clusters, makes a tuple of (cluster, speculative_quality)
-            #then finds the cluster and new quality with the smallest delta quality,
-            # by taking the abselute value of initial quality - speculative quality
-            min_changed_cluster, new_quality = min([(cluster, self.quality_measure.calculate_speculative_quality( \
-                initial_quality[cluster], item, cluster, gamma, simularity_matrix)) \
-                for cluster in candidate_clusters], key= lambda x: abs(initial_quality[x[0]] - x[1]) )
-            initial_quality[min_changed_cluster] = new_quality
-            
-            for cluster in candidate_clusters:
-                cluster.remove(item)
-                
-            min_changed_cluster.add(item)
-        return candidate_clusters
-    
-    def assign_certains_objects(self, certain_lst: List[Tuple[object, Cluster]],\
-        candidate_clusters: List[Cluster]) -> List[Cluster]:
-        
-        for item_cluster in tqdm(certain_lst):
-            #done so type hinting can actually be done. Damn you tqdm
-            item: object = item_cluster[0]
-            cluster: Cluster = item_cluster[1]
-            
-            
-            #remove item from all other clusters in candidate clusters
-            for can_cluster in candidate_clusters:
-                can_cluster.remove(item)
-            #add it back into best cluster
-            cluster.add(item)
-        return candidate_clusters
         
         
     def identify_object_certainy(self, items: List, similarity_matrix: MemberSimularityMatrix, alpha2: float) \
