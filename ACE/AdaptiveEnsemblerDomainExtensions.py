@@ -1,8 +1,8 @@
-from cProfile import label
 import queue
 from sys import maxsize
 from typing import List, Dict, Tuple, Callable, Iterator
-from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator
+from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, QualityMeasuerer, AssignRegulator
+from MemberSimularityMatrix import MemberSimularityMatrix
 from ClusterSimilarityMatrix import SparseClustserSimularity
 from Cluster import Cluster, Partition, PartitionSet
 from Domain import ContigData
@@ -76,13 +76,14 @@ class MergeSCGEvaluator(MergeRegulator):
         pentalty2 = 100 / len(all_clusters ) #- ( (len(non_merged_clusters) / len(all_clusters)) **2 )
         
         # value_lst = [(value, cluster.mean_member_simularity(partitions_count)**2) for cluster, value in total_dct.items()]
-        score = sum([value for cluster, value in total_dct.items()])
+        #score = sum([value for cluster, value in total_dct.items()])
+        score = self.merge_count
         #harmonic mean
         # divisor = sum([(x[1] / x[0] if x[0] != 0 else 0) for x in value_lst])
         # score = sum([x[1] for x in value_lst]) / divisor if divisor != 0 else 0
         # values_lst = [(self.bin_evaluator.__calculate_completeness__(cluster), self.bin_evaluator.__calculate_purity__(cluster), cluster.mean_member_simularity(partitions_count)) for cluster in all_clusters]
-        # score = 3 * (sum([x[0] * x[1] * x[2] for x in values_lst]) / sum([x[0] + x[1] + x[2] for x in values_lst]))
-        score *= pentalty2
+        #score = 3 * (sum([x[0] * x[1] * x[2] for x in values_lst]) / sum([x[0] + x[1] + x[2] for x in values_lst]))
+        #score *= pentalty2
         print(score)
         
         
@@ -170,7 +171,53 @@ class MergeSCGEvaluator(MergeRegulator):
             
     #         for cluster, value in values.items():
     #             f.write(f'{cluster}: {value}\n\n')
-        
+class SCGAssignRegulator(AssignRegulator):
+    def __init__(self, should_log: bool, log_file: str, quality_measure: QualityMeasuerer, merge_regulator: MergeSCGEvaluator) -> None:
+        super().__init__(should_log, log_file, quality_measure)
+        if type(merge_regulator) != MergeSCGEvaluator:
+            raise Exception(f"Merge regulator is not of type {type(MergeRegulator)}")
+        self.bin_evaluator = merge_regulator.bin_evaluator
+
+    def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[Tuple[object, Cluster]], certain_lst: List[Tuple[object, Cluster]], \
+        uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet, similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
+
+        self.log("Assigning totally certain objects...")
+        candidate_clusters = self.assign_certains_objects(totally_certain_lst, candidate_clusters)
+
+        certain_lst = [x for x, y in certain_lst]
+
+        self.log("Assign Certain Objects...")
+        candidate_clusters = self.__handle_SCG_certain__(certain_lst, similarity_matrix, candidate_clusters)
+
+        self.log("Assign uncertain objects...")
+        candidate_clusters = self.__handle_SCG_certain__(uncertain_lst, similarity_matrix, candidate_clusters)
+
+        self.log("handling lost objects...")
+        candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)
+
+        return candidate_clusters
+
+    def __handle_SCG_certain__(self, item_lst: List[object], similarity_matrix:MemberSimularityMatrix, candidate_clusters: List[Cluster]) -> List[Cluster]:
+        for item in item_lst:
+            row_data = similarity_matrix.get_row(item)
+
+            best_cluster: Cluster = None
+            best_score: float = np.NINF
+
+            for cluster, similarity in row_data.items():
+                score1 = self.bin_evaluator.calculate_score(cluster)
+                score2 = self.bin_evaluator.calculate_score(cluster, item)
+                score = similarity * (score1 - score2)
+
+                if score > best_score:
+                    best_score = score
+                    best_cluster = cluster
+
+            for cand_cluster in candidate_clusters:
+                if cand_cluster is not best_cluster and item in cand_cluster:
+                    cand_cluster.remove(item)
+
+        return candidate_clusters    
         
         
         

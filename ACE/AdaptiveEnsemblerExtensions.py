@@ -1,4 +1,3 @@
-from AdaptiveEnsemblerDomainExtensions import MergeSCGEvaluator
 from Cluster import Cluster, Partition, PartitionSet
 import numpy as np
 from typing import List, Dict, Tuple, Callable
@@ -152,42 +151,6 @@ class AssignRegulator:
         candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)
         return candidate_clusters
 
-class SCGAssignRegulator(AssignRegulator):
-    def __init__(self, should_log: bool, log_file: str, quality_measure: QualityMeasuerer, merge_regulator: MergeSCGEvaluator) -> None:
-        super().__init__(should_log, log_file, quality_measure)
-        if type(merge_regulator) != MergeSCGEvaluator:
-            raise Exception(f"Merge regulator is not of type {type(MergeRegulator)}")
-        self.bin_evaluator = merge_regulator.bin_evaluator
-
-    def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[object], certain_lst: List[object], \
-        uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet, similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
-
-        self.log("Assigning totally certain objects...")
-        candidate_clusters = self.assign_certains_objects(totally_certain_lst, candidate_clusters)
-
-        candidate_clusters = self.__handle_SCG_certain__(certain_lst, similarity_matrix, candidate_clusters)
-
-        pass
-
-    def __handle_SCG_certain__(self, item_lst: List[object], similarity_matrix:MemberSimularityMatrix, candidate_clusters: List[Cluster]) -> List[Cluster]:
-        best_values_dct: Dict[object, List[Tuple[Cluster, float]]] = {}
-        
-        for item in item_lst:
-            row_data = similarity_matrix.get_row(item)
-
-            for cluster in row_data.keys():
-                score1 = self.bin_evaluator.calculate_score(cluster)
-                score2 = self.bin_evaluator.calculate_score(cluster)
-                score = similarity_matrix[item, cluster] * (score1 - score2)
-
-                if item not in best_values_dct:
-                    best_values_dct[item] = []
-
-                best_values_dct[item].append((cluster, score))
-        
-
-
-        return candidate_clusters    
         
 def handle_estimate_target_clusters(gamma: PartitionSet,  taget_clusters_est: int or Callable[[PartitionSet], int]) -> int:
         if isinstance(taget_clusters_est, int):

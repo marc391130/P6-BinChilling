@@ -14,6 +14,7 @@ from Domain import ContigData
 from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, Build_simularity_matrix
 from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
 from AdaptiveEnsemblerExtensions import AssignRegulator, MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, target_bin_3_4th_count_estimator
+from AdaptiveEnsemblerDomainExtensions import MergeSCGEvaluator, SCGAssignRegulator
 from io import TextIOWrapper
 
 __global_disable_tqdm = False
@@ -154,8 +155,9 @@ class AdaptiveClusterEnsembler(Ensembler):
         else:
             self.log("no totally uncertain objects found, skipping reidentification step")
         
-        
-        regulator = AssignRegulator(should_log=self.should_log, logfile=self.logfile, quality_measure=self.quality_measure)
+        # Assigning Assign Regulator based opon which MergeRegulator that is used
+        regulator = AssignRegulator(should_log=self.should_log, logfile=self.logfile, quality_measure=self.quality_measure) if type(self.merge_regulator) != MergeSCGEvaluator else \
+                    SCGAssignRegulator(should_log=self.should_log, log_file=self.logfile, quality_measure=self.quality_measure, merge_regulator=self.merge_regulator)
         candidate_clusters = regulator.assign_items(candidate_clusters, totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_map, gamma, similarity_matrix, lost_items)
         return self.build_final_partition(gamma, candidate_clusters)
     
