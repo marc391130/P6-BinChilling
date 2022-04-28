@@ -209,8 +209,12 @@ class SCGAssignRegulator(AssignRegulator):
             best_score: float = np.NINF
 
             for cluster, similarity in row_data.items():
-                score1 = self.bin_evaluator.calculate_score(cluster)
-                score2 = self.bin_evaluator.calculate_score(cluster, item)
+                #score1 = self.bin_evaluator.calculate_score(cluster)
+                #score2 = self.bin_evaluator.calculate_score(cluster, item)
+
+                score1 = sum([y * similarity_matrix[x, cluster] for x, y in self.bin_evaluator.calculate_item_score(cluster).items()])
+                score2 = sum([y * similarity_matrix[x, cluster] for x, y in self.bin_evaluator.calculate_item_score(cluster).items() if x is not item])
+
                 score = similarity * (score1 - score2)
 
                 if score > best_score:

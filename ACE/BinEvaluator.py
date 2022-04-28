@@ -33,6 +33,10 @@ class BinEvaluator:
                 
         return completeness - (0.5*contamination) - (megabin*0.5)
 
+    def calculate_item_score(self, cluster: Cluster) -> Dict[ContigData, float]:
+        full_value = self.calculate_score(cluster, None)
+        return {item: full_value - self.calculate_score(cluster, item) for item in cluster}
+
     def __calculate_sight__(self, completeness, contamination) -> str:
         if completeness > 90 and contamination < 5:
             return 'near'
