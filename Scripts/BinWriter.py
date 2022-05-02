@@ -1,25 +1,17 @@
-from os import listdir, getcwd
-from os.path import join, exists
-import string
+from os import listdir
+from os.path import join
 from typing import Callable, List, Dict
-import Constants as CONSTANT
 import sys
 from tqdm import tqdm
-from ContigReader import ContigReader
 
 
 
 class bin_writer:
-    def __init__(self, fasta_file: str, cluster_file: str, output_path: str, file_predicate: Callable[[str], bool] = None, append_filename: str = None) -> None:
+    def __init__(self, fasta_file: str, output_path: str, cluster_file: str or None) -> None:
         self.fasta_file = fasta_file
         self.cluster_file = cluster_file
-        self.file_predicate = file_predicate if file_predicate is not None else lambda x: True
-        self.append_filename = append_filename if append_filename is not None else "bin_"
         self.output_path = output_path
         
-    def __get_folder_content(self, folder_path: str) -> List[str]:
-        return [f for f in listdir(self.input_folder_path) if self.file_predicate(f)]
-    
     # key is contig name, value is contig string 
     def read_fasta(self) -> Dict[str, str]:
         current = ''
@@ -71,12 +63,26 @@ class bin_writer:
     def write_bins(self, values: Dict[str, Dict[str, str]]):
         print("writing bins...")
         for clustername, cluster in tqdm(values.items()):
-            name = self.append_filename + clustername + ".fasta"
+            name = 'bin_' + clustername + ".fasta"
             self.write_fasta(join(self.output_path, name), cluster)
         
+    def read_cluster_from_fasta(self) -> Dict[str, List[str]]:
+        result = {}
+        print("reading clusters...")
+        def contig_cleaner(contingname: str) -> str:
+            return contingname.replace('>', '').replace('\n', '')
+        
+        with open(self.fasta_file, 'r') as f:
+            for line in tqdm(f.readlines()):
+                line: str
+                if line.startswith('>'):
+                    clean = contig_cleaner(line)
+                    result[len(result)+1] = [clean]
+        return result  
+    
     def work(self, showClusters: bool = True):
         
-        clusters = self.read_clusters()
+        clusters = self.read_clusters() if self.cluster_file is not None else self.read_cluster_from_fasta()
         contigs = self.read_fasta()
         
         #split contigs into clusters
@@ -94,7 +100,13 @@ class bin_writer:
                 
 if __name__ == '__main__':
     print(sys.argv)
-    writer = bin_writer(sys.argv[1], sys.argv[2], sys.argv[3], \
-        lambda x: x.startswith('cluster'),
-        sys.argv[4] if len(sys.argv) >= 5 else None)
+    if len(sys.argv) == 4:
+        print('Fasta_file, output_path, partition_file')
+    elif len(sys.argv) == 3:
+        print('Fasta_file, output_path')
+    else:
+        print('Fasta_file, output_path, partition_file (optional)')
+        sys.exit()
+    
+    writer = bin_writer(sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) >= 4 else None)
     writer.work()
