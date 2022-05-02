@@ -63,7 +63,7 @@ class bin_writer:
     def write_bins(self, values: Dict[str, Dict[str, str]]):
         print("writing bins...")
         for clustername, cluster in tqdm(values.items()):
-            name = 'bin_' + clustername + ".fasta"
+            name = 'bin_' + str(clustername) + ".fasta"
             self.write_fasta(join(self.output_path, name), cluster)
         
     def read_cluster_from_fasta(self) -> Dict[str, List[str]]:
