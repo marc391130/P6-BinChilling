@@ -45,24 +45,23 @@ class ACEqueue:
         return len(self.container)
 
 class MergeSCGEvaluator(MergeRegulator):
-    def __init__(self, a1_min: float, all_SCGs : set, debug: bool = False) -> None:
+    def __init__(self, a1_min: float, bin_evaluator: BinEvaluator, debug: bool = False) -> None:
         self.a1_min = a1_min
-        self.bin_evaluator = BinEvaluator(all_SCGs)
+        self.bin_evaluator = bin_evaluator
         self.debug = debug
         self.log_container, self.log_filename = [], str(time())
         self.buffer = ACEqueue(maxsize=BUFFER_COUNT)
         self.LastScore, self.merge_count = 0, 0
         
     
-    def set_context(self, gamma: PartitionSet):
+    def set_context(self, gamma: PartitionSet, target_clustsers: int) -> None:
         self.__context__ = gamma
-        self.target_clusters = target_bin_3_4th_count_estimator(gamma)
-        return self.target_clusters
+        self.target_clusters = target_clustsers
         
     def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity,\
-        merged_clusters: List[Cluster[ContigData]]) -> bool:
+        merged_clusters: List[Cluster[ContigData]]) -> Tuple[bool, List[Cluster]]:
         self.merge_count += 1
-        if alpha1 < self.a1_min: return self.__log_result__(True, {}, -1, alpha1)
+        if alpha1 < self.a1_min: return (self.__log_result__(True, {}, -1, alpha1), self.buffer.get_best_list())
         partitions_count = len(self.__context__)
 
         all_clusters: List[Cluster[ContigData]] = cluster_matrix.get_available_clusters() + merged_clusters
@@ -90,13 +89,13 @@ class MergeSCGEvaluator(MergeRegulator):
         value = self.buffer.put( (score, all_clusters) )
         
         if self.buffer.full() is False:
-            return self.__log_result__(False, total_dct, score, alpha1)
+            return (self.__log_result__(False, total_dct, score, alpha1), self.buffer.get_best_list())
         
         complete = value > max(self.buffer)
         
         # return return_val
         print('>Best value', self.buffer.best_value)
-        return self.__log_result__(complete, total_dct, score , alpha1)
+        return (self.__log_result__(complete, total_dct, score , alpha1), self.buffer.get_best_list())
     
         
     def get_merge_result(self) -> List[Cluster]:
@@ -139,20 +138,21 @@ class MergeSCGEvaluator(MergeRegulator):
             # plot.plot([(1 - (self.target_clusters / z[i][2])) for i in range(len(self.log_container)) ], label='Marcus 1 -(lambda/c) score')
             # plot.plot([x[3] for x in self.log_container], label='alpha1')
             plot.legend()
-            plot.show()
+            #plot.show()
 
             self.log_container = []
         else:
             total_completeness, total_contamination, total_purity = 0, 0, 0
             near, substanitial, moderate, partial, bad = 0, 0, 0, 0, 0
             for cluster in values.keys():
-                completeness, contamination, purity = self.bin_evaluator.__calculate_completeness__(cluster), self.bin_evaluator.__calculate_contamination__(cluster) , self.bin_evaluator.__calculate_purity__(cluster)
+                scgs = self.bin_evaluator.__calculate_number_of_SCGs__(cluster)
+                completeness, contamination, purity = self.bin_evaluator.__calculate_completeness__(scgs), self.bin_evaluator.__calculate_contamination__(scgs) , self.bin_evaluator.__calculate_purity__(scgs)
                 result1 = self.bin_evaluator.__calculate_sight__(completeness, contamination)
                 if result1 == 'near': near+=1
                 elif result1 == 'substanitial': substanitial+=1
                 elif result1 == 'moderate': moderate+=1
                 elif result1 == 'partial': partial+=1
-                elif result == 'bad': bad+=1
+                elif result1 == 'bad': bad+=1
                 
                 total_completeness += completeness
                 total_contamination += contamination
@@ -172,59 +172,75 @@ class MergeSCGEvaluator(MergeRegulator):
     #         for cluster, value in values.items():
     #             f.write(f'{cluster}: {value}\n\n')
 class SCGAssignRegulator(AssignRegulator):
-    def __init__(self, should_log: bool, log_file: str, quality_measure: QualityMeasuerer, merge_regulator: MergeSCGEvaluator) -> None:
-        super().__init__(should_log, log_file, quality_measure)
-        if type(merge_regulator) != MergeSCGEvaluator:
-            raise Exception(f"Merge regulator is not of type {type(MergeRegulator)}")
+    def __init__(self, quality_measure: QualityMeasuerer, merge_regulator: MergeSCGEvaluator, logger: Callable[[str], None] = None) -> None:
+        super().__init__(quality_measure, logger)
         self.bin_evaluator = merge_regulator.bin_evaluator
 
     def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[Tuple[object, Cluster]], certain_lst: List[Tuple[object, Cluster]], \
         uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet, similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
 
         self.log("Assigning totally certain objects...")
-        candidate_clusters = self.assign_certains_objects(totally_certain_lst, candidate_clusters)
+        candidate_clusters = self.__assign_certains__(totally_certain_lst, candidate_clusters)
 
-        certain_lst = [x for x, y in certain_lst]
+        certain_lst = sorted([x for x, y in certain_lst] + uncertain_lst, key=lambda x: similarity_matrix.item_mean(x), reverse=True )
 
         self.log("Assign Certain Objects...")
-        candidate_clusters = self.__handle_SCG_certain__(certain_lst, similarity_matrix, candidate_clusters, gamma)
-
-        self.log("Assign uncertain objects...")
-        candidate_clusters = self.__handle_SCG_certain__(uncertain_lst, similarity_matrix, candidate_clusters, gamma)
+        candidate_clusters = self.__assign_using_SCGs__(certain_lst, similarity_matrix, candidate_clusters, gamma)
+        # for item in certain_lst:
+        #     for cluster in candidate_clusters:
+        #         cluster.remove(item)
+        
+        # self.log("Assign uncertain objects...")
+        # candidate_clusters = self.__handle_SCG_certain__(uncertain_lst, similarity_matrix, candidate_clusters, gamma)
+        # # for item in uncertain_lst:
+        # #     for cluster in candidate_clusters:
+        # #         cluster.remove(item)
 
         self.log("handling lost objects...")
-        candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)
+        candidate_clusters = self.__assign_lost_objects__(candidate_clusters, totally_uncertain_map, lost_items)
 
         return candidate_clusters
 
-    def __handle_SCG_certain__(self, item_lst: List[ContigData], similarity_matrix: MemberSimularityMatrix, candidate_clusters: List[Cluster], \
-        gamma: PartitionSet) -> List[Cluster]:
+    def __assign_using_SCGs__(self, item_lst: List[ContigData], similarity_matrix: MemberSimularityMatrix, candidate_clusters: List[Cluster], \
+        gamma: PartitionSet) -> Tuple[List[Cluster], List[ContigData]]: 
+        #List of cleaned clusters, List of badly placed contigs
+        count = 0
         for item in item_lst:
             row_data = similarity_matrix.get_row(item)
             if len(item.SCG_genes) == 0:
                 self.__handle_item_without_SCGs__(item, row_data, gamma, similarity_matrix)
+                print('skipping empty contig')
                 continue
 
             best_cluster: Cluster = None
             best_score: float = np.NINF
 
             for cluster, similarity in row_data.items():
+                if len(cluster) == 0: continue
                 #score1 = self.bin_evaluator.calculate_score(cluster)
                 #score2 = self.bin_evaluator.calculate_score(cluster, item)
+                values = self.bin_evaluator.calculate_item_score(cluster, extra_item=item)
+                cluster_sim = similarity_matrix.get_column(cluster)
+                score1 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items()])
+                score2 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items() if x is not item])
 
-                score1 = sum([y * similarity_matrix[x, cluster] for x, y in self.bin_evaluator.calculate_item_score(cluster).items()])
-                score2 = sum([y * similarity_matrix[x, cluster] for x, y in self.bin_evaluator.calculate_item_score(cluster).items() if x is not item])
-
-                score = similarity * (score1 - score2)
+                score = (similarity) * (score1 - score2)
+                print(score)
 
                 if score > best_score:
                     best_score = score
                     best_cluster = cluster
-
+            print('>next')
+            if best_score < 0:
+                count += 1 
+                #best_cluster.remove(item)
             for cand_cluster in candidate_clusters:
-                if cand_cluster is not best_cluster and item in cand_cluster:
-                    cand_cluster.remove(item)
+                if cand_cluster is best_cluster: continue
+                if item not in cand_cluster: continue 
+                cand_cluster.remove(item)
 
+            similarity_matrix.assign_item_to(best_cluster, item)
+        print('>Found bad: ', count)
         return candidate_clusters
     
     def __handle_item_without_SCGs__(self, item: ContigData, related_clusters: Dict[Cluster, float], gamma: PartitionSet, similarity_matrix: MemberSimularityMatrix) -> None:
@@ -248,6 +264,7 @@ class SCGAssignRegulator(AssignRegulator):
         else:
             best_cluster = best_clusters[0]
 
+        similarity_matrix.assign_item_to(best_cluster, item)
         for cluster in related_clusters.keys():
             if cluster is not best_cluster:
                 cluster.remove(item)

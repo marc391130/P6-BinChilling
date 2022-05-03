@@ -1,4 +1,5 @@
 from __future__ import annotations
+import itertools
 from logging import exception
 from typing import Dict, List, Generic, TypeVar, Tuple, Iterable, Iterator
 from math import sqrt
@@ -22,9 +23,8 @@ class Cluster(Generic[T]):
         Assert.assert_not_none(cluster2)
         cluster = Cluster(partition_id=None)
         
-        for item, membership in cluster1.__membership__.items():
-            cluster.__add_member__(item, membership)
-        for item, membership in cluster2.__membership__.items():
+        for item, membership in itertools.chain(cluster1.__membership__.items(),\
+                cluster2.__membership__.items()):
             cluster.__add_member__(item, membership)
         return cluster
     
@@ -34,14 +34,17 @@ class Cluster(Generic[T]):
     def __len__(self) -> int:
         return len(self.__membership__)
     
-    def __iter__(self) -> Iterator[Cluster]:
+    def __iter__(self) -> Iterator[T]:
         return self.__membership__.__iter__()
     
     def intersection(self, other: Cluster) -> List[T]:
         #return list(set(self.__membership__.keys()) & set(other.__membership__.keys()))
         a, b = ((self, other) if len(self) < len(other) else (other, self))
         return set(a).intersection(b)
-        # return [item for item in b if item in a]        
+        # return [item for item in b if item in a]     
+        
+    def union(self, other: Cluster) -> set[T]:
+        return set(self).union(other)
 
     def append(self, __object: T) -> None:
         return self.add(__object)
@@ -206,6 +209,9 @@ class PartitionSet(List[Partition[T]]):
         
         return result
 
+    def count_elements(self) -> int:
+        return len(self.__dataset__)
+
     def __total_elements__(self) -> int:
         return len(self.__dataset__)
 
@@ -219,6 +225,9 @@ class PartitionSet(List[Partition[T]]):
             result[item] = i if item not in result else result[item]
             i += 1
         return result
+    
+    def get_all_items(self) -> List[T]:
+        return list(self.__dataset__)
 
     def mean_cluster_in_partition(self) -> float:
         return len(self.get_all_clusters()) / len(self)

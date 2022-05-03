@@ -1,5 +1,6 @@
+import itertools
 import sys
-from typing import List, Dict, Tuple
+from typing import Iterator, List, Dict, Tuple, TypeVar, Generic
 from tqdm import tqdm
 
 from Cluster import Cluster
@@ -19,25 +20,57 @@ class BinEvaluator:
         result = {}
 
         for cluster in cluster_lst:
-            result[cluster] = (self.__calculate_completeness__(cluster, skip_item), self.__calculate_contamination__(cluster, skip_item))
+            SCGs_count = self.__calculate_number_of_SCGs__(cluster, skip_item, None)
+            result[cluster] = (self.__calculate_completeness__(SCGs_count), self.__calculate_contamination__(SCGs_count))
             #print((self.__calculate_completeness__(cluster)) - (0.5 * self.__calculate_contamination__(cluster)) - (0.5 * self.__calculate_megabin_penalty__(cluster)))
 
         return result
 
-    def calculate_score(self, cluster: Cluster, skip_item: ContigData = None) -> float:
-        completeness, contamination, megabin =\
-                (self.__calculate_completeness__(cluster, skip_item),\
-                self.__calculate_contamination__(cluster, skip_item),\
-                #0,\
-                self.__calculate_megabin_penalty__ (cluster, skip_item))
-                
-        return completeness - (0.5*contamination) - (megabin*0.5)
+    def evaluate_cluster(self, cluster: Cluster, skip_item: ContigData = None) -> Tuple[float, float, float]:
+        SCGs_count = self.__calculate_number_of_SCGs__(cluster, skip_item, None)
+        return (self.__calculate_completeness__(SCGs_count), self.__calculate_contamination__(SCGs_count), self.__calculate_megabin_penalty__(SCGs_count))
+        
+    def evaluate_item_lst(self, item_set: set):
+        SCGs_count = self.__calculate_number_of_SCGs__(item_set, None, None)
+        return (self.__calculate_completeness__(SCGs_count), self.__calculate_contamination__(SCGs_count), self.__calculate_megabin_penalty__(SCGs_count)) 
+        
+    
 
-    def calculate_item_score(self, cluster: Cluster) -> Dict[ContigData, float]:
-        full_value = self.calculate_score(cluster, None)
-        return {item: full_value - self.calculate_score(cluster, item) for item in cluster}
+    def calculate_score(self, cluster: Cluster, skip_item: ContigData = None, include_item: ContigData = None) -> float:
+        scg_count = self.__calculate_number_of_SCGs__(cluster, skip_item, include_item)
+        return self.__score_from_SCG_count__(scg_count)
+    
+    
+    def __score_from_SCG_count__(self, SCG_count: Dict[str, int]) -> float:
+        completeness, contamination, megabin =\
+                (self.__calculate_completeness__(SCG_count),\
+                self.__calculate_contamination__(SCG_count),\
+                self.__calculate_megabin_penalty__ (SCG_count))
+                
+        return self.score_calc(completeness, contamination, megabin)
+
+    def score_calc(self, completeness: float, contamination: float, megabin_pen: float):
+        return completeness - max(contamination**2, contamination) - (0.4*megabin_pen)
+
+    def calculate_item_score(self, cluster: Cluster, extra_item: ContigData or None = None) -> Dict[ContigData, float]:
+        if len(cluster) == 0: return {}
+        if len(cluster) == 1: 
+            return { item: self.calculate_score(cluster, include_item=extra_item) for item in self.__chain_cluster__(cluster, extra_item) }
+        SCGs = self.__calculate_number_of_SCGs__(cluster, None, extra_item)
+        total_value = self.__score_from_SCG_count__(SCGs)
+
+        result = {item: total_value-  self.__score_from_SCG_count__(self.__remove_item_from_SCG_Count__(item, SCGs))\
+            for item in self.__chain_cluster__(cluster, extra_item)}
+        return result
+    
+
+    
+    def __remove_item_from_SCG_Count__(self, item: ContigData, scgs: Dict[str, int]) -> Dict[int, str]:
+        return { scg: ((count - 1) if scg in item.SCG_genes else count )\
+            for scg, count in scgs.items() if not (count <= 1 and scg in item.SCG_genes)  }
 
     def __calculate_sight__(self, completeness, contamination) -> str:
+        
         if completeness > 90 and contamination < 5:
             return 'near'
         if contamination > 5 and contamination <= 10 and\
@@ -51,61 +84,62 @@ class BinEvaluator:
         if (completeness - contamination) > 0: return 'bad'
         return 'zero'
 
-    def __calculate_completeness__(self, cluster: Cluster[ContigData], skip_item: ContigData = None) -> float:
-        uniques = self.__calculate_unqiues__(cluster, skip_item)
+    def __calculate_completeness__(self, SCG_count: Dict[str, int]) -> float:
         
-        counter = len(uniques)
+        counter = len(SCG_count)
         divisor = len(self.all_SCGs)
 
         return (counter / divisor)*100 if divisor != 0 else 0
 
-    def __calculate_contamination__(self, cluster: Cluster[ContigData], skip_item: ContigData = None) -> float:
-        SCGs = self.__calculate_number_of_SCGs__(cluster, skip_item)
-        uniques = self.__calculate_unqiues__(cluster, skip_item)
+    def __calculate_contamination__(self, SCG_count: Dict[str, int]) -> float:
+        # uniques = self.__calculate_unqiues__(cluster, skip_item, include_item)
 
-        dSCG = [scg for scg, count in SCGs.items() if count > 1]
+        dSCG = [scg for scg, count in SCG_count.items() if count > 1]
 
         counter = len(dSCG)
-        divisor = len(uniques)
+        divisor = len(SCG_count) #This is the same as uniques, but does not require an additional n^2 call
 
         return (counter / divisor)*100 if divisor != 0 else 0
 
-    def __calculate_purity__(self, cluster: Cluster[ContigData], skip_item: ContigData = None) -> float:
-        uniques = self.__calculate_unqiues__(cluster, skip_item)
-        SCGs = self.__calculate_number_of_SCGs__(cluster, skip_item)
-        dSCG = [scg for scg, count in SCGs.items() if count > 1]
+    def __calculate_purity__(self, SCG_count: Dict[str, int]) -> float:
+        #uniques = self.__calculate_unqiues__(cluster, skip_item, include_item)
+        # SCGs = self.__calculate_number_of_SCGs__(cluster, skip_item, include_item)
+        dSCG = [scg for scg, count in SCG_count.items() if count > 1]
         
-        counter = len(uniques)
-        divisor = len(uniques) + len(dSCG)
+        counter = len(SCG_count) #Same as uniques, without having to compute
+        divisor = len(SCG_count) + len(dSCG)
         
         return (counter / divisor)*100 if divisor != 0 else 0
 
-    def __calculate_megabin_penalty__(self, cluster: Cluster[ContigData], skip_item: ContigData = None) -> float:
-        SCGs = self.__calculate_number_of_SCGs__(cluster, skip_item)
-        uniques = self.__calculate_unqiues__(cluster, skip_item)
-        nr_SCGs = sum(list(SCGs.values())) - len(uniques)
+    def __calculate_megabin_penalty__(self, SCG_count: Dict[str, int]) -> float:
+        # SCGs = self.__calculate_number_of_SCGs__(cluster, skip_item, include_item)
+        #uniques = self.__calculate_unqiues__(cluster, skip_item, include_item)
+        nr_SCGs = sum(SCG_count.values()) - len(SCG_count)
 
         return (nr_SCGs / len(self.all_SCGs))*100 if len(self.all_SCGs) != 0 else 0
 
-    def __calculate_unqiues__(self, cluster: Cluster[ContigData], skip_item: ContigData = None) -> set:
+    def __calculate_unqiues__(self, cluster: Cluster[ContigData], skip_item: ContigData = None, include_item: ContigData = None) -> set:
         uniques = set()
 
-        for item in cluster:
+        for item in self.__chain_cluster__(cluster, include_item):
             if skip_item is not None and item is skip_item: continue
-            for scg in item.SCG_genes:
-                uniques.add(scg)
+            uniques.update(item.SCG_genes)
 
         return uniques
     
-    def __calculate_number_of_SCGs__(self, cluster: Cluster[ContigData], skip_item: ContigData = None) -> Dict[str, int]:
+    def __calculate_number_of_SCGs__(self, cluster: Cluster[ContigData], skip_item: ContigData = None, include_item: ContigData = None) -> Dict[str, int]:
         SCGs = {}
-
-        for item in cluster:
+        
+        for item in self.__chain_cluster__(cluster, include_item):
             if skip_item is not None and item is skip_item: continue
             for scg in item.SCG_genes:
                 SCGs[scg] = SCGs[scg] + 1 if scg in SCGs else 1
 
         return SCGs
+    
+    def __chain_cluster__(self, cluster: Cluster, include_item: ContigData or None = None) -> Iterator[ContigData]:
+        return cluster.__iter__() if include_item is None or include_item in cluster\
+            else itertools.chain(cluster.__iter__(), [include_item])
 
 class ClusterReader:
     def __init__(self, file_path: str, contig_reader: ContigReader) -> None:

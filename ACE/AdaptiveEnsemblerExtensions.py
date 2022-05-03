@@ -1,3 +1,4 @@
+from BinEvaluator import BinEvaluator
 from Cluster import Cluster, Partition, PartitionSet
 import numpy as np
 from typing import List, Dict, Tuple, Callable
@@ -58,42 +59,57 @@ class QualityMeasuerer:
         return (quality + fuckery / len(cluster)) - (quality / (len(cluster) - 1))
 
 class MergeRegulator:
-    def __init__(self, a1_min: float, target_clusters_est: int or Callable[[PartitionSet], int]) -> None:
+    def __init__(self, a1_min: float) -> None:
         self.a1_min = a1_min
-        self.target_clsuters_est = target_clusters_est
         self.target_clusters = 0
         self.result = []
     
-    def set_context(self, gamma: PartitionSet):
-        self.target_clusters = handle_estimate_target_clusters(gamma, self.target_clsuters_est)
-        return self.target_clusters
+    def set_context(self, gamma: PartitionSet, target_clusters: int):
+        self.target_clusters = target_clusters
+        self.__context__ = gamma
     
-    def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity, merged_clusters: List[Cluster]) -> bool:
-        if alpha1 < self.a1_min: return True
+    def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity, merged_clusters: List[Cluster]) \
+        -> Tuple[bool, List[Cluster]]:
+        if alpha1 < self.a1_min: return True, self.result
         self.result = cluster_matrix.get_available_clusters() + merged_clusters
         
-        return len(self.result) < self.target_clusters
+        return len(self.result) < self.target_clusters, self.result
     
     def get_merge_result(self) -> List[Cluster]:
         self.target_clusters = 0
+        self.__context__ = None
         result = self.result
         self.result = []
         return result
 
 class AssignRegulator:
-    def __init__(self, should_log, logfile, quality_measure) -> None:
-        self.logfile: str = logfile
-        self.should_log: bool = should_log
-        self.quality_measure: QualityMeasuerer = quality_measure
-        pass
+    def __init__(self, quality_measure: QualityMeasuerer, logger: Callable[[str], None] = None) -> None:
+        self.logger = logger
+        self.quality_measure = quality_measure
 
     def log(self, string: str) -> None:
-        if self.should_log:
-            print(string)
-        if self.logfile is not None:
-            print(string, file=self.logfile)
+        if self.logger is not None:
+            self.logger(string)
 
-    def assign_certains_objects(self, certain_lst: List[Tuple[object, Cluster]],\
+    def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[object], certain_lst: List[object], \
+        uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet,\
+            similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
+
+        self.log("Assigning totally certain objects...")
+        candidate_clusters = self.__assign_certains__(totally_certain_lst, candidate_clusters)
+        
+        self.log("Assign certain objects...")
+        candidate_clusters = self.__assign_certains__(certain_lst, candidate_clusters)
+        
+        self.log("Assign uncertain objects")
+        candidate_clusters = self.__assign_uncertains__(uncertain_lst, candidate_clusters, gamma, similarity_matrix)
+    
+        candidate_clusters = self.__assign_lost_objects__(candidate_clusters, totally_uncertain_map, lost_items)
+        
+        return candidate_clusters
+
+
+    def __assign_certains__(self, certain_lst: List[Tuple[object, Cluster]],\
         candidate_clusters: List[Cluster]) -> List[Cluster]:
         
         for item_cluster in tqdm(certain_lst):
@@ -109,7 +125,7 @@ class AssignRegulator:
             cluster.add(item)
         return candidate_clusters
 
-    def assign_uncertain_objects(self, uncertain_item_lst: List, candidate_clusters: List[Cluster],\
+    def __assign_uncertains__(self, uncertain_item_lst: List, candidate_clusters: List[Cluster],\
         gamma: PartitionSet, simularity_matrix: MemberSimularityMatrix) -> List[Cluster]:
         
         self.log("Calculate initial quality...")
@@ -135,7 +151,7 @@ class AssignRegulator:
             min_changed_cluster.add(item)
         return candidate_clusters
 
-    def assign_lost_objects(self, candidate_clusters: List[Cluster], assosiation_map: Dict[object, object],\
+    def __assign_lost_objects__(self, candidate_clusters: List[Cluster], assosiation_map: Dict[object, object],\
         lost_items: List[object]) -> List[Cluster]:
         if len(assosiation_map) > 0:
             self.log('Trying to assigning remaining totally uncertain objects using co-assosiation..')
@@ -157,22 +173,6 @@ class AssignRegulator:
                 isolated_cluster = Cluster()
                 isolated_cluster.add(item)
                 candidate_clusters.append(isolated_cluster)
-        return candidate_clusters
-    
-    def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[object], certain_lst: List[object], \
-        uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet, similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
-
-        self.log("Assigning totally certain objects...")
-        candidate_clusters = self.assign_certains_objects(totally_certain_lst, candidate_clusters)
-        
-        self.log("Assign certain objects...")
-        candidate_clusters = self.assign_certains_objects(certain_lst, candidate_clusters)
-        
-        self.log("Assign uncertain objects")
-        candidate_clusters = self.assign_uncertain_objects(uncertain_lst, candidate_clusters, gamma, similarity_matrix)
-    
-        #Handling lost items. 
-        candidate_clusters = self.assign_lost_objects(candidate_clusters, totally_uncertain_map, lost_items)
         return candidate_clusters
 
         

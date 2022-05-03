@@ -1,15 +1,11 @@
 from __future__ import annotations
 import numpy as np
 from tqdm import tqdm
-from itertools import product
 from Cluster import Cluster, PartitionSet
 from typing import Iterable, Tuple, Dict, List
 import Assertions as Assert 
 import scipy.sparse as sp  
-from ClusterSimilarityMatrix import DoubleSparseDictHashMatrix, SortKeysByHash, SparseDictHashMatrix, SparseTupleHashMatrix
-
-def average(ite :Iterable) -> float:
-    return sum(ite) / len(ite)
+from SparseMatrix_implementations import DoubleSparseDictHashMatrix, SortKeysByHash, SparseDictHashMatrix, SparseTupleHashMatrix
 
 
 def Build_simularity_matrix(clusters: List[Cluster], gamma: PartitionSet) -> sp.dok_matrix:
@@ -56,7 +52,12 @@ class MemberSimularityMatrix(DoubleSparseDictHashMatrix[object, Cluster, float])
         return sum(self.get_row(item).values())
     
     def item_max(self, item) -> float:
-        return max(self.get_row(item).values())
+        row = self.get_row(item).values()
+        if len(row) == 0: return 0.0
+        return max(row)
+    
+    def item_mean(self, item: object) -> float:
+        return self.Item_sum(item) / len(self.get_row(item))
     
     def item_argMax(self, item) -> Tuple[Cluster, float]:
         arg_max, max_value = None, -1 
@@ -81,11 +82,12 @@ class MemberSimularityMatrix(DoubleSparseDictHashMatrix[object, Cluster, float])
     def cluster_mean(self, cluster: Cluster) -> float:
         return self.cluster_sum(cluster) / len(self.get_column(cluster))
         
-    def assign_item_to(self, cluster: Cluster, item: object) -> None:
+    def assign_item_to(self, cluster: Cluster, item: object, update_sim: bool = True) -> None:
         for cluster2 in self.get_row(item).keys():
-            if cluster is cluster2:
-                continue
-            self.pop_entry(item, cluster)
+            self.pop_entry(item, cluster2)
+        
+        if update_sim:
+            self.set( (item, cluster), 1)
     
     def get(self, __k: Tuple[object, Cluster]) -> float:
         if self.has_tuple(__k):
@@ -121,28 +123,34 @@ class MemberMatrix:
 
     #     return all_common_neighbors
     
-    def calculate_coassosiation_matrix(self, totally_uncertain_items: set[object], gamma: PartitionSet) -> SparseDictHashMatrix[object, Tuple[float, int]]:
+    def calculate_coassosiation_matrix(self, item_lst: set[object], gamma: PartitionSet) -> SparseDictHashMatrix[object, Tuple[float, int]]:
         all_common_neighbors = SparseDictHashMatrix[object, Tuple[float, int]](SortKeysByHash, default_value=(0,0))
-        dct = {item: gamma.calc_all_coassosiation(item) for item in totally_uncertain_items}
+        dct = {item: gamma.calc_all_coassosiation(item) for item in gamma.get_all_items()}
 
         def get(item1, item2) -> float:
-            if item1 in dct and item2 in dct[item1]:
-                return dct[item1][item2]
-            if item2 in dct and item1 in dct[item2]:
-                return dct[item2][item1]
-            return 0.0
+            return max(\
+                dct.get(item1, {}).get(item2, 0.0), \
+                dct.get(item2, {}).get(item1, 0.0) \
+                )
 
         for cluster in tqdm(self.clusters):
-            intersection = totally_uncertain_items.intersection(cluster)
+            intersection = item_lst.intersection(cluster)
             for item1, item2 in [ (x, y) for x in intersection for y in cluster if x is not y and y not in intersection]:
                 if all_common_neighbors.has_entry(item1, item2) is False: all_common_neighbors[item1, item2] = (0, 0)
                 for common_item in [x for x in cluster if x is not item1 and x is not item2]:
                     value, count = all_common_neighbors[item1, item2]
                     all_common_neighbors[item1, item2] = (value + get(item1, common_item) + get(item2, common_item), count+1)
                     
-        
         return all_common_neighbors
     
+    # def calc_neighbourhood_simularity_fast(self, item_lst: set[object], cluster_lst: List[Cluster], gamma: PartitionSet):
+    #     dct = {item: gamma.calc_all_coassosiation(item) for item in gamma.get_all_items()}
+        
+        
+    #     for item in item_lst:
+    #         for cluster in cluster_lst:
+                
+                    
     
     def average_common_neighbors(self, item: object, cluster: Cluster, common_coassosiation_matrix: SparseDictHashMatrix[object, Tuple[float, int]] ) -> float:
         if len(cluster) <= 0:
@@ -155,6 +163,26 @@ class MemberMatrix:
         
         return sum_value / len(cluster)
     
+    
+    def total_common_simularity(self, item_lst: set[object], gamma: PartitionSet)\
+        -> SparseDictHashMatrix[object, float]:
+        neighbor_simularity = self.calculate_coassosiation_matrix(item_lst, gamma)
+        dct = {item: gamma.calc_all_coassosiation(item) for item in item_lst}
+        result = SparseDictHashMatrix[object, float](SortKeysByHash,\
+            default_value=0, sparse_value_predicate=lambda x: x == 0.0)
+        
+        def get(item1, item2) -> float:
+            return max(\
+                dct.get(item1, {}).get(item2, 0.0), \
+                dct.get(item2, {}).get(item1, 0.0) \
+                )
+        
+        for i1 in range(len(item_lst)):
+            for i2 in range(i1+1, len(item_lst)):
+                item1, item2 = item_lst[i1], item_lst[i2]
+                result[item1, item2] = 0.5 * (get(item1, item2) + neighbor_simularity.getEntry(item1, item2) )
+        return result
+        
     # def initialize_cocache(self, totally_uncertain_items: set[object], coassociation_matrix: CoAssosiationMatrix) -> None:
     #     all_common_neighbors: Dict[object, float] = {}
         

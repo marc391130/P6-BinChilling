@@ -30,14 +30,17 @@ if __name__ == '__main__':
         evaluator = BinEvaluator(all_scgs)
         data = evaluator.evaluate(clusters)
 
-        result_dto_lst = []
+        result_dto_lst, total_com, total_con = [], 0, 0
         data_lst = list(data.items())
         for data_idx in range(len(data_lst)):
             cluster_idx, tuple = data_lst[data_idx]
             completeness, contamination = tuple
+            total_com, total_con = total_com + completeness,  total_con + contamination
 
             dto = BinDto(f"bin_{data_idx}", contamination, completeness)
             result_dto_lst.append(dto)
         
         checkMfilter = CheckMFilter(None, sys.argv[7], lambda x: True)
         checkMfilter.write_output(result_dto_lst)
+        print('\n')
+        print(f'\nTotal completeness: {total_com} \nTotal contamination: {total_con}')

@@ -13,7 +13,7 @@ from time import time
 from Domain import ContigData
 from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, Build_simularity_matrix
 from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
-from AdaptiveEnsemblerExtensions import AssignRegulator, MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, target_bin_3_4th_count_estimator
+from AdaptiveEnsemblerExtensions import AssignRegulator, MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
 from AdaptiveEnsemblerDomainExtensions import MergeSCGEvaluator, SCGAssignRegulator
 from io import TextIOWrapper
 
@@ -25,7 +25,7 @@ THREAD_COUNT = cpu_count()
 class Ensembler:
     def ensemble(self, gamma: PartitionSet) -> Partition:
         pass
-
+    
 
 class AdaptiveClusterEnsembler(Ensembler):
     def __init__(self, 
@@ -50,7 +50,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.should_log = should_log #Should log to console
         self.thread_count = min(threads, THREAD_COUNT) if threads is not None else THREAD_COUNT
         self.chunksize = chunksize
-        self.merge_regulator = merge_regulator if merge_regulator is not None else MergeRegulator(alpha1_min, taget_clusters_est)
+        self.merge_regulator = merge_regulator if merge_regulator is not None else MergeRegulator(alpha1_min)
     
     def log(self, string: str) -> None:
         if self.should_log:
@@ -74,7 +74,8 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         
         self.log(f'Starting ensemblement using {len(all_items)} items distributed among {len(all_clusters)} clusters and {len(gamma)} partitions.')        
-        target_clusters = self.merge_regulator.set_context(gamma)
+        target_clusters = handle_estimate_target_clusters(gamma, self.taget_clusters_est)
+        self.merge_regulator.set_context(gamma, target_clusters)
         
         self.log("Builing cluster similarity matrix...")
         cluster_matrix = SparseClustserSimularity.build_multithread(\
@@ -156,9 +157,11 @@ class AdaptiveClusterEnsembler(Ensembler):
             self.log("no totally uncertain objects found, skipping reidentification step")
         
         # Assigning Assign Regulator based opon which MergeRegulator that is used
-        regulator = AssignRegulator(should_log=self.should_log, logfile=self.logfile, quality_measure=self.quality_measure) if type(self.merge_regulator) != MergeSCGEvaluator else \
-                    SCGAssignRegulator(should_log=self.should_log, log_file=self.logfile, quality_measure=self.quality_measure, merge_regulator=self.merge_regulator)
+        regulator = AssignRegulator(self.quality_measure, self.log) if type(self.merge_regulator) != MergeSCGEvaluator else \
+                    SCGAssignRegulator(self.quality_measure, self.merge_regulator, self.log)
+        
         candidate_clusters = regulator.assign_items(candidate_clusters, totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_map, gamma, similarity_matrix, lost_items)
+        
         return self.build_final_partition(gamma, candidate_clusters)
     
     
@@ -255,23 +258,11 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.log(f"Found {len(partition)} total clusters")
         return partition
     
-    def get_item_cluster_grouping(self, clusters: List[Cluster]) -> Dict[object, List[Cluster]]:
-        result: Dict[object, List[Cluster]]
-        def safe_get(item: object) -> List[Cluster]:
-            nonlocal result
-            if item not in result:
-                result[item].append( [] )
-            return result[item]
-
-        for cluster in tqdm(clusters):
-            for item in cluster:
-                safe_get(item).append(cluster)
-        return result
             
     def merge_clusters(self, cluster_matrix: SparseClustserSimularity, alpha1: float) -> List[Cluster]:
         i, start_22 = 0, time()
         
-        def log_22() -> None:
+        def log_loop() -> None:
             self.log(f"iteration {i:05d}, alpha1: {alpha1:.4f} / { self.aplha1_min }, clusters: { len(cluster_matrix.__all_clusters__) }, Time: {(time() - start_22):0.02f}s")
         
         def find_merge_clusters() -> Tuple[List[Cluster], float]:
@@ -299,10 +290,11 @@ class AdaptiveClusterEnsembler(Ensembler):
         
         while True:
             i = i+1
-            log_22()
+            log_loop()
             merged_clusters, max_merge_simularity = find_merge_clusters()
-            if self.merge_regulator.evaluate(alpha1, cluster_matrix, merged_clusters):
-                return self.merge_regulator.get_merge_result()
+            complete, best_result = self.merge_regulator.evaluate(alpha1, cluster_matrix, merged_clusters)
+            if complete:
+                return best_result
             
             max_merged_simularity = sort_merged_clusters(merged_clusters)
             alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.delta_alpha )

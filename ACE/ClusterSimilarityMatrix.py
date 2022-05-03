@@ -1,19 +1,31 @@
 from __future__ import annotations
 import itertools
-import multiprocessing
+from collections import Counter
 import numpy as np
 from tqdm import tqdm
+from BinEvaluator import BinEvaluator
 from Cluster import Cluster, PartitionSet
 from multiprocessing import Pool, cpu_count
 from typing import Iterable, Iterator, MutableMapping, Tuple, Dict, List, Callable, TypeVar, Generic
 import Assertions as Assert 
 from math import sqrt
 import os
+from Domain import ContigData
+from SparseMatrix_implementations import SparseTupleHashMatrix, SparseDictHashMatrix, SortKeysByHash
 
 TK = TypeVar("TK")
 TV = TypeVar("TV")
 
-def cluster_simularity(cluster1: Cluster, cluster2: Cluster, total_elements: int) -> float:    
+UNIQUE_GENES = 104 
+
+def cluster_simularity(cluster1: Cluster, cluster2: Cluster, total_elements: int) -> float:
+    use_old = True 
+    return cluster_simularity_old(cluster1, cluster2, total_elements) \
+        if use_old else\
+            cluster_simularity_new(cluster1, cluster2, total_elements) 
+        
+
+def cluster_simularity_old(cluster1: Cluster, cluster2: Cluster, total_elements: int) -> float:    
     if cluster1.SamePartitionAs(cluster2): return np.NINF
     intersection_len, len1, len2 = len(cluster1.intersection(cluster2)), len(cluster1), len(cluster2)
     counter = intersection_len - ((len1 * len2) / total_elements)
@@ -21,289 +33,38 @@ def cluster_simularity(cluster1: Cluster, cluster2: Cluster, total_elements: int
     return counter / divisor if divisor != 0 else 0
 
 
-def SortKeysByHash(key1: TK, key2: TK) -> Tuple[TK, TK]:
-    return (key1, key2) if key1.__hash__() <= key2.__hash__() else (key2, key1)
+def cluster_simularity_new(cluster1: Cluster[ContigData], cluster2: Cluster[ContigData], total_elements: int) -> float:
+    simularity = cluster_simularity_old(cluster1, cluster2, total_elements)
+    
+    com1, con1 = calc_con_fast(cluster1)
+    com2, con2 = calc_con_fast(cluster2)
+    comm, conm = calc_con_2(cluster1, cluster2)
+    bonus = comm - max(com1, com2)
+    penalty = (conm - min(con1, con2))
+    # if penalty > 0: print(penalty)
+    # elif penalty < 0: print(conm, ' - ', max(con1, con2), ' = ', penalty)
+    return simularity + bonus - penalty
 
+def calc_con_fast(cluster: List[ContigData]) -> Tuple[float, float]:
+    seen, dup = set(), set()
+    for item in cluster:
+        for scg in item.SCG_genes:
+            if scg in seen:
+                dup.add(scg)
+            seen.add(scg)
+    return (len(dup) / len(seen), len(seen) / UNIQUE_GENES) if len(seen) != 0 else (0.0, 0.0)
 
-class HashIterator(Iterator[Tuple[TK, TV]]):
-    def __init__(self, source: Dict[Tuple[TK, TK], TV], keysort : Callable[[TK, TK], Tuple[TK, TK]],\
-        pivot: TK, control: Iterator[TK], second_iterator: Iterator[TK] = None) -> None:
-        self.source = source
-        self.pivot = pivot
-        self.control = control if second_iterator is None else itertools.chain(control, second_iterator)
-        self.keysort = keysort
-        
-    def __iter__(self) -> Iterator[Tuple[TK, TV]]:
-        return self
-        
-    def __next__(self) -> Tuple[TK, TV]:
-        tupkey = self.keysort(self.pivot, self.control.__next__())
-        return self.source[tupkey]
+def calc_con_2(cluster1: List[ContigData], cluster2: List[ContigData]) -> float:
+    seen_contigs, seen_scg, dup_scg = set(), set(), set()
+    for item in itertools.chain(cluster1, cluster2):
+        if item in seen_contigs: continue
+        seen_contigs.add(item)
+        for scg in item.SCG_genes:
+            if scg in seen_scg:
+                dup_scg.add(scg)
+            seen_scg.add(scg)
+    return (len(dup_scg) / len(seen_scg), len(seen_scg) / UNIQUE_GENES) if len(seen_scg) != 0 else (0.0, 0.0)
 
-class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
-    def __init__(self, keysort: Callable[[TK, TK], Tuple[TK, TK]] = None, default_value = None,\
-        sparse_value_predicate: Callable[[TV], bool] = None) -> None:
-        #sparses the value if the predicate returns true 
-        
-        self.__internal__ : Dict[TK, Dict[TK, TV]] = dict()
-        self.keysort = keysort if keysort is not None else lambda x,y: (x,y)
-        self.__default__ = default_value
-        self.__sparse_filter__ = sparse_value_predicate if sparse_value_predicate is not None\
-            else lambda x: x == self.__default__
-        
-    #READ FUNCTIONS
-    def getEntry(self, key1: TK, key2: TK) -> TV:
-        k1, k2 = self.keysort(key1, key2)
-        return self.get( (k1, k2) )
-    
-    def keys(self) -> Iterable[Tuple[TK, TK]]:
-        return self.__internal__.keys()
-    
-    def values(self) -> Iterable[TV]:
-        return self.__internal__.values()
-    
-    def items(self) -> Iterable[Tuple[TK, Dict[TK, TV]]]:
-        return self.__internal__.items()
-    
-    def get(self, __k: Tuple[TK, TK]) -> TV:
-        k1, k2 = self.keysort(__k[0], __k[1])
-        return self.__internal__.get(k1, {}).get(k2, self.__default__)
-    
-    def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
-        return self.get(__k)
-    
-    def get_row(self, __k: TK) -> Dict[TK, TV]:
-        return self.__internal__.get(__k)
-    
-    #SET FUNCTIONS
-    def __setitem__(self, __k: Tuple[TK, TK], __v: TV) -> None:
-        self.set(__k, __v)
-    
-    def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
-        if self.__sparse_filter__(__v): return
-        
-        k1, k2 = self.keysort(__k[0], __k[1])
-        if k1 not in self.__internal__: self.__internal__[k1] = {}
-        self.__internal__[k1][k2] = __v
-    
-    def set_dict(self, key: TK, dct: Dict[TK, TV]) -> None:
-        for other_key, value in dct.items():
-            self.set( self.keysort( key, other_key ), value)
-
-    
-    #DELETE FuNCTIONS
-    def __delitem__(self, __v: Tuple[TK, TK]) -> TV:
-        k1, k2 = self.keysort(__v[0], __v[1])
-        return self.__internal__[k1].pop(k2)
-    
-    def pop(self, __k: Tuple[TK, TK]) -> None:
-        return self.__delitem__(__k)
-    
-    def pop_entry(self, key1: TK, key2: TK) -> None:
-        return self.__delitem__( self.keysort(key1, key2) )
-
-    def pop_contain(self, key: TK) -> None: #will always return none and never throw
-        for key, inner_dct in self.__internal__:
-            inner_dct.pop(key, None)
-        self.__internal__.pop(key, None)
-    
-    #UTILITY FUNCTIONS
-    def has_row_key(self, key: TK) -> bool:
-        return key in self.__internal__
-    
-    def has_tuple(self, key: Tuple[TK, TK]) -> bool:
-        k1, k2 = self.keysort(key[0], key[1])
-        return self.has_entry(k1, k2)
-    
-    def has_entry(self, k1: TK, k2: TK) -> bool:
-        k1, k2 = self.keysort(k1, k2)
-        return k1 in self.__internal__ and k2 in self.__internal__[k1]
-    
-    def __contains__(self, __o: object) -> bool:
-        if type(__o) is Tuple:
-            return self.has_entry(__o)
-        return False
-    
-    def __len__(self) -> int:
-        return len(self.__internal__)
-    
-    def __iter__(self) -> Iterator[Tuple[TK, Dict[TK, TV]]]:
-        return self.__internal__.__iter__()
-    
-TK2 = TypeVar('TK2')
-    
-class DoubleSparseDictHashMatrix(MutableMapping[Tuple[TK, TK2], TV]):
-    def __init__(self, default_value = None, sparse_value_predicate: Callable[[TV], bool] = None) -> None:
-        #sparses the value if the predicate returns true 
-        
-        self.__internal_row__ : Dict[TK, Dict[TK2, TV]] = dict()
-        self.__internal_column__ : Dict[TK2, Dict[TK, TV]] = dict()
-        self.__default__ = default_value
-        self.__sparse_filter__ = sparse_value_predicate if sparse_value_predicate is not None\
-            else lambda x: x == self.__default__
-        
-    #READ FUNCTIONS
-    def getEntry(self, key1: TK, key2: TK2) -> TV:
-        return self.get( (key1, key2) )
-    
-    
-    def items(self) -> Iterable[Tuple[TK, Dict[TK, TV]]]:
-        return self.__internal_row__.items()
-    
-    def get(self, __k: Tuple[TK, TK2]) -> TV:
-        k1, k2 = __k
-        return self.__internal_row__.get(k1, {}).get(k2, self.__default__)
-    
-    def __getitem__(self, __k: Tuple[TK, TK2]) -> TV:
-        return self.get(__k)
-    
-    def get_row(self, __k: TK) -> Dict[TK2, TV]:
-        return dict(self.__internal_row__.get(__k, {}))
-    
-    def get_column(self, __k: TK2) -> Dict[TK, TV] or None:
-        return dict(self.__internal_column__.get(__k, {}))
-    
-    #SET FUNCTIONS
-    def __setitem__(self, __k: Tuple[TK, TK2], __v: TV) -> None:
-        self.set(__k, __v)
-    
-    def set(self, __k: Tuple[TK, TK2], __v: TV) -> None:
-        if self.__sparse_filter__(__v): return
-        k1, k2 = __k
-        if k1 not in self.__internal_row__: self.__internal_row__[k1] = {}
-        self.__internal_row__[k1][k2] = __v
-        if k2 not in self.__internal_column__: self.__internal_column__[k2] = {}
-        self.__internal_column__[k2][k1] = __v
-    
-    def set_row(self, key: TK, dct: Dict[TK2, TV]) -> None:
-        for other_key, value in dct.items():
-            self.set( (key, other_key) , value)
-
-    def set_column(self, key: TK2, dct: Dict[TK, TV]) -> None:
-        for other_key, value in dct.items():
-            self.set( ( other_key, key), value)
-    
-    #DELETE FuNCTIONS
-    def __delitem__(self, __v: Tuple[TK, TK2]) -> TV:
-        k1, k2 = __v
-        x1 = self.__internal_row__[k1].pop(k2, self.__default__)
-        x2 = self.__internal_column__[k2].pop(k1, self.__default__)
-        return x1
-    
-    def pop(self, __k: Tuple[TK, TK2]) -> None:
-        return self.__delitem__(__k)
-    
-    def pop_entry(self, key1: TK, key2: TK2) -> None:
-        return self.__delitem__( (key1, key2) )
-    
-    #UTILITY FUNCTIONS
-    def __len__(self) -> Tuple[int, int]:
-        return (len(self.__internal_row__), len(self.__internal_column__))
-    
-    def has_row_key(self, key: TK) -> bool:
-        return key in self.__internal_row__
-    
-    def has_column_key(self, key: TK2) -> bool:
-        return key in self.__internal_column__
-    
-    def has_tuple(self, key: Tuple[TK, TK2]) -> bool:
-        k1, k2 = key
-        return self.has_entry(k1, k2)
-    
-    def has_entry(self, k1: TK, k2: TK2) -> bool:
-        return k1 in self.__internal_row__ and k2 in self.__internal_row__.get(k1, {})
-    
-    def __contains__(self, __o: object) -> bool:
-        if type(__o) is Tuple:
-            return self.has_entry(__o)
-        return False
-    
-    def __iter__(self) -> Iterator[Tuple[TK, Dict[TK2, TV]]]:
-        return self.__internal_row__.__iter__()
-    
-    
-class SparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
-    def __init__(self, keysort : Callable[[TK, TK], Tuple[TK, TK]] = None) -> None:
-        self.__internal__ : Dict[Tuple[TK, TK], TV] = dict()
-        self.keysort = keysort if keysort is not None else lambda x, y: (x, y) 
-    
-    def sortTuple(self, tup: Tuple[TK, TK]) -> Tuple[TK, TK]:
-        return self.keysort(tup[0], tup[1])
-    
-    #READ FUNCTIONS
-    def getEntry(self, key1: TK, key2: TK) -> TV:
-        return self.get( self.keysort(key1, key2) )
-    
-    def keys(self) -> Iterable[Tuple[TK, TK]]:
-        return self.__internal__.keys()
-    
-    def values(self) -> Iterable[TV]:
-        return self.__internal__.values()
-    
-    def items(self) -> Iterable[Tuple[TK, TK], TV]:
-        return self.__internal__.items()
-    
-    def get(self, __k: Tuple[TK, TK]) -> TV:
-        return self.__internal__[self.sortTuple(__k)]
-    
-    def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
-        return self.get(__k)
-    
-    #SET FUNCTIONS
-    def __setitem__(self, __k: Tuple[TK, TK], __v: TV) -> None:
-        self.set(__k, __v)
-    
-    def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
-        tup = self.sortTuple(__k)
-        self.__internal__[tup] = __v
-    
-    def set_dict(self, key: TK, dct: Dict[TK, TV] ):
-        for other_key, value in dct.items():
-            self.set( (key, other_key), value )
-    
-    #DELETE FuNCTIONS
-    def __delitem__(self, __v: Tuple[TK, TK]) -> None:
-        return self.pop(__v)
-    
-    def pop(self, __k: Tuple[TK, TK]) -> None:
-        self.__internal__.pop(__k)
-    
-    def pop_entry(self, key1: TK, key2: TK) -> None:
-        tup = self.keysort(key1, key2)
-        Assert.assert_key_exists(tup, self.__internal__)
-        self.__internal__.pop(tup)
-
-    def pop_contain(self, key: TK) -> None:
-        to_remove = set()
-        for tup in self.__internal__.keys():
-            if tup[0] is key or tup[1] is key: to_remove.add(tup)
-        for el in to_remove:
-            self.__internal__.pop(el)
-    
-    def pop_set(self, keys: set[TK]) -> None:
-        to_remove = set()
-        for tup in self.__internal__.keys():
-            if tup[0] in keys or tup[1] in keys: to_remove.add(tup)
-        for el in to_remove:
-            self.__internal__.pop(el)
-    
-    #UTILITY FUNCTIONS
-    def has_entry(self, key: Tuple[TK, TK]) -> bool:
-        tup = self.sortTuple(key)
-        return tup in self.__internal__
-    
-    def __contains__(self, __o: object) -> bool:
-        if type(__o) is Tuple:
-            return self.has_entry(__o)
-        return False
-    
-    def __len__(self) -> int:
-        return len(self.__internal__)
-    
-    def __iter__(self) -> Iterator[Tuple[TK, TK], TV]:
-        return self.__internal__.__iter__()
-
-    
 class SparseClustserSimularity:
     def __init__(self, cluster_lst: List[Cluster], total_item_count: int, min_value: float, matrix: SparseTupleHashMatrix[Cluster, float] = None) -> None:
         self.matrix = SparseTupleHashMatrix[Cluster, float](SortKeysByHash) if matrix is None else matrix
