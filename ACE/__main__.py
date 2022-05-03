@@ -9,6 +9,7 @@ from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
 from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, QualityMeasuerer
 from AdaptiveEnsemblerDomainExtensions import  MergeSCGEvaluator
 from BinEvaluator import BinEvaluator
+from Binner2 import Binner2
 from Cluster import Cluster, Partition, PartitionSet
 from typing import Callable
 from tqdm import tqdm
@@ -59,7 +60,7 @@ def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Ca
     regulator = MergeRegulator(a1_min)  if use_old else\
                 MergeSCGEvaluator(a1_min, bin_evaluator, debug=True)
     chiller = Chiller(a1_min, a1, regulator, 0.02, logger)
-    binner = Binner(bin_evaluator, QualityMeasuerer(), 0.75, logger)
+    binner = Binner2(bin_evaluator, QualityMeasuerer(), 0.75, logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)
 
     output = ensembler.ensemble(partition_set)

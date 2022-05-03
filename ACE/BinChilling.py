@@ -112,6 +112,7 @@ class BinChillingEnsembler(AbstractEnsembler):
     
     
     def pick_candidate_Clusters(self, cluster_lst: List[Cluster], target_clusters: int,  partition_count: int) -> List[Cluster]:
+        return cluster_lst, []
         decorated_lst = [ (cluster, cluster.mean_member_simularity(partition_count)) for cluster in cluster_lst]
         sort_lst = [x[0] for x in sorted(decorated_lst, key=lambda x: x[1])]
         return sort_lst[:target_clusters], sort_lst[target_clusters:]

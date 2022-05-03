@@ -143,12 +143,7 @@ class MemberMatrix:
                     
         return all_common_neighbors
     
-    # def calc_neighbourhood_simularity_fast(self, item_lst: set[object], cluster_lst: List[Cluster], gamma: PartitionSet):
-    #     dct = {item: gamma.calc_all_coassosiation(item) for item in gamma.get_all_items()}
-        
-        
-    #     for item in item_lst:
-    #         for cluster in cluster_lst:
+
                 
                     
     
@@ -243,7 +238,7 @@ class MemberMatrix:
     #     return sumvalue / len(cluster)
         
 
-class CoAssosiationMatrix(SparseDictHashMatrix):
+class CoAssosiationMatrix(SparseDictHashMatrix[object, float]):
     def __init__(self) -> None:
         super().__init__(SortKeysByHash)
         # self.matrix = matrix
@@ -293,10 +288,13 @@ class CoAssosiationMatrix(SparseDictHashMatrix):
                 max_item = other_item
         return max_item
     
-    def get(self, __k: Tuple[object, object]) -> float:
-        if self.has_tuple(__k):
-            return super().get(__k)
-        return 0.0
+    def cluster_mean(self, item: object, cluster: Cluster) -> float:
+        if len(cluster) == 0: return 0.0
+        result = sum([self.get(item, x)  for x in cluster if item is not x])
+        return result / len(cluster)
         
-# def partial_build_coassosiation_row(gamma: PartitionSet) -> Tuple[int, Dict[object, float]]:
-#     pass
+    def cluster_sim_mean(self, item: object, cluster: Cluster, simularity_matrix: MemberSimularityMatrix) -> float:
+        if len(cluster) == 0: return 0.0
+        result = sum([self.get(item, x) * simularity_matrix.get(x, cluster) \
+            for x in cluster if item is not x])
+        return result / len(cluster)
