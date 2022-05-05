@@ -16,6 +16,7 @@ class Cluster(Generic[T]):
         self.__partition_id__ = partition_id
         #maps each item in cluster to membership value
         self.__membership__: Dict[T, int] = dict()
+        self.__total_size__: int = 0
 
     @staticmethod
     def merge(cluster1: Cluster[T], cluster2: Cluster[T]) -> Cluster[T]:
