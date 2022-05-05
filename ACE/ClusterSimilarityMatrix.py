@@ -30,7 +30,7 @@ def cluster_simularity_old(cluster1: Cluster, cluster2: Cluster, total_elements:
     intersection_len, len1, len2 = len(cluster1.intersection(cluster2)), len(cluster1), len(cluster2)
     counter = intersection_len - ((len1 * len2) / total_elements)
     divisor = sqrt(len1 * len2 * (1 - (len1 / total_elements)) * (1 - (len2 / total_elements)))
-    return counter / divisor if divisor != 0 else 0
+    return min(counter / divisor, 1.0) if divisor != 0 else 0.0
 
 
 def cluster_simularity_new(cluster1: Cluster[ContigData], cluster2: Cluster[ContigData], total_elements: int) -> float:
@@ -43,7 +43,7 @@ def cluster_simularity_new(cluster1: Cluster[ContigData], cluster2: Cluster[Cont
     penalty = (conm - min(con1, con2))
     # if penalty > 0: print(penalty)
     # elif penalty < 0: print(conm, ' - ', max(con1, con2), ' = ', penalty)
-    return simularity + bonus - penalty
+    return simularity + 0.0*(bonus - penalty)
 
 def calc_con_fast(cluster: List[ContigData]) -> Tuple[float, float]:
     seen, dup = set(), set()

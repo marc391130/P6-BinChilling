@@ -82,6 +82,11 @@ class NMIEvaluator:
         return result
 
 
+def get_all_compare_lst(partitions: List[str]) -> List[Tuple[str, str]]:
+    return [(partitions[i], partitions[j]) for i in range(len(partitions)) for j in range(i+1, len(partitions))  ]
+
+def get_double_compare_lst(lst1, lst2) -> List[str]:
+    return [ (lst1[i], lst2[j]) for i in range(len(lst1)) for j in range(len(lst2)) if i != j]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -105,30 +110,31 @@ if __name__ == '__main__':
         dest='path', help='The partitions to compare' )
     p_args.add_argument('-e', metavar='', required=True, \
         dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
+    p_args.add_argument('-C', help='Do all combinations', choices=('All', 'Half'), required=False, type=str,\
+        default='All', metavar='', dest='comp')
 
     args = parser.parse_args()
-
+    all_comb = args.comp == 'All'
     if args.path is None and args.folder is None:
         raise argparse.ArgumentError(args.folder, 'must provide either -F or -P')
 
-    if args.path is not None and args.folder is not None:
-        raise argparse.ArgumentError(args.folder, 'Only provide either -F or -P')
+    print('>Combinatory ', all_comb)
 
-    partition_paths = args.path if args.path is not None else [join(args.folder, x) for x in os.listdir(args.folder) if x.endswith('.tsv')]
-    print(args.folder, partition_paths)
-    if len(partition_paths) <= 1:
+    partition_paths1 = [join(args.folder, x) for x in os.listdir(args.folder) if x.endswith('.tsv')] if args.folder is not None else []
+    partition_paths2 = args.path if args.path is not None else []
+    print(args.folder, partition_paths1, partition_paths2)
+    if len(partition_paths1) + len(partition_paths2) <= 1:
         raise argparse.ArgumentError(args.path, 'must have at least 2 partitions')
 
-
-
     number_of_elements = int(args.e)
-    partitionLst = [(PartitionSetReader.__read_single_partition__(pat), pat) for pat in partition_paths]
-    tuple_lst = [(i, j) for i in range(len(partitionLst)) for j in range(i+1, len(partitionLst))  ]
+    path_lst = partition_paths1 + partition_paths2
+    partitionDct = {path: PartitionSetReader.__read_single_partition__(path) for path in path_lst}
+    tuple_lst = get_all_compare_lst(path_lst) if all_comb else get_double_compare_lst(partition_paths1, partition_paths2)
     ARI_results, NMI_results = [], []
 
     for p1, p2 in tuple_lst:
-        part1, path1 = partitionLst[p1]
-        part2, path2 = partitionLst[p2]
+        part1, path1 = partitionDct[p1], p1
+        part2, path2 = partitionDct[p2], p2
         print('Evaluationg: ', path1, path2)
         if args.method == 'ARI' or args.method == 'BOTH': 
             ari_result = ARIEvaluator.evaluate(part1, part2, number_of_elements)

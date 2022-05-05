@@ -35,17 +35,42 @@ class BinDto:
 
     def isNotZeroCompleteness(self) -> bool:
         return self.completeness == 0
+    
+    def get_group(self) -> 1 or 2 or 3:
+        completeness, contamination = self.completeness, self.contamination
+        
+        if completeness >= 90 and contamination <= 5:
+            return 1
+        elif completeness >= 50 and contamination <= 10:
+            return 2
+        else:
+            return 3
         
     def categoryToString(self) -> str:
-        if self.isNear():
-            return 'near'
-        if self.isSubstantial():
-            return 'substantial'
-        if self.isModerate():
-            return 'moderate'
-        if self.isPartial():
-            return 'partial'
-        return 'Bad bin'
+        completeness, contamination = self.completeness, self.contamination
+        if completeness == 0.0 and contamination == 0.0:
+            return 'Zero'
+        
+        com = ''
+        if completeness >= 90:
+            com = 'Near'
+        elif completeness < 90 and completeness >= 70:
+            com = 'Substantial'
+        elif  completeness < 70 and completeness >= 50:
+            com = 'Moderate'
+        elif completeness < 50:
+            com = 'Partial'
+
+        con = ''
+        if contamination <= 5:
+            con = 'Low'
+        elif contamination > 5 and contamination <= 10:
+            con = 'Medium'
+        elif contamination > 10 and contamination <= 15:
+            con = 'High'
+        elif contamination > 15:
+            con = 'VeryHigh'
+        return com+'-'+con
         
     def __str__(self) -> str:
         return f"{self.name}\t{self.contamination}\t{self.completeness}\t{self.categoryToString()}\t{self.checkQuality()}"
@@ -83,12 +108,39 @@ class CheckMFilter:
                 if self.predicate(dto):
                     f.write(str(dto) + "\n")
         
-        print("Near:", len([dto for dto in values if dto.isNear()]))
-        print("Substantial:", len([dto for dto in values if dto.isSubstantial()]))
-        print("Moderate:", len([dto for dto in values if dto.isModerate()]))
-        print("Partial:", len([dto for dto in values if dto.isPartial()]))
-        print("Rest:", len([dto for dto in values if getPrintPredicate('rest')(dto)]))
-
+        group = dict()
+        counts = dict()
+        for i in values:
+            cat, g = i.categoryToString(), i.get_group()
+            counts[cat] = counts.get(cat, 0) + 1
+            group[g] = group.get(g, 0) + 1
+        
+        print("Near-low:", counts.get('Near-Low', 0))
+        print("Near-Medium:", counts.get('Near-Medium', 0))
+        print("Near-High:", counts.get('Near-High', 0))
+        print("Near-VeryHigh:", counts.get('Near-VeryHigh', 0))
+        print('\n')
+        print("Substantial-low:", counts.get('Substantial-Low', 0))
+        print("Substantial-Medium:", counts.get('Substantial-Medium', 0))
+        print("Substantial-High:", counts.get('Substantial-High', 0))
+        print("Substantial-VeryHigh:", counts.get('Substantial-VeryHigh', 0))
+        print('\n')
+        print("Moderate-low:", counts.get('Moderate-Low', 0))
+        print("Moderate-Medium:", counts.get('Moderate-Medium', 0))
+        print("Moderate-High:", counts.get('Moderate-High', 0))
+        print("Moderate-VeryHigh:", counts.get('Moderate-VeryHigh', 0))
+        print('\n')
+        print("Partial-low:", counts.get('Partial-Low', 0))
+        print("Partial-Medium:", counts.get('Partial-Medium', 0))
+        print("Partial-High:", counts.get('Partial-High', 0))
+        print("Partial-VeryHigh:", counts.get('Partial-VeryHigh', 0))
+        print('\n')
+        
+        print('Summary:')
+        print('High quality: ', group.get(1, 0) )
+        print('Medium quality: ', group.get(2, 0))
+        print('Low quality: ', group.get(3, 0))
+        print('Total count: ', len(values))
             
     
     def prettyprint(self, line: str):

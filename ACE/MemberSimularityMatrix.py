@@ -7,7 +7,6 @@ import Assertions as Assert
 import scipy.sparse as sp  
 from SparseMatrix_implementations import DoubleSparseDictHashMatrix, SortKeysByHash, SparseDictHashMatrix, SparseTupleHashMatrix
 
-
 def Build_simularity_matrix(clusters: List[Cluster], gamma: PartitionSet) -> sp.dok_matrix:
     
     items = list(gamma.get_all_elements().keys())
@@ -240,7 +239,7 @@ class MemberMatrix:
 
 class CoAssosiationMatrix(SparseDictHashMatrix[object, float]):
     def __init__(self) -> None:
-        super().__init__(SortKeysByHash)
+        super().__init__(SortKeysByHash, default_value=0.0)
         # self.matrix = matrix
         # self.index_map = index_map
         
@@ -290,11 +289,12 @@ class CoAssosiationMatrix(SparseDictHashMatrix[object, float]):
     
     def cluster_mean(self, item: object, cluster: Cluster) -> float:
         if len(cluster) == 0: return 0.0
-        result = sum([self.get(item, x)  for x in cluster if item is not x])
+        result = sum([self.getEntry(item, x)  for x in cluster if item is not x])
         return result / len(cluster)
-        
+    
+
     def cluster_sim_mean(self, item: object, cluster: Cluster, simularity_matrix: MemberSimularityMatrix) -> float:
         if len(cluster) == 0: return 0.0
-        result = sum([self.get(item, x) * simularity_matrix.get(x, cluster) \
-            for x in cluster if item is not x])
+        result = sum([self.getEntry(item, x) * sim \
+            for x, sim in simularity_matrix.get_column(item) if item is not x])
         return result / len(cluster)

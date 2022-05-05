@@ -111,7 +111,7 @@ class BinChillingEnsembler(AbstractEnsembler):
         return partition
     
     
-    def pick_candidate_Clusters(self, cluster_lst: List[Cluster], target_clusters: int,  partition_count: int) -> List[Cluster]:
+    def pick_candidate_Clusters(self, cluster_lst: List[Cluster], target_clusters: int,  partition_count: int) -> Tuple[List[Cluster], List[Cluster]]:
         return cluster_lst, []
         decorated_lst = [ (cluster, cluster.mean_member_simularity(partition_count)) for cluster in cluster_lst]
         sort_lst = [x[0] for x in sorted(decorated_lst, key=lambda x: x[1])]
@@ -175,7 +175,7 @@ class Chiller:
                     return best_result
                 
                 max_merged_simularity = sort_merged_clusters(merged_clusters)
-                alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.alpha_delta )
+                alpha1 = max(max_merge_simularity, max_merged_simularity, alpha1 - self.alpha_delta)
                 #alpha1 = min(1, alpha1) #make sure float doesnt end up in 1.00000002
                 # alpha1 = alpha1 - self.delta_alpha
         finally:

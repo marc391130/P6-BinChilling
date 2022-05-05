@@ -1,3 +1,6 @@
+from os import remove
+
+from sklearn import cluster
 from BinChilling import Binner, MyLogger
 from BinEvaluator import BinEvaluator
 from AdaptiveEnsemblerExtensions import QualityMeasuerer
@@ -37,20 +40,23 @@ class Binner2:
             certain_lst, scg_lst, uncertain_lst, lost_lst =\
             self.identify_object_certainy(recalc_lst, similarity_matrix)
             
-            self.log('Assigning certain items...')
+            # self.log('Assigning certain items...')
             cluster_lst = self.__assign_certains_objects__(certain_lst, cluster_lst)
-            
-            self.log('Assigning uncertain items with SCG items...')
+                        
+            # self.log('Assigning uncertain items with SCG items...')
             cluster_lst, bad_scgs = self.__assign_using_SCGs__(self.sort_by_sim(scg_lst), similarity_matrix, cluster_lst, \
                 gamma, force=False)
             
-            self.log('Assigning uncertain items...')
-            cluster_lst, bad_items2 = self.__assign_uncertain_items_noSCG__(self.sort_by_sim(uncertain_lst), cluster_lst, similarity_matrix)
+            # self.log('Assigning uncertain items...')
+            cluster_lst, bad_items2 = self.__assign_uncertain_items_noSCG__(self.sort_by_sim(uncertain_lst), cluster_lst,\
+                similarity_matrix, force=False)
 
             recalc_lst = lost_lst + bad_scgs + bad_items2
             if len(recalc_lst) == old_len or len(recalc_lst) == 0:
                 break
             else:
+                # self.remove_empty_clusters(cluster_lst)
+                self.recalculate_simularity(recalc_lst, similarity_matrix, gamma, cluster_lst)
                 self.log(f"Managed to assign {old_len - len(recalc_lst)} items...")
                 old_len = len(recalc_lst)
             
@@ -154,9 +160,7 @@ class Binner2:
                 best_cluster.add(item)
             
             if best_score < 0:
-                print('I GOT HERE NIGNOG', force)
                 if force:
-                    print('Fuck this 2')
                     count += 1
                 else:
                     best_cluster.remove(item)
@@ -182,6 +186,17 @@ class Binner2:
                 continue
                 
             best_cluster, max_sim = max(related_clusters.items(), key=lambda x: x[1])
+            if force:
+                bad = False
+                for cls, value in related_clusters.items():
+                    if cls is best_cluster: continue
+                    if value >= max_sim: 
+                        bad = True
+                        break
+                if bad: bad_items.append(item)
+                break
+                        
+            
             if max_sim > 0.5 or force:
                 
                 self.remove_from_all(item, cluster_lst)
@@ -206,10 +221,29 @@ class Binner2:
                 
     def kill_items(self, kill_lst: List[ContigData], cluster_lst: List[Cluster]):
         self.log(f'Killing {len(kill_lst)} items')
+        # return self.isolate_items(kill_lst, cluster_lst)
         for item in tqdm(kill_lst):
             item: ContigData
             if len(item.SCG_genes) > 0:
-                print(f'Yeeting item with {len(item.SCG_genes)} scgs')
+                print(f'Killing item with {len(item.SCG_genes)} scgs')
             for cluster in cluster_lst:
                 cluster.remove(item)
+        return cluster_lst
+    
+    def isolate_items(self, item_lst: List[ContigData], cluster_lst: List[Cluster]) -> List[Cluster]:
+        for item in item_lst:
+            cluster = Cluster()
+            cluster.add(item)
+            cluster_lst.append(cluster)
+        return cluster_lst
+
+    def remove_empty_clusters(self, cluster_lst: List[Cluster]) -> List[Cluster]:
+        remove_lst = []
+        for cluster in cluster_lst:
+            if len(cluster) == 0:
+                remove_lst.append(cluster)
+        
+        self.log(f'Found {len(remove_lst)} empty clusters...')
+        for r_cls in remove_lst:
+            cluster_lst.remove(r_cls)
         return cluster_lst

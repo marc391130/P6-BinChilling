@@ -50,11 +50,12 @@ class BinEvaluator:
         return self.score_calc(completeness, contamination, megabin)
 
     def score_calc(self, completeness: float, contamination: float, megabin_pen: float):
-        return completeness - max(contamination**2, contamination) - (0.4*megabin_pen)
+        return completeness - contamination**2 - (0.4*megabin_pen)
 
     def calculate_item_score(self, cluster: Cluster, extra_item: ContigData or None = None) -> Dict[ContigData, float]:
-        if len(cluster) == 0: return {}
-        if len(cluster) == 1: 
+        if len(cluster) == 0 and extra_item is None: return {}
+        if len(cluster) == 1 and (extra_item is None or extra_item in cluster) or\
+            (len(cluster) == 0 and extra_item is not None): 
             return { item: self.calculate_score(cluster, include_item=extra_item) for item in self.__chain_cluster__(cluster, extra_item) }
         SCGs = self.__calculate_number_of_SCGs__(cluster, None, extra_item)
         total_value = self.__score_from_SCG_count__(SCGs)
@@ -70,19 +71,39 @@ class BinEvaluator:
             for scg, count in scgs.items() if not (count <= 1 and scg in item.SCG_genes)  }
 
     def __calculate_sight__(self, completeness, contamination) -> str:
+        com = ''
+        if completeness >= 90:
+            com = 'near'
+        elif completeness < 90 and completeness >= 70:
+            com = 'substantial'
+        elif  completeness < 70 and completeness >= 50:
+            com = 'moderate'
+        elif completeness < 50:
+            com = 'partial'
+
+        con = ''
+        if contamination <= 5:
+            con = 'Low'
+        elif contamination > 5 and contamination <= 10:
+            con = 'Medium'
+        elif contamination > 10 and contamination <= 15:
+            con = 'High'
+        elif contamination > 15:
+            con = 'VeryHigh'
+        return com+'-'+con
         
-        if completeness > 90 and contamination < 5:
-            return 'near'
-        if contamination > 5 and contamination <= 10 and\
-            completeness < 90 and completeness >= 70:
-            return 'substantial'
-        if contamination > 10 and contamination <= 15 and\
-            completeness < 70 and completeness >= 50:
-            return 'moderate'
-        if contamination > 15 and completeness < 50:
-            return 'partial'
-        if (completeness - contamination) > 0: return 'bad'
-        return 'zero'
+        # if completeness > 90 and contamination < 5:
+        #     return 'near'
+        # if contamination > 5 and contamination <= 10 and\
+        #     completeness < 90 and completeness >= 70:
+        #     return 'substantial'
+        # if contamination > 10 and contamination <= 15 and\
+        #     completeness < 70 and completeness >= 50:
+        #     return 'moderate'
+        # if contamination > 15 and completeness < 50:
+        #     return 'partial'
+        # if (completeness - contamination) > 0: return 'bad'
+        # return 'zero'
 
     def __calculate_completeness__(self, SCG_count: Dict[str, int]) -> float:
         
