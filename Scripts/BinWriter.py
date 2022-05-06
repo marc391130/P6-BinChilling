@@ -15,7 +15,7 @@ class bin_writer:
     # key is contig name, value is contig string 
     def read_fasta(self) -> Dict[str, str]:
         current = ''
-        result = {}
+        result: Dict[str, str] = {}
         
         def contig_cleaner(contingname: str) -> str:
             return contingname.replace('>', '').replace('\n', '')
@@ -24,14 +24,15 @@ class bin_writer:
         
         with open(self.fasta_file, 'r') as f:
             for line in tqdm(f.readlines()):
-                clean = contig_cleaner(line)
-                if line.startswith('>') and clean not in result:
-                    current = clean
+                if line.startswith('>'):
+                    current = contig_cleaner(line)
                     result[current] = ''
-                elif line.startswith('>') and clean in result:
-                    raise Exception("this shouldnt be possible")
                 else:
-                    result[current] += line.replace('\n', '')
+                    result[current] += line
+                    
+        print('Cleaning dna string for escape characters')
+        for bin, dna in result.items():
+            result[bin] = dna.replace('\n', '')
         return result
     
     #cluster name to all the clusters
@@ -63,7 +64,7 @@ class bin_writer:
     def write_bins(self, values: Dict[str, Dict[str, str]]):
         print("writing bins...")
         for clustername, cluster in tqdm(values.items()):
-            name = 'bin_' + str(clustername) + ".fasta"
+            name = str(clustername) + ".fasta"
             self.write_fasta(join(self.output_path, name), cluster)
         
     def read_cluster_from_fasta(self) -> Dict[str, List[str]]:
@@ -77,7 +78,7 @@ class bin_writer:
                 line: str
                 if line.startswith('>'):
                     clean = contig_cleaner(line)
-                    result[len(result)+1] = [clean]
+                    result[clean] = [clean]
         return result  
     
     def work(self, showClusters: bool = True):
