@@ -88,7 +88,7 @@ class SparseClustserSimularity:
         return matrix
     
     @staticmethod
-    def build_multithread(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
+    def build_multithread_old(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
         processes: int, chunksize: int = 75) -> SparseClustserSimularity:
         if processes <= 1: return SparseClustserSimularity.build(cluster_lst, total_item_count, a1_min)
         matrix_dct = SparseTupleHashMatrix(SortKeysByHash)
@@ -100,6 +100,25 @@ class SparseClustserSimularity:
                 for i1, i2, sim in chunk_result:
                     matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
         
+        return SparseClustserSimularity(cluster_lst, total_item_count, a1_min, matrix_dct)
+    
+    
+    @staticmethod
+    def build_multithread(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
+        processes: int, chunksize: int = 75) -> SparseClustserSimularity:
+        if processes <= 1: return SparseClustserSimularity.build(cluster_lst, total_item_count, a1_min)
+        matrix_dct = SparseTupleHashMatrix(SortKeysByHash)
+        global shared_cluster_lst_memory 
+        shared_cluster_lst_memory = cluster_lst
+                
+        parameters = [(i, total_item_count, a1_min) for i in range(len(cluster_lst))]
+        # result : List[List[Tuple[Cluster, Cluster, float]]] = None
+        with Pool(min(cpu_count(), processes)) as p:
+            for chunk_result in tqdm(p.imap_unordered(partial_build_similarity_row_shared_mem, parameters, chunksize=chunksize), total=len(cluster_lst)):
+                for i1, i2, sim in chunk_result:
+                    matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
+        
+        del shared_cluster_lst_memory
         return SparseClustserSimularity(cluster_lst, total_item_count, a1_min, matrix_dct)
     
     
@@ -164,6 +183,7 @@ class SparseClustserSimularity:
     def __len__(self):
         return len(self.__all_clusters__)
     
+    
 def partial_build_similarity_row(tup: Tuple[int, List[Cluster], int, int]) -> List[Tuple[int, int, float]]:
     i1, cluster_lst, total_count, a1_min = tup
     lst, c1 = [], cluster_lst[i1]
@@ -174,16 +194,15 @@ def partial_build_similarity_row(tup: Tuple[int, List[Cluster], int, int]) -> Li
             lst.append( (i1, i2, similarity) )
     return lst
 
-def partial_build_similarity_row_double(tup: Tuple[int, List[Cluster], int, int]) -> List[Tuple[int, int, float]]:
-    i1, cluster_lst, total_count, a1_min = tup
-    lst, c1, total = [], cluster_lst[i1], len(cluster_lst)
-    for i2 in range(i1+1, total-1, 2):
-        c2, c3 = cluster_lst[i2], cluster_lst[i2+1]
-        similarity1, similarity2 = cluster_simularity(c1, c2, total_count), cluster_simularity(c1, c3, total_count)
-        if similarity1 >= a1_min: lst.append( (i1, i2, similarity1) )
-        if similarity2 >= a1_min: lst.append( (i1, i2+1, similarity2) )
-    if total % 2 == 1:
-        c2 = cluster_lst[len(cluster_lst)-1]
+shared_cluster_lst_memory : List[Cluster] or None = None 
+def partial_build_similarity_row_shared_mem(tup: Tuple[int, int, int]) -> List[Tuple[int, int, float]]:
+    i1, total_count, a1_min = tup
+    global shared_cluster_lst_memory
+    cluster_lst = shared_cluster_lst_memory
+    lst, c1 = [], cluster_lst[i1]
+    for i2 in range(i1+1, len(cluster_lst)):
+        c2 = cluster_lst[i2]
         similarity = cluster_simularity(c1, c2, total_count)
-        if similarity >= a1_min: lst.append( (i1, i2, similarity) )
+        if similarity >= a1_min:
+            lst.append( (i1, i2, similarity) )
     return lst

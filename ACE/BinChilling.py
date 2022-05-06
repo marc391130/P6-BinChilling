@@ -44,12 +44,19 @@ class AbstractEnsembler:
     
     def build_final_partition(self, gamma: PartitionSet, candidate_clusters: List[Cluster]):
         partition = Partition(list(gamma.get_all_elements().keys()))
+        found_items, dups = set(), 0
         
         for cluster_index in tqdm(range(len(candidate_clusters))):
             cluster = candidate_clusters[cluster_index]
             for item in cluster:
+                if item in found_items:
+                    dups += 1
+                    continue
                 partition.add(str(cluster), item)
-                
+                found_items.add(item)
+        
+        if dups > 0: self.log(f'{dups} duplicate_items')
+        self.log(f'{len(found_items)} total items')
         return partition
         
     
@@ -95,6 +102,7 @@ class BinChillingEnsembler(AbstractEnsembler):
         self.log(f"Finished merging process with {len(available_clusters)} clusters and lambda of {target_clusters}")
 
         #Consider building non cand clusters
+        candidate_clusters = [x if x.__partition_id__ is None else self.copy_cluster(x) for x in candidate_clusters]
         non_cand_membermatrix = MemberMatrix.build(non_cand_clusters, all_items)
         simularity_matrix = MemberSimularityMatrix.IndependentBuild(candidate_clusters, gamma)
 
@@ -117,6 +125,11 @@ class BinChillingEnsembler(AbstractEnsembler):
         sort_lst = [x[0] for x in sorted(decorated_lst, key=lambda x: x[1])]
         return sort_lst[:target_clusters], sort_lst[target_clusters:]
     
+    def copy_cluster(self, cluster: Cluster) -> Cluster:
+        new_cluster = Cluster()
+        for item in cluster:
+            new_cluster.add(item)
+        return new_cluster
 
 class Chiller:
     def __init__(self, 

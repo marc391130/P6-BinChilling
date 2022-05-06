@@ -75,6 +75,9 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         if k1 not in self.__internal__: self.__internal__[k1] = {}
         self.__internal__[k1][k2] = __v
     
+    def set_entry(self, k1: TK, k2: TK2, v: TV) -> None:
+        return self.set( (k1, k2), v )
+    
     def set_dict(self, key: TK, dct: Dict[TK, TV]) -> None:
         for other_key, value in dct.items():
             self.set( self.keysort( key, other_key ), value)

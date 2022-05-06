@@ -69,7 +69,7 @@ class MergeSCGEvaluator(MergeRegulator):
         merged_clusters = [cluster for cluster in all_clusters if cluster.__partition_id__ is None]
         
         # xxx_dct = self.bin_evaluator.score(non_merged_clusters)
-        total_dct = self.bin_evaluator.score(all_clusters)
+        total_dct = self.bin_evaluator.score_lst(all_clusters)
         # zero_count = len([x for x in total_dct.values() if x <= 0])
         # pentalty =  zero_count / len(total_dct)
         pentalty2 = 100 / len(all_clusters ) #- ( (len(non_merged_clusters) / len(all_clusters)) **2 )
@@ -146,17 +146,17 @@ class MergeSCGEvaluator(MergeRegulator):
             near, substanitial, moderate, partial, bad = 0, 0, 0, 0, 0
             for cluster in values.keys():
                 scgs = self.bin_evaluator.__calculate_number_of_SCGs__(cluster)
-                completeness, contamination, purity = self.bin_evaluator.__calculate_completeness__(scgs), self.bin_evaluator.__calculate_contamination__(scgs) , self.bin_evaluator.__calculate_purity__(scgs)
-                result1 = self.bin_evaluator.__calculate_sight__(completeness, contamination)
-                if result1 == 'near': near+=1
-                elif result1 == 'substanitial': substanitial+=1
-                elif result1 == 'moderate': moderate+=1
-                elif result1 == 'partial': partial+=1
-                elif result1 == 'bad': bad+=1
+                # completeness, contamination, purity = self.bin_evaluator.__calculate_completeness__(scgs), self.bin_evaluator.__calculate_contamination__(scgs) , self.bin_evaluator.__calculate_purity__(scgs)
+                # result1 = self.bin_evaluator.__calculate_sight__(completeness, contamination)
+                # if result1 == 'near': near+=1
+                # elif result1 == 'substanitial': substanitial+=1
+                # elif result1 == 'moderate': moderate+=1
+                # elif result1 == 'partial': partial+=1
+                # elif result1 == 'bad': bad+=1
                 
-                total_completeness += completeness
-                total_contamination += contamination
-                total_purity += purity
+                # total_completeness += completeness
+                # total_contamination += contamination
+                # total_purity += purity
             average_sim = sum([x.mean_member_simularity(25) for x in values.keys()]) / len(values)
             # non_zero_count = len([x for x in values.values() if x > 0]) 
             self.log_container.append( (result_value, average_sim, len(values), a1, (total_completeness*10000 / len(values), total_contamination*100 / len(values), total_purity*100 / len(values)), (near, substanitial, moderate, partial, bad) ) )
@@ -219,7 +219,7 @@ class SCGAssignRegulator(AssignRegulator):
                 if len(cluster) == 0: continue
                 #score1 = self.bin_evaluator.calculate_score(cluster)
                 #score2 = self.bin_evaluator.calculate_score(cluster, item)
-                values = self.bin_evaluator.calculate_item_score(cluster, extra_item=item)
+                values = self.bin_evaluator.score_items(cluster, extra_item=item)
                 cluster_sim = similarity_matrix.get_column(cluster)
                 score1 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items()])
                 score2 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items() if x is not item])

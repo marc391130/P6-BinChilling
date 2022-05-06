@@ -68,14 +68,14 @@ def main():
     clusters = [cluster for cluster in clusters if get_total_size(cluster) >= minSize]
 
     all_scgs = reader.read_total_SCGs_set() # 
-    evaluator = BinEvaluator(all_scgs)
-    data = evaluator.evaluate(clusters)
+    evaluator = BinEvaluator(all_scgs, (0,0))
+    data = evaluator.evaluate_lst(clusters)
 
     result_dto_lst, total_com, total_con = [], 0, 0
     data_lst = list(data.items())
     for data_idx in range(len(data_lst)):
         cluster_idx, tuple = data_lst[data_idx]
-        completeness, contamination = tuple
+        completeness, contamination, mp = tuple
         total_com, total_con = total_com + completeness,  total_con + contamination
 
         dto = BinDto(f"bin_{data_idx}", contamination, completeness)

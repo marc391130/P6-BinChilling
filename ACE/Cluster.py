@@ -52,7 +52,8 @@ class Cluster(Generic[T]):
     
     def add(self, __object: T) -> None:
         if __object in self.__membership__:
-            raise Exception('Cluster already has item ' + str(__object))
+            return
+            # raise Exception('Cluster already has item ' + str(__object))
         self.__membership__[__object] = 1
 
     def __add_member__(self, __object: T, membership: int) -> None:

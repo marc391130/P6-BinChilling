@@ -266,8 +266,8 @@ class CoAssosiationMatrix(SparseDictHashMatrix[object, float]):
         return CoAssosiationMatrix(matrix, index_map, partition_count)
     
     @staticmethod
-    def build(gamma: PartitionSet) -> CoAssosiationMatrix:
-        item_lst = list((gamma.get_all_elements()).keys())
+    def build(gamma: PartitionSet, partial_lst: List[object] = None) -> CoAssosiationMatrix:
+        item_lst = partial_lst if partial_lst is not None else gamma.get_all_items()
         matrix = CoAssosiationMatrix()
         
         for item1 in tqdm(item_lst):
@@ -286,6 +286,13 @@ class CoAssosiationMatrix(SparseDictHashMatrix[object, float]):
                 max_value = value
                 max_item = other_item
         return max_item
+    
+    
+    def bin_mean(self, c1: Cluster, c2: Cluster) -> float:
+        if len(c1) == 0 or len(c2) == 0: return 0.0        
+        
+        result = sum( ( 1 if x is y else self.getEntry(x, y) for x in c1 for y in c2) )
+        return result / (len(c1) + len(c2))
     
     def cluster_mean(self, item: object, cluster: Cluster) -> float:
         if len(cluster) == 0: return 0.0

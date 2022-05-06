@@ -213,7 +213,7 @@ def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, me
     parameters = [(cluster, index_lst, cluster_matrix.total_item_count, cluster_matrix.min_value) for cluster in merged_lst]
     
     with Pool(threads) as p:
-        for index, res, max_sim in tqdm(p.imap(partial_sort_merge, parameters, chunksize=chunksize), total=len(parameters)):
+        for index, res, max_sim in tqdm(p.imap_unordered(partial_sort_merge, parameters, chunksize=chunksize), total=len(parameters)):
             max_simularity = max(max_simularity, max_sim)
             for index2, sim in res:
                 cluster_matrix.set_value(index_lst[index], index_lst[index2], sim)

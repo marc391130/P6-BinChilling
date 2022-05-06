@@ -55,9 +55,9 @@ def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Ca
     
     
     #set up ensembler
-    bin_evaluator = BinEvaluator(contigReader.read_total_SCGs_set())
+    bin_evaluator = BinEvaluator(contigReader.read_total_SCGs_set(), (1,2))
     # print('>SCG coutn ', len(bin_evaluator.all_SCGs))
-    regulator = MergeRegulator(a1_min)  if use_old else\
+    regulator = MergeRegulator(a1_min)  if True else\
                 MergeSCGEvaluator(a1_min, bin_evaluator, debug=True)
     chiller = Chiller(a1_min, a1, regulator, 0.02, logger)
     binner = Binner2(bin_evaluator, QualityMeasuerer(), 0.75, logger)
