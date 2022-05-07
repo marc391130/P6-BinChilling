@@ -1,6 +1,7 @@
 from Cluster import Cluster, Partition
 from typing import List, Dict, Tuple
 from math import factorial, floor, log, sqrt
+from Domain import ContigData
 from PartitionSetReader import PartitionSetReader
 import argparse
 import os
@@ -88,6 +89,21 @@ def get_all_compare_lst(partitions: List[str]) -> List[Tuple[str, str]]:
 def get_double_compare_lst(lst1, lst2) -> List[str]:
     return [ (lst1[i], lst2[j]) for i in range(len(lst1)) for j in range(len(lst2)) if i != j]
 
+def calc_bin_size(cluster: Cluster[ContigData]) -> int:
+    return sum([x.contig_length for x in cluster])
+
+def filter_bins(partition: Partition, minsize: int) -> Partition:
+    return partition
+    # remove_lst = []
+    # for cluster in partition.values():
+    #     print(cluster.__iter__())
+    #     if calc_bin_size(cluster) < minsize:
+    #         remove_lst.append(cluster)
+    
+    # partition.remove_lst(remove_lst)
+    # return partition
+    
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         prog='ACE',
@@ -110,25 +126,25 @@ if __name__ == '__main__':
         dest='path', help='The partitions to compare' )
     p_args.add_argument('-e', metavar='', required=True, \
         dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
-    p_args.add_argument('-C', help='Do all combinations', choices=('All', 'Half'), required=False, type=str,\
+    p_args.add_argument('-C', help='Combinations settings', choices=('All', 'Half'), required=False, type=str,\
         default='All', metavar='', dest='comp')
+    p_args.add_argument('-M', help='Minimum bin size to include', type=int, required=False,\
+        default=0, metavar='', dest='minsize')
 
     args = parser.parse_args()
     all_comb = args.comp == 'All'
     if args.path is None and args.folder is None:
         raise argparse.ArgumentError(args.folder, 'must provide either -F or -P')
 
-    print('>Combinatory ', all_comb)
-
     partition_paths1 = [join(args.folder, x) for x in os.listdir(args.folder) if x.endswith('.tsv')] if args.folder is not None else []
     partition_paths2 = args.path if args.path is not None else []
-    print(args.folder, partition_paths1, partition_paths2)
+
     if len(partition_paths1) + len(partition_paths2) <= 1:
         raise argparse.ArgumentError(args.path, 'must have at least 2 partitions')
 
     number_of_elements = int(args.e)
     path_lst = partition_paths1 + partition_paths2
-    partitionDct = {path: PartitionSetReader.__read_single_partition__(path) for path in path_lst}
+    partitionDct = {path: filter_bins(PartitionSetReader.__read_single_partition__(path), args.minsize) for path in path_lst}
     tuple_lst = get_all_compare_lst(path_lst) if all_comb else get_double_compare_lst(partition_paths1, partition_paths2)
     ARI_results, NMI_results = [], []
 

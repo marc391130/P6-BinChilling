@@ -50,6 +50,7 @@ class AbstractEnsembler:
             cluster = candidate_clusters[cluster_index]
             for item in cluster:
                 if item in found_items:
+                    self.log(f'Item {item.name} is a duplicate, having {len(item.SCG_genes)} and len {item.contig_length}')
                     dups += 1
                     continue
                 partition.add(str(cluster), item)
@@ -108,8 +109,6 @@ class BinChillingEnsembler(AbstractEnsembler):
 
         final_clusters = self.binner.assign_item_to_one_cluster(gamma,\
             candidate_clusters, simularity_matrix, non_cand_membermatrix)        
-        
-        final_clusters = [cluster for cluster in final_clusters if len(cluster) != 0]
         
         self.log("Building final partition from candidate clusters...")
         partition = self.build_final_partition(gamma, final_clusters)

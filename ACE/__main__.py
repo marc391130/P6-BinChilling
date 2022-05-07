@@ -9,7 +9,6 @@ from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
 from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, QualityMeasuerer
 from AdaptiveEnsemblerDomainExtensions import  MergeSCGEvaluator
 from BinEvaluator import BinEvaluator
-from Binner2 import Binner2
 from Cluster import Cluster, Partition, PartitionSet
 from typing import Callable
 from tqdm import tqdm
@@ -23,6 +22,8 @@ import sys
 import os
 import scipy as sp
 from BinChilling import BinChillingEnsembler, Binner, Chiller, MyLogger
+from BinRefiner import BinRefiner
+from Binner2 import Binner2
 
 # import numpy
 # arr = numpy.zeros((3,3))
@@ -59,8 +60,9 @@ def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Ca
     # print('>SCG coutn ', len(bin_evaluator.all_SCGs))
     regulator = MergeRegulator(a1_min)  if True else\
                 MergeSCGEvaluator(a1_min, bin_evaluator, debug=True)
+    bin_refiner = BinRefiner(bin_evaluator, logger)
     chiller = Chiller(a1_min, a1, regulator, 0.02, logger)
-    binner = Binner2(bin_evaluator, QualityMeasuerer(), 0.75, logger)
+    binner = Binner2(bin_refiner, bin_evaluator, QualityMeasuerer(), 0.75, logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)
 
     output = ensembler.ensemble(partition_set)
@@ -119,8 +121,8 @@ def run_old(a1_min, fasta_filepath: str, depth_filepath: str, scg_filepath: str,
     sys.exit(0)
 
 def main():    
-    seed(2) # most random number used for seed, chosen by committee
-    
+    seed(2) # most random number used for seed, chosen by committee ;)
+
     parser = argparse.ArgumentParser(
         prog='ACE',
         description="""ACE BINNING ENSEMBLER""",

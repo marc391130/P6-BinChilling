@@ -44,6 +44,9 @@ class Cluster(Generic[T]):
         return set(a).intersection(b)
         # return [item for item in b if item in a]     
         
+    def intersection_len(self, other: Cluster) -> int:
+        return len(self.__membership__.keys() & other.__membership__.keys() )
+        
     def union(self, other: Cluster) -> set[T]:
         return set(self).union(other)
 
@@ -139,6 +142,24 @@ class Partition(Dict[str, Cluster[T]], Generic[T]):
 
     # def __setitem__(self, __k, __v) -> None:
         # raise Exception("DO NOT USE THIS, use '.add()' instead")
+    def remove(self, cluster: Cluster[T]) -> None:
+        del_name = None
+        for name, cls2 in self.items(): 
+            if cls2 is cluster:
+                del_name = name
+                break
+        if del_name is not None:
+            self.pop(del_name)
+        
+    def remove_lst(self, cluster_lst: List[Cluster[T]]) -> None:
+        del_lst = []
+        cluster_set = set(cluster_lst)
+        for name, cls2 in self.items(): 
+            if cls2 is cluster_set:
+                del_lst.append(name)
+        for del_name in del_lst:
+            self.pop(del_name)
+            
 
     def __assert_item_not_in_other_cluster__(self, item: T) -> None:
         for key, value in self.items():
