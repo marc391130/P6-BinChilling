@@ -6,9 +6,15 @@ from tqdm import tqdm
 from ClusterSimilarityMatrix import SparseClustserSimularity
 from ClusterSimilarityMatrix import cluster_simularity
 from multiprocessing import cpu_count, Pool
-
+from Domain import ContigData
 from MemberSimularityMatrix import MemberSimularityMatrix
 
+def print_result(file_path: str, parititon: Partition[ContigData]):
+    with open(file_path, 'w') as file:
+        cluster_lst = list(parititon.values())
+        for cluster_idx in range(len(cluster_lst)):
+            for item in cluster_lst[cluster_idx]:
+                file.write(f"{cluster_idx+1}\t{item.name}\n")
 
 class QualityMeasuerer:
     def calculate_quality(self, cluster: Cluster, partition_count: int, simularity_matrix: MemberSimularityMatrix) -> float:

@@ -6,7 +6,7 @@ from io import TextIOWrapper
 from random import randrange, random, seed
 
 from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
-from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, QualityMeasuerer
+from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, QualityMeasuerer, print_result
 from AdaptiveEnsemblerDomainExtensions import  MergeSCGEvaluator
 from BinEvaluator import BinEvaluator
 from Cluster import Cluster, Partition, PartitionSet
@@ -33,12 +33,7 @@ from Binner2 import Binner2
 # print(numpy.append(arr , app, axis=1 ))
 # raise Exception()
 
-def print_result(file_path: str, parititon: Partition[ContigData]):
-    with open(file_path, 'w') as file:
-        cluster_lst = list(parititon.values())
-        for cluster_idx in range(len(cluster_lst)):
-            for item in cluster_lst[cluster_idx]:
-                file.write(f"{cluster_idx+1}\t{item.name}\n")
+
 
 
 def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Callable[[PartitionSet], int],\
@@ -178,7 +173,6 @@ def main():
         sys.exit()
         
     args = parser.parse_args()
-    print(args.use_old)
     ###### BINNING ARGS ######
     
     #fasta file exist 

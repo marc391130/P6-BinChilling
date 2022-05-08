@@ -1,3 +1,5 @@
+import itertools
+from math import floor
 from typing import List, Dict, Tuple
 import Constants as const
 
@@ -9,11 +11,9 @@ class Composition(Dict[str, float]):
     def __recursive_setup__(self, parent_str : str, depth : int) -> str:
         for label in const.ACID_LABELS:
             key = parent_str + label
-            reversed_key = key[::-1]
             
             if depth == 0:
-                if reversed_key not in self:
-                    self[key] = 0
+                self[self.__sort_ACID__(key)] = 0
             else:
                 self.__recursive_setup__(key, depth - 1)
     
@@ -23,15 +23,19 @@ class Composition(Dict[str, float]):
         super().__setitem__(key, value)
 
     def __assert_ACID__(self, item: str) -> None:
-        cleanedItem = item
-        for label in const.ACID_LABELS:
-                cleanedItem = cleanedItem.replace(label, '')
-        if len(item) != const.COMPOSITION_CONSTANT or len(cleanedItem) != 0:
-            raise Exception(f"The item '{item}' contains other characters than ACID_LABELS: {const.ACID_LABELS}")
+        if len(item) != const.COMPOSITION_CONSTANT:
+            raise Exception(f"ACID string '{item}' doesnt matcch the ccomposition constant {const.COMPOSITION_CONSTANT}")
+        if const.ACID_SET.issuperset(item) is False:
+            raise Exception('Yeet')
+
+    def __sort_ACID__(self, key: str) -> str:
+        reverse = key[::-1]
+        return key if key < reverse else reverse
 
     def AddOccurence(self, key:str):
-        self.__assert_ACID__(key)
-        self[key] += 1
+        k = self.__sort_ACID__(key)
+        self.__assert_ACID__(k)
+        self[k] += 1
 
     def AsNormalized(self) -> Dict[str, float]:
         total = sum([self[k] for k in self]) 
@@ -39,6 +43,10 @@ class Composition(Dict[str, float]):
         for key, value in self.items():
             dic[key] = value / total
         return dic
+
+    def AsNormalizedFeatureList(self) -> List[float]:
+        total = sum([self[k] for k in self]) 
+        return [x / total for x in self.values()]
 
        
     #prints only the values over the threshold
@@ -76,3 +84,20 @@ class ContigData:
     
     def __hash__(self) -> int:
         return self.name.__hash__()
+    
+    
+def compute_3_4_scg_count(contig_lst: List[ContigData]) -> int:
+    return compute_3_4_avg(count_scgs(contig_lst)) 
+    
+
+def compute_3_4_avg(scg_count: Dict[str, int]) -> int:
+    values = scg_count.values()
+    avg = sum(values) / len(values)
+    return floor(avg + ((max(values) - avg) / 2))
+
+
+def count_scgs(contig_lst: List[ContigData]) -> Dict[str, int]:
+    result = {}
+    for scg in itertools.chain.from_iterable([x.SCG_genes for x in contig_lst]):
+        result[scg] = result.get(scg, 0) + 1
+    return result

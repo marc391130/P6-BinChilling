@@ -1,7 +1,6 @@
 import itertools
 from os import remove
 
-from sklearn import cluster
 from BinChilling import Binner, MyLogger
 from BinEvaluator import BinEvaluator
 from AdaptiveEnsemblerExtensions import QualityMeasuerer

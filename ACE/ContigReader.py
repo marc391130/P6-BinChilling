@@ -12,23 +12,6 @@ class ContigFilter:
     def predicate(self, contig: ContigData) -> bool:
         return contig.contig_length > self.min_len
 
-class CompositionAnalyzer:
-    def __init__(self) -> None:
-        pass
-
-    def analyze_composition(self, composition_dict : Composition, contig_string : str) -> None:
-        com_len = len(contig_string) - (const.COMPOSITION_CONSTANT - 1)
-        #com_normalize_val = 1 / com_len
-        if com_len < const.COMPOSITION_CONSTANT:
-            raise Exception("composition string is smaller than the COMPOSITION_CONSTANT: " + str(const.COMPOSITION_CONSTANT))
-
-        for x in range(com_len):
-            key = contig_string[x:x + const.COMPOSITION_CONSTANT]
-            reversed_key = key[::-1]
-            if key in composition_dict:
-                composition_dict.AddOccurence(key)
-            elif reversed_key in composition_dict:
-                composition_dict.AddOccurence(reversed_key)
 
 class ContigReader:
     def __init__(self, 
@@ -36,19 +19,21 @@ class ContigReader:
                  depth_file: str = None, 
                  SCG_filepath: str = None,
                  SCG_db_path: str = None,
+                 enable_analyse_contig_comp: bool = False,
                  numpy_file: str = None,
-                 max_threads: int or None = None ):
+                 max_threads: int or None = None):
         self.all_scg_db_path = SCG_db_path
         self.fasta_file = fasta_file
         self.SCG_filepath = SCG_filepath
         self.depth_file = depth_file
         self.numpy_file = numpy_file
+        self.enable_analyse_contig_comp = enable_analyse_contig_comp
         self.max_threads = max_threads if max_threads is not None else cpu_count()
 
     def read_file_fast(self, numpy_file: str or None = None, load_SCGs:bool = False) -> Dict[str, ContigData]:
         numpy_path = numpy_file if numpy_file is not None else self.numpy_file
         
-        print("trying to load cache as numpy data...")
+        print("Trying to load cache as numpy data...")
         if numpy_path is not None:        
             numpy_data = self.try_load_numpy(numpy_path)
             if numpy_data is not None:
@@ -68,46 +53,6 @@ class ContigReader:
 
 
     def read_file(self, file_path: str, load_SCGs:bool = False) -> Dict[str, ContigData]:
-        return self.read_file_multithreaded(file_path, load_SCGs)
-        result: Dict[str, ContigData] = {}
-        abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file) if self.depth_file is not None else None
-
-        def clean_line_name(line: str) -> str:
-            return line.split('>')[1].replace('\n', '')
-        
-        composition_analyzer = CompositionAnalyzer()
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-            current_contig = 0
-            for index in tqdm(range(len(lines))):
-                line = lines[index]
-                if not line.startswith('>'):
-                    continue
-                name = clean_line_name(line) 
-                composition = Composition()
-                abundance = abundance_length_dict[name][0] if not self.depth_file.endswith('.npz') else abundance_length_dict[str(current_contig)][0]
-                contig = ContigData(name, composition, 0, abundance)
-                temp_string = ""
-                current_contig += 1
-                for i in range(index+1, len(lines)):
-                    if lines[i].startswith('>'):
-                        break
-                    temp_string += lines[i]
-                contig.contig_length = len(temp_string)
-                composition_analyzer.analyze_composition(composition, temp_string)
-                result[name] = contig
-        if load_SCGs:
-            print("loading SCGs...")
-            SCG_dct = self.read_contig_SCGs()
-            for contig_name, contig in tqdm(result.items()):
-                if contig_name in SCG_dct:
-                    contig.SCG_genes = set(SCG_dct[contig_name])
-        else:
-            print("skipping SCG load, as option disabled...")
-
-        return result
-
-    def read_file_multithreaded(self, file_path: str, load_SCGs:bool = False) -> Dict[str, ContigData]:
         abundance_length_dict = self.__get_abundance_length_dict__(self.depth_file) if self.depth_file is not None else None
         temp_result: Dict[str, List[str]] = {}
         temp_result_index_map : Dict[str, int] = {}
@@ -132,11 +77,13 @@ class ContigReader:
                 else:
                     temp_result[current_name].append(line)
 
-        parameters = [(key, value, get_abundance(key)) for key, value in temp_result.items()]
+        parameters = [(contig_name, dna_parts, get_abundance(contig_name), self.enable_analyse_contig_comp) \
+            for contig_name, dna_parts in temp_result.items()]
         contig_lst = []
-        print("Analysing contig compositions...")
+        fast_mode_answer = 'no' if self.enable_analyse_contig_comp else 'yes'
+        print(f"Analysing contig compositions (using fast mode: {fast_mode_answer})")
         with Pool(min(self.max_threads, cpu_count())) as p:
-            contig_lst: List[ContigData] = list(tqdm(p.imap(__build_contig_multithread__, parameters), total=len(parameters)))
+            contig_lst: List[ContigData] = list(tqdm(p.imap_unordered(__partial_build_contig_multithread__, parameters), total=len(parameters)))
         result = {contig.name: contig for contig in contig_lst}
         
         if load_SCGs:
@@ -281,19 +228,35 @@ class DataWrapper():
         return split_filename[len(split_filename) - 1]
 
 
-def __build_contig_multithread__(tuple: Tuple[str, List[str], float]) -> ContigData:
-    name, dna_seq, abundance = tuple
+def analyze_composition(contig_string : str, composition_obj = Composition()) -> None:
+    com_len = len(contig_string) - (const.COMPOSITION_CONSTANT - 1)
+    #com_normalize_val = 1 / com_len
+    if com_len < const.COMPOSITION_CONSTANT:
+        raise Exception("composition string is smaller than the COMPOSITION_CONSTANT: " + str(const.COMPOSITION_CONSTANT))
+
+    for x in range(com_len):
+        key = contig_string[x:x + const.COMPOSITION_CONSTANT]
+        reversed_key = key[::-1]
+        if key in composition_obj:
+            composition_obj.AddOccurence(key)
+        elif reversed_key in composition_obj:
+            composition_obj.AddOccurence(reversed_key)
+
+def __partial_build_contig_multithread__(tuple: Tuple[str, List[str], float, bool]) -> ContigData:
+    name, dna_seq, abundance, enable_comp_analyse = tuple
     
     dna_string = ''.join(dna_seq).replace('\n', '')
-    
     composition = Composition()
-    # analyser = CompositionAnalyzer()
-    # analyser.analyze_composition(composition, dna_string)
+    if enable_comp_analyse:
+        analyze_composition(dna_string, composition)
+    
     contig = ContigData(name, composition, contig_length=len(dna_string), avg_abundance=abundance)
     return contig
 
+
+
 if __name__ == "__main__":
     reader = ContigReader('../Dataset/edges.fasta', '../Dataset/edges_depth.txt', '../Dataset/marker_gene_stats.tsv')
-    r = reader.read_file_multithreaded('../Dataset/edges.fasta', True)
+    r = reader.read_file('../Dataset/edges.fasta', True)
     print("DONE")
     print(len(r))
