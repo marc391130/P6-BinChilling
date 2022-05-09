@@ -4,6 +4,7 @@
 
 from io import TextIOWrapper
 from random import randrange, random, seed
+from typing import List, Dict, Tuple
 
 from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
 from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, QualityMeasuerer, print_result
@@ -84,7 +85,7 @@ def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Ca
 
     sys.exit(0)
     
-def run_old(a1_min, fasta_filepath: str, depth_filepath: str, scg_filepath: str, numpy_cachepath: str, partition_folder: str,\
+def run_old(a1_min, fasta_filepath: str, depth_filepath: str, scg_filepath: List[str], numpy_cachepath: str, partition_folder: str,\
     output_path: str, threads, chunksize, logfile: TextIOWrapper or None, min_contig_len: int = 0):
 
     ensembler = AdaptiveClusterEnsembler(
@@ -135,7 +136,7 @@ def main():
     p_args = parser.add_argument_group(title='Contig input (required)', description=None)
     p_args.add_argument('--fasta' ,'-f', metavar='', required=True,\
         dest='fasta', help='path to fasta file of contigs')
-    p_args.add_argument('--SCG', '-g', metavar='', required=True, \
+    p_args.add_argument('--SCG', '-g', nargs='+', metavar='', required=True, \
         dest='SCG', help='Path to single copy genes file (required)')
     p_args.add_argument('--jgi', '-j', metavar='', required=False, default=None, \
         dest='JGI', help='path to depth file (either this or --NPZ/-z required)')
@@ -198,11 +199,18 @@ def main():
     
     if os.path.isfile(abundance_path) is False:
         raise FileNotFoundError(abundance_path)
-    
+
     #Single copy genes file
-    SCG_path = os.path.abspath(args.SCG)
-    if os.path.isfile(SCG_path) is False:
-        raise FileNotFoundError(SCG_path)
+    # SCG_path = os.path.abspath(args.SCG)
+    # if os.path.isfile(SCG_path) is False:
+    #     raise FileNotFoundError(SCG_path)
+
+    SCG_path = []
+    for file in args.SCG:
+        if os.path.isfile(file) is False:
+            raise FileNotFoundError(file)
+        SCG_path.append(os.path.abspath(file))
+            
     
     ###### IO ARGS ######
     numpy_cache = None

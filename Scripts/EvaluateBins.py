@@ -26,7 +26,7 @@ def main():
     file_args = parser.add_argument_group(title='Contig input (required)', description=None)
     file_args.add_argument('--fasta', metavar='', required=True,\
         dest='fasta', help='path to fasta file of contigs')
-    file_args.add_argument('--SCG', metavar='', required=True, \
+    file_args.add_argument('--SCG', nargs='+', metavar='', required=True, \
         dest='SCG', help='Path to single copy genes file (required)')
     file_args.add_argument('--bacteria', metavar='', required=True, \
         dest='bacteria', help='Path to bacteria file (required)')
@@ -50,8 +50,7 @@ def main():
     
     args = parser.parse_args()
 
-    paths = [args.fasta, args.SCG, args.depthfile, args.bacteria, args.clusterpath]
-    if args.cache != None: paths.append(args.cache)
+    paths = [args.fasta, args.depthfile, args.bacteria, args.clusterpath] + args.SCG
 
     for path in paths:
         if os.path.isfile(path) is False:

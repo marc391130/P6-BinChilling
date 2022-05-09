@@ -4,9 +4,9 @@ class SCGReader:
     def __init__(self, filepath: str) -> None:
         self.filepath = filepath
 
-    def read_scg(self) -> Dict[str, List[str]]:
+    def read_scg(self) -> Dict[str, set]:
 
-        temp: Dict[str, List[str]] = {}
+        temp: Dict[str, set] = {}
 
         with open(self.filepath, 'r') as f:
             lines = f.readlines()

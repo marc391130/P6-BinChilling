@@ -1,8 +1,9 @@
 from Cluster import Cluster, Partition
 from typing import List, Dict, Tuple
 from math import factorial, floor, log, sqrt
-from Domain import ContigData
+from Domain import ContigData, bin_size
 from PartitionSetReader import PartitionSetReader
+from ContigReader import ContigReader
 import argparse
 import os
 from os.path import join
@@ -92,16 +93,25 @@ def get_double_compare_lst(lst1, lst2) -> List[str]:
 def calc_bin_size(cluster: Cluster[ContigData]) -> int:
     return sum([x.contig_length for x in cluster])
 
-def filter_bins(partition: Partition, minsize: int) -> Partition:
-    return partition
-    # remove_lst = []
-    # for cluster in partition.values():
-    #     print(cluster.__iter__())
-    #     if calc_bin_size(cluster) < minsize:
-    #         remove_lst.append(cluster)
+def filter_bins(partition: Partition, minsize: int, contig_dct: Tuple[str, ContigData]) -> Partition:
+    #return partition
+    remove_lst = []
+
+    result = Partition()
+
+    for key, cluster in partition.items():
+        for item in cluster:
+            result.add(key, contig_dct[item])
     
-    # partition.remove_lst(remove_lst)
-    # return partition
+
+    for cluster in result.values():
+        if bin_size(cluster) < minsize:
+            remove_lst.append(cluster)
+
+    for cluster in remove_lst:
+        result.remove(cluster)
+
+    return result
     
 
 if __name__ == '__main__':
@@ -124,12 +134,16 @@ if __name__ == '__main__':
         dest='folder', help='The partitions folder to compare all tsv files from' )
     p_args.add_argument('-P', metavar='', required=False, nargs='+', default=None, \
         dest='path', help='The partitions to compare' )
-    p_args.add_argument('-e', metavar='', required=True, \
-        dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
+    # p_args.add_argument('-e', metavar='', required=True, \
+    #     dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
     p_args.add_argument('-C', help='Combinations settings', choices=('All', 'Half'), required=False, type=str,\
         default='All', metavar='', dest='comp')
     p_args.add_argument('-M', help='Minimum bin size to include', type=int, required=False,\
         default=0, metavar='', dest='minsize')
+    p_args.add_argument('--fasta', help='path to fasta file', type=str, required=True,\
+        metavar='', dest='fastafile')
+    p_args.add_argument('--cache', help='path to abundance file', type=str, required=True,\
+        metavar='', dest='cachefile')
 
     args = parser.parse_args()
     all_comb = args.comp == 'All'
@@ -142,11 +156,14 @@ if __name__ == '__main__':
     if len(partition_paths1) + len(partition_paths2) <= 1:
         raise argparse.ArgumentError(args.path, 'must have at least 2 partitions')
 
-    number_of_elements = int(args.e)
+    contig_dct = ContigReader(args.fastafile, numpy_file=args.cachefile).read_file_fast(args.cachefile)
+    number_of_elements = len(contig_dct)
     path_lst = partition_paths1 + partition_paths2
-    partitionDct = {path: filter_bins(PartitionSetReader.__read_single_partition__(path), args.minsize) for path in path_lst}
+    partitionDct = {path: filter_bins(PartitionSetReader.__read_single_partition__(path), args.minsize, contig_dct) for path in path_lst}
     tuple_lst = get_all_compare_lst(path_lst) if all_comb else get_double_compare_lst(partition_paths1, partition_paths2)
     ARI_results, NMI_results = [], []
+
+
 
     for p1, p2 in tuple_lst:
         part1, path1 = partitionDct[p1], p1
