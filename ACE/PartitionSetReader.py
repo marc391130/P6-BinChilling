@@ -1,10 +1,12 @@
 from os import listdir
 from os.path import join
+
+import numpy
 from Cluster import Cluster, Partition, PartitionSet
 from typing import Callable, Tuple, Dict, List
 from ContigReader import ContigFilter, ContigReader
 import Constants as CONSTANT
-from Domain import ContigData
+from Domain import ContigData, bin_size
 from tqdm import tqdm
 
 CONTIG_MIN_LEN = 100
@@ -50,9 +52,11 @@ class PartitionSetReader:
     @staticmethod
     def __read_single_partition__(filename: str) -> Partition:
         partition = Partition()
+
         with open(filename, 'r') as f:
             for line in f.readlines():
                 cluster_name, edge_name = PartitionSetReader.__parse_cluster_line__(line)
+
                 partition.add(cluster_name, edge_name)
         return partition
 
