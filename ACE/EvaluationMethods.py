@@ -134,8 +134,8 @@ if __name__ == '__main__':
         dest='folder', help='The partitions folder to compare all tsv files from' )
     p_args.add_argument('-P', metavar='', required=False, nargs='+', default=None, \
         dest='path', help='The partitions to compare' )
-    p_args.add_argument('-e', metavar='', required=True, \
-        dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
+    # p_args.add_argument('-e', metavar='', required=True, \
+    #     dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
     p_args.add_argument('-C', help='Combinations settings', choices=('All', 'Half'), required=False, type=str,\
         default='All', metavar='', dest='comp')
     p_args.add_argument('-M', help='Minimum bin size to include', type=int, required=False,\
@@ -156,9 +156,9 @@ if __name__ == '__main__':
     if len(partition_paths1) + len(partition_paths2) <= 1:
         raise argparse.ArgumentError(args.path, 'must have at least 2 partitions')
 
-    number_of_elements = int(args.e)
-    path_lst = partition_paths1 + partition_paths2
     contig_dct = ContigReader(args.fastafile, numpy_file=args.cachefile).read_file_fast(args.cachefile)
+    number_of_elements = len(contig_dct)
+    path_lst = partition_paths1 + partition_paths2
     partitionDct = {path: filter_bins(PartitionSetReader.__read_single_partition__(path), args.minsize, contig_dct) for path in path_lst}
     tuple_lst = get_all_compare_lst(path_lst) if all_comb else get_double_compare_lst(partition_paths1, partition_paths2)
     ARI_results, NMI_results = [], []
