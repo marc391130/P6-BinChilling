@@ -174,7 +174,7 @@ def main():
     ensemble_args.add_argument('--old', type=bool, dest='use_old', metavar='', default=False, \
         help='Use default ACE criterea for breaking merging process')
     ensemble_args.add_argument('--LList', '-L', nargs='+', type=int, dest='LList', metavar='', default=[1900000, 6500000], \
-        help='List of contig common contig lengths')
+        help='List of contig common contig lengths' required=False)
     
     if(len(sys.argv) <= 1):
         parser.print_help()
@@ -208,7 +208,8 @@ def main():
     #     raise FileNotFoundError(SCG_path)
 
     SCG_path = []
-    for file in args.SCG:
+    scg = [args.SCG] if isinstance(args.SCG, str) else args.SCG
+    for file in scg:
         if os.path.isfile(file) is False:
             raise FileNotFoundError(file)
         SCG_path.append(os.path.abspath(file))
