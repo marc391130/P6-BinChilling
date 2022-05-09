@@ -258,5 +258,8 @@ def __partial_build_contig_multithread__(tuple: Tuple[str, List[str], float, boo
 if __name__ == "__main__":
     reader = ContigReader('../Dataset/edges.fasta', '../Dataset/edges_depth.txt', '../Dataset/marker_gene_stats.tsv')
     r = reader.read_file('../Dataset/edges.fasta', True)
+    with open('./output.tsv') as f:
+        for name, contig in r.items():
+            f.writelines(f'{name}\t{contig.contig_length}')
     print("DONE")
     print(len(r))
