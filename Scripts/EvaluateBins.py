@@ -51,7 +51,6 @@ def main():
     args = parser.parse_args()
 
     paths = [args.fasta, args.depthfile, args.bacteria, args.clusterpath] + args.SCG
-    if args.cache != None: paths.append(args.cache)
 
     for path in paths:
         if os.path.isfile(path) is False:
