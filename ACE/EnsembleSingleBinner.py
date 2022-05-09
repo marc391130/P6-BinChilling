@@ -95,7 +95,7 @@ def run_clustering(partition: Partition, data: Tuple[Dict[int, ContigData], List
     return partition, score
 
 def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
-    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int,\
+    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int, LList: List[int],\
     logfile: TextIOWrapper or None, partition_outdir: str or None = None):
     
     start_time = time()
@@ -183,6 +183,8 @@ def main():
         help='Maximum number of partitions to use (default = 25)', metavar='', required=False)
     p_args.add_argument('--chunksize', '-H', type=int, dest='chunksize', default=400, \
         help='Chunksize to use while multiprocessing. Only impacts performance, higher = more memory usage (default=400)', metavar='', required=False)
+    p_args.add_argument('--LList', '-L', type=int, nargs='+', dest='LList', default=[1900000, 6500000],\
+         help='List of common contig lengths', metavar='', required=True)
     p_args.add_argument('--minSize', '-m', type=int, dest='minSize', default=1000, \
         help='Minimum size of contig to use in binning (default = 1000)', metavar='', required=False),
     p_args.add_argument('--stepsize', '-z', type=int, dest='stepsize', default=5,\
@@ -192,7 +194,7 @@ def main():
              "KMeans: sklearn's implementation using KMeans++ to initialize centers.\n" +\
              "PartialSeed: the KMeans initialization method proposed in the MetaBinner paper.\n" +\
              "Hierarchical: sklearns AgglomerativeClustering module with 'cannot-link' constraints.\n" +\
-             "Random: embedding is randomly generated between each partition generation" ) 
+             "Random: embedding is randomly generated between each partition generation" )
     
     if(len(sys.argv) <= 1):
         parser.print_help()
@@ -254,6 +256,9 @@ def main():
         random.seed(args.rand)
         np.random.seed(args.rand)
     
+    if len(args.LList) == 0:
+        raise Exception("Common contig length list has length 0! Change it ;)")
+
     print('Partition generation algorithm: ' + args.method)
     
     try:
@@ -264,7 +269,7 @@ def main():
             logfile = open(logfile_path)
             
         run(args.a1min, args.min, args.max, args.minSize, args.stepsize, args.method,\
-            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.numpy_cache, args.chunksize, logfile, partition_outdir)
+            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.numpy_cache, args.chunksize, args.LList, logfile, partition_outdir)
         
     finally:
         if logfile is not None:
