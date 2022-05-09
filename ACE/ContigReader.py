@@ -3,6 +3,7 @@ from Domain import ContigData, Composition
 from tqdm import tqdm
 import Constants as const
 import re
+import sys
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from SCGReader import SCGReader
@@ -274,7 +275,10 @@ def __partial_build_contig_multithread__(tuple: Tuple[str, List[str], float, boo
 
 
 if __name__ == "__main__":
-    reader = ContigReader('../Dataset/edges.fasta', '../Dataset/edges_depth.txt', '../Dataset/marker_gene_stats.tsv')
-    r = reader.read_file('../Dataset/edges.fasta', True)
+    reader = ContigReader(sys.argv[1], sys.argv[2], None)
+    r = reader.read_file(sys.argv[1], True)
+    with open('./output.tsv') as f:
+        for name, contig in r.items():
+            f.writelines(f'{name}\t{contig.contig_length}')
     print("DONE")
     print(len(r))
