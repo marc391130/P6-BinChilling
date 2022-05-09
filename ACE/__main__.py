@@ -220,7 +220,7 @@ def main():
     
     ###### ENSEMBLER ARGS ######
     
-    if  0 > args.a1 or args.a1 > 2: 
+    if  0 > args.a1 or args.a1 > 1: 
         raise argparse.ArgumentError(args.a1, "a1 is not in range 0 to 1")
     
     if 0 > args.a1_min or args.a1_min > 1:

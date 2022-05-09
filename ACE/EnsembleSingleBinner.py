@@ -95,7 +95,8 @@ def run_clustering(partition: Partition, data: Tuple[Dict[int, ContigData], List
     return partition, score
 
 def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
-    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, chunksize: int, logfile: TextIOWrapper or None):
+    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, chunksize: int,\
+    logfile: TextIOWrapper or None, partition_outdir: str or None = None):
     
     logger = MyLogger(logfile=logfile)
     filter = ContigFilter(min_contig_len)
@@ -111,7 +112,10 @@ def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_
     try:
         i, best_score = min_partitions, -1.0
         while True:
-            _, score = run_clustering(gamma.create_partition(), feature_data, method, i, scg_count, max_iter=300)
+            partition, score = run_clustering(gamma.create_partition(), feature_data, method, i, scg_count, max_iter=300)
+            
+            if partition_outdir is not None:
+                print_result(os.path.join(partition_outdir, 'Partition_'+str(i) +'.tsv'), partition)
             
             if (len(gamma) > min_partitions_gamma and score < best_score) or len(gamma) > max_partitions_gamma:
                 break
@@ -151,6 +155,8 @@ def main():
         help='Path to output file. If file exists, it will be overwritten', metavar='', required=True)
     f_args.add_argument('--MS', '-MS', type=str, dest='MS', \
         help='Path to MS file of genes', metavar='', required=True)
+    f_args.add_argument('--out_part', '-op', metavar='', required=False, default=None, type=str,\
+        help='Folder to output  partition before ensemblement', dest='partition_outdir')
     f_args.add_argument('--log', '-l', type=str, dest='logfile', default=None, \
         help='Path to output file', metavar='', required=False)
     
@@ -205,6 +211,14 @@ def main():
     if os.path.isfile(outfile):
         print(f"Output file '{outfile}' already exists, overriding file when process completes")
     
+    partition_outdir = None
+    if args.partition_outdir is not None:
+        partition_outdir = args.partition_outdir if args.partition_outdir.endswith('/') else args.partition_outdir + '/'
+        partition_outdir = os.path.dirname(partition_outdir)
+        if os.path.isdir(partition_outdir) is False:
+            raise NotADirectoryError(partition_outdir)
+    
+    
     #TUNING VARIABLES
     if not (0 <= args.a1min <= 1): 
         raise Exception("a1 is not in range 0 to 1")
@@ -218,7 +232,8 @@ def main():
     if 0 >= args.stepsize:
         raise Exception('stepsize must be a positive number larger than 0')
     
-    if args.rand != 0:
+    if (args.rand == 0) is False:
+        print('Setting seed to: ' + str(args.rand))
         random.seed(args.rand)
         np.random.seed(args.rand)
     
@@ -232,7 +247,7 @@ def main():
             logfile = open(logfile_path)
             
         run(args.a1min, args.min, args.max, args.minSize, args.stepsize, args.method,\
-            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.chunksize, logfile)
+            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.chunksize, logfile, partition_outdir)
         
     finally:
         if logfile is not None:

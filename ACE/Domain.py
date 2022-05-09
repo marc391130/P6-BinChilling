@@ -1,6 +1,6 @@
 import itertools
 from math import floor
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Iterable
 import Constants as const
 
 class Composition(Dict[str, float]):
@@ -84,7 +84,9 @@ class ContigData:
     
     def __hash__(self) -> int:
         return self.name.__hash__()
-    
+
+def bin_size(contig_lst: Iterable[ContigData]) -> int:
+    return sum( (x.contig_length for x in contig_lst) )
     
 def compute_3_4_scg_count(contig_lst: List[ContigData]) -> int:
     return compute_3_4_avg(count_scgs(contig_lst)) 
