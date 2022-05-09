@@ -156,9 +156,14 @@ class ContigReader:
 
     def read_total_SCGs_set(self) -> set:
         string = ''
-        with open(self.all_scg_db_path, 'r') as f:
-            string = ''.join(f.readlines())
-        return set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string))
+        temp: List[set] = []
+        for file in self.all_scg_db_path:
+            with open(file, 'r') as f:
+                string = ''.join(f.readlines())
+            temp.append(set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string)))
+
+        result = set((item for item in (scg_set for scg_set in temp)))
+        return result
         
     
     
