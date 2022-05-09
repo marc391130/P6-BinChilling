@@ -19,7 +19,7 @@ class ContigReader:
                  fasta_file: str, 
                  depth_file: str = None, 
                  SCG_filepath: str = None,
-                 SCG_db_path: str = None,
+                 SCG_db_path: List[str] = None,
                  enable_analyse_contig_comp: bool = False,
                  numpy_file: str = None,
                  max_threads: int or None = None):
