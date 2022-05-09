@@ -29,7 +29,7 @@ class Binner2:
         self.log = logger if logger is not None else MyLogger()
     
     def sort_by_sim(self, items: List[Tuple[ContigData, float]]) -> List[ContigData]:
-            return [x[0] for x in sorted(items, key=lambda x: x[1], reverse=True )]
+        return [x[0] for x in sorted(items, key=lambda x: x[1], reverse=True )]
     
     def assign_item_to_one_cluster(self, gamma: PartitionSet, cluster_lst: List[Cluster],\
         similarity_matrix: MemberSimularityMatrix, non_cand_membermatrix: MemberMatrix) -> Partition:
@@ -221,6 +221,7 @@ class Binner2:
     
     def __assign_uncertain_items_noSCG__(self, item_lst: List[ContigData], cluster_lst: List[Cluster],
         similarity_matrix: MemberSimularityMatrix, force: bool = True) -> Tuple[List[Cluster], List[ContigData]]:
+        #return self.__assign_using_dna_len__(item_lst, cluster_lst, similarity_matrix)
     
         bad_items = []
         for item in tqdm(item_lst):
@@ -250,6 +251,49 @@ class Binner2:
                 bad_items.append(item)
         
         return cluster_lst, bad_items
+    
+    def __assign_using_dna_len__(self, item_lst: List[ContigData], cluster_lst: List[Cluster],
+        similarity_matrix: MemberSimularityMatrix) -> Tuple[List[Cluster], List[ContigData]]:
+
+        bad_items = []        
+        for item in tqdm(item_lst):
+            item: ContigData
+            related_clusters = sorted(similarity_matrix.get_row(item).items(), key=lambda x: x[1])
+            if len(related_clusters) == 0:
+                bad_items.append(item)
+                continue
+            pass
+            
+            best_score: float  = np.NINF
+            best_cluster: Cluster = None
+            
+            for cluster, sim in related_clusters:
+                if len(cluster) == 0 or sim < 0.5: continue
+                score1 = self.bin_evaluator.score_len(cluster, include_item=item)
+                score2 = self.bin_evaluator.score_len(cluster, skip_item=item)
+                score = sim * (score1 - score2)
+                
+                if best_score > score:
+                    best_cluster = cluster
+                    best_score = score
+            #end loop
+
+            self.remove_from_all(item, cluster_lst)
+            similarity_matrix.assign_item_to(cluster, item)
+            if best_cluster is None:
+                bad_items.append(item)
+                continue
+            
+            if item not in best_cluster:
+                best_cluster.append(item)
+            
+            if best_score < 0.0:
+                best_cluster.remove(item)
+                bad_items.append(item)
+                
+        #end loop
+        return cluster_lst, item_lst
+    
     
     def recalculate_simularity(self, item_lst: List[object], simularity_matrix: MemberSimularityMatrix,\
         cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix, partition_count: int):

@@ -47,7 +47,7 @@ def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Ca
     
     #Load data
     contigFilter = ContigFilter(min_contig_len)
-    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, SCG_db_path='../Dataset/Bacteria.ms',\
+    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, SCG_db_path=['../Dataset/Bacteria.ms'],\
         numpy_file=numpy_cachepath, max_threads=max_processors)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"),\
         contig_filter=contigFilter)
@@ -100,7 +100,7 @@ def run_old(a1_min, fasta_filepath: str, depth_filepath: str, scg_filepath: List
         chunksize=chunksize)
     
     contigFilter = ContigFilter(min_contig_len)
-    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, SCG_db_path='../Dataset/Bacteria.ms',\
+    contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, SCG_db_path=['../Dataset/Bacteria.ms'],\
         numpy_file=numpy_cachepath, max_threads=threads)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"),\
         contig_filter=contigFilter)
@@ -169,12 +169,12 @@ def main():
     
     ensemble_args.add_argument('-k', type=int, dest='target_clusters', metavar='',
         default=None, help='The number of bins to target during the process [default = 3rd quartile average]')
-    ensemble_args.add_argument('-h', type=int, dest='chunksize', metavar='',
+    ensemble_args.add_argument('-H', type=int, dest='chunksize', metavar='',
         default=50, help='The chunksize to split a list into when multithreading [default = 50, ignored if -t = 1]')
     ensemble_args.add_argument('--old', type=bool, dest='use_old', metavar='', default=False, \
         help='Use default ACE criterea for breaking merging process')
     ensemble_args.add_argument('--LList', '-L', nargs='+', type=int, dest='LList', metavar='', default=[1900000, 6500000], \
-        help='List of contig common contig lengths' required=False)
+        help='List of contig common contig lengths', required=False)
     
     if(len(sys.argv) <= 1):
         parser.print_help()
@@ -275,7 +275,7 @@ def main():
             run_old(args.a1_min, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, 
                     outfile, args.threads, args.chunksize, logfile, args.min_contigs)
         else:
-            run(logger, args.a1, args.a1_min, target_clusters, fasta_path, abundance_path, SCG_path,\
+            run(logger, args.a1, args.a1_min, target_clusters, fasta_path, abundance_path, scg,\
                 numpy_cache, partition_folder, outfile, args.threads, args.chunksize, args.min_contigs, args.use_old, args.LList)
     finally:
         if logfile is not None:
