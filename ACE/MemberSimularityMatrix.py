@@ -294,6 +294,10 @@ class CoAssosiationMatrix(SparseDictHashMatrix[object, float]):
         result = sum( ( 1 if x is y else self.getEntry(x, y) for x in c1 for y in c2) )
         return result / (len(c1) * len(c2))
     
+    def has_association(self, c1: Cluster, c2: Cluster) -> bool:
+        if len(c1) == 0 or len(c2) == 0: return False
+        return any( (self.has_entry(x, y) or x is y for x in c1 for y in c2) )
+    
     def cluster_mean(self, item: object, cluster: Cluster) -> float:
         if len(cluster) == 0: return 0.0
         result = sum([self.getEntry(item, x)  for x in cluster if item is not x])
