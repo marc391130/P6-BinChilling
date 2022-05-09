@@ -26,10 +26,10 @@ def main():
     file_args = parser.add_argument_group(title='Contig input (required)', description=None)
     file_args.add_argument('--fasta', metavar='', required=True,\
         dest='fasta', help='path to fasta file of contigs')
-    file_args.add_argument('--SCG', metavar='', required=True, \
+    file_args.add_argument('--SCG', nargs='+', metavar='', required=True, \
         dest='SCG', help='Path to single copy genes file (required)')
-    file_args.add_argument('--bacteria', metavar='', required=True, \
-        dest='bacteria', help='Path to bacteria file (required)')
+    file_args.add_argument('--genefiles', metavar='', required=True, \
+        dest='genefiles', help='Paths to gene files (required)')
     file_args.add_argument('--cache', metavar='', required=False, \
         dest='cache', help='Path to cache numpy file')
     file_args.add_argument('--cluster', metavar='', required=True, \
@@ -50,9 +50,10 @@ def main():
     
     args = parser.parse_args()
 
-    paths = [args.fasta, args.SCG, args.depthfile, args.bacteria, args.clusterpath]
-    if args.cache != None: paths.append(args.cache)
-
+    scg_files = [args.SCG] if isinstance(args.SCG, str) else args.SCG
+    gene_db_files = [args.genefiles] if isinstance(args.genefiles, str) else args.genefiles
+    paths = [args.fasta, args.depthfile, args.clusterpath] + scg_files + gene_db_files  
+    print(paths)
     for path in paths:
         if os.path.isfile(path) is False:
             raise FileNotFoundError(path)
@@ -62,7 +63,7 @@ def main():
         minSize = int(args.minSize)
 
     reader = ContigReader(fasta_file=args.fasta, depth_file=args.depthfile, \
-            SCG_filepath=args.SCG, SCG_db_path=args.bacteria, numpy_file=args.cache)
+            SCG_filepath=scg_files, SCG_db_path=gene_db_files, numpy_file=args.cache)
     cluster_reader = ClusterReader(file_path=args.clusterpath, contig_reader=reader)
     clusters = cluster_reader.clusters
     clusters = [cluster for cluster in clusters if get_total_size(cluster) >= minSize]

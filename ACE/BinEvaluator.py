@@ -1,37 +1,33 @@
 import itertools
 import sys
+from math import log
 from typing import Iterable, Iterator, List, Dict, Tuple, TypeVar, Generic
 from tqdm import tqdm
 
 from Cluster import Cluster
-from Domain import ContigData
+from Domain import ContigData, bin_size
 from ContigReader import ContigReader
 
 
 
 class BinEvaluator:
-    def __init__(self, all_SCGs: set, genome_size_range: Tuple[int, int]  ) -> None:
+    def __init__(self, all_SCGs: set, genome_size_range: List[int]  ) -> None:
         self.all_SCGs = all_SCGs
-        if genome_size_range[0] > genome_size_range[1]: raise Exception('Minimum genome size bigger than max.')
-        self.min_genome_len, self.max_genome_len = genome_size_range
-        self.avg_genome_size = (self.min_genome_len + self.max_genome_len) / 2
+        self.genome_size_range = genome_size_range
         
     def score(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
         comp, conn, mp = self.evaluate(cluster, skip_item, include_item)
         return self.calc_score(comp, conn, mp)
     
     
-    def score_size(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
-        total_size = self.__sum_size__(cluster, skip_item, include_item)
-        if self.min_genome_len <= total_size <= self.max_genome_len: 
-            return 1.0
-        elif total_size < self.min_genome_len:
-            return 1 - ( (1 / self.min_genome_len) * (total_size - self.min_genome_len)**2 )
-        elif total_size > self.max_genome_len:
-            return 1 - ( (1 / self.min_genome_len) * (self.min_genome_len - total_size)**2 )
-        return 0
         
-                
+    def score_len(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
+        size = bin_size((x for x in self.__chain_cluster__(cluster, include_item=include_item) if x is not skip_item ))
+        if len(self.genome_size_range) == 0: return 0.0
+        return max( (self.__calc_len_score__( base_size - size ) for base_size in self.genome_size_range) )
+        
+    def __calc_len_score__(self, size: int) -> float:
+        return 1 / (log(0.001 * abs(size) + 2, 2) )
     
     def score_SCG(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
         comp, conn, mp = self.evaluate(cluster, skip_item, include_item)

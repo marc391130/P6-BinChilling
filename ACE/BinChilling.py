@@ -84,8 +84,6 @@ class BinChillingEnsembler(AbstractEnsembler):
         self.target_clusters_est = target_clusters_est
     
     def ensemble(self, gamma: PartitionSet) -> Partition:
-        start_time = time()
-        
         partition_count = len(gamma)
         all_clusters = gamma.get_all_clusters()
         all_items = gamma.get_all_items()
@@ -113,16 +111,12 @@ class BinChillingEnsembler(AbstractEnsembler):
         self.log("Building final partition from candidate clusters...")
         partition = self.build_final_partition(gamma, final_clusters)
         self.log(f"Found {len(partition)} total clusters")
-        self.log(f"Finished in time {(time() - start_time):0.02f}s")
         
         return partition
     
     
     def pick_candidate_Clusters(self, cluster_lst: List[Cluster], target_clusters: int,  partition_count: int) -> Tuple[List[Cluster], List[Cluster]]:
         return cluster_lst, []
-        decorated_lst = [ (cluster, cluster.mean_member_simularity(partition_count)) for cluster in cluster_lst]
-        sort_lst = [x[0] for x in sorted(decorated_lst, key=lambda x: x[1])]
-        return sort_lst[:target_clusters], sort_lst[target_clusters:]
     
     def copy_cluster(self, cluster: Cluster) -> Cluster:
         new_cluster = Cluster()

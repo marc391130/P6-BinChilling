@@ -1,6 +1,6 @@
 import itertools
 from math import floor
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Iterable
 import Constants as const
 
 class Composition(Dict[str, float]):
@@ -16,17 +16,14 @@ class Composition(Dict[str, float]):
                 self[self.__sort_ACID__(key)] = 0
             else:
                 self.__recursive_setup__(key, depth - 1)
-    
 
     def __setItem__(self, key: str, value: float):
         self.__assert_ACID__(key)
         super().__setitem__(key, value)
 
     def __assert_ACID__(self, item: str) -> None:
-        if len(item) != const.COMPOSITION_CONSTANT:
-            raise Exception(f"ACID string '{item}' doesnt matcch the ccomposition constant {const.COMPOSITION_CONSTANT}")
-        if const.ACID_SET.issuperset(item) is False:
-            raise Exception('Yeet')
+        if len(item) != const.COMPOSITION_CONSTANT or const.ACID_SET.issuperset(item) is False:
+            raise Exception(f"ACID string '{item}' doesnt match the ccomposition constant {const.COMPOSITION_CONSTANT}")
 
     def __sort_ACID__(self, key: str) -> str:
         reverse = key[::-1]
@@ -79,12 +76,17 @@ class ContigData:
             i += 1
         return result
 
+    def __has_analysis__(self) -> bool:
+        return any( (x != 0.0 for x in self.composition.values()) )    
+
     def pretty_print(self) -> None:
         print(f"{self.name} {self.contig_length} {self.avg_abundance} {self.composition}")
     
     def __hash__(self) -> int:
         return self.name.__hash__()
-    
+
+def bin_size(contig_lst: Iterable[ContigData]) -> int:
+    return sum( (x.contig_length for x in contig_lst) )
     
 def compute_3_4_scg_count(contig_lst: List[ContigData]) -> int:
     return compute_3_4_avg(count_scgs(contig_lst)) 

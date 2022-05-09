@@ -57,7 +57,9 @@ def partial_seed_init(scg_count: Dict[str, int], n_clusters: int, index_map: Dic
     sorted_contigs: List[Tuple[int, ContigData]] = sorted(index_map.items(), key=lambda x: x[1].contig_length, reverse=True)
     indexes: set[int] = set()
     while True:
-        scg, count = scg_sorted[ np.random.randint(0, len(scg_sorted)) ]
+        x = np.random.randint(0, len(scg_sorted))
+        print(x)
+        scg, count = scg_sorted[ x ]
         
         for index, contig in sorted_contigs:
             if scg in contig.SCG_genes:
@@ -75,7 +77,7 @@ def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int
     if method == 'Kmeans':
         return KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=n_clusters).fit_predict(featuers)
     if method == 'PartialSeed':
-        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=n_clusters).fit_predict(featuers)
+        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=0).fit_predict(featuers)
     if method == 'Hierarchical':
         return AgglomerativeClustering(n_clusters=n_clusters, connectivity=constraints, memory=CAHCE_DIR).fit_predict(featuers)
     if method == 'Random':
@@ -88,32 +90,44 @@ def run_clustering(partition: Partition, data: Tuple[Dict[int, ContigData], List
     
     index_map, featuers, constraints = data
     labels = run_clustering_method(method, n_clusters, scg_count, index_map, featuers, constraints, max_iter)
-    score = silhouette_score(featuers, labels)
+    score = silhouette_score(featuers, labels, random_state=0)
     print(f'{n_clusters} got score of {score}')
     for i in range(len(labels)):
         partition.add(str(labels[i]), index_map[i])
     return partition, score
 
 def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
-    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, chunksize: int, logfile: TextIOWrapper or None):
+    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int, LList: List[int],\
+    logfile: TextIOWrapper or None, partition_outdir: str or None = None):
     
+    start_time = time()
     logger = MyLogger(logfile=logfile)
     filter = ContigFilter(min_contig_len)
     contig_reader = ContigReader(fasta_file, abundance_file,\
-        gene_file, bacteria_file, enable_analyse_contig_comp=True)
+        gene_file, bacteria_file, numpy_file=numpy_cache, enable_analyse_contig_comp=True)
     
-    contigs = [x for x in list(contig_reader.read_file('../Dataset/edges.fasta', load_SCGs=True).values()) if filter.predicate(x)] 
+    contigs = [x for x in list(contig_reader.read_file_fast(load_SCGs=True).values()) if filter.predicate(x)] 
+    if any( (len(x.SCG_genes) > 0 for x in contigs) ) is False:
+        raise Exception('The set of contigs contains no SCGs')
+    if any( (x.__has_analysis__() for x in contigs) ) is False:
+        raise Exception('The contigs did not contain an analysis of composition. '+\
+            'This might be because the cache file is generated using fast analysis. '+\
+            'Try deleting cache file, or provide a different cache file path')
+    
     gamma = PartitionSet(contigs)
     feature_data = transform_contigs_to_features(contigs)
     
     scg_count = count_scgs(contigs)
     min_partitions = compute_3_4_scg_count(contigs)
     try:
-        i, best_score = min_partitions, -1.0
+        i, best_score = min_partitions+1, -1.0
         while True:
-            _, score = run_clustering(gamma.create_partition(), feature_data, method, i, scg_count, max_iter=300)
+            partition, score = run_clustering(gamma.create_partition(), feature_data, method, i, scg_count, max_iter=300)
             
-            if (len(gamma) > min_partitions_gamma and score < best_score) or len(gamma) > max_partitions_gamma:
+            if partition_outdir is not None:
+                print_result(os.path.join(partition_outdir, 'Partition_'+str(i) +'.tsv'), partition)
+            
+            if (len(gamma) >= min_partitions_gamma and score < best_score) or len(gamma) > max_partitions_gamma:
                 break
             best_score = max(score, best_score)
             i += stepsize
@@ -123,13 +137,15 @@ def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_
         
     
     bin_evaluator = BinEvaluator(contig_reader.read_total_SCGs_set(), (1,2))
-    bin_refiner = BinRefiner(bin_evaluator, logger)
+    bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), logger)
     chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
     binner = Binner2(bin_refiner, bin_evaluator, QualityMeasuerer(), logger=logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
 
     final_partition = ensembler.ensemble(gamma)
     print_result(output_file, final_partition)
+    
+    logger.log(f"Completed binning in time: {(time() - start_time):0.02f}s")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -147,10 +163,14 @@ def main():
         help='Path to SCG file', metavar='', required=True)
     f_args.add_argument('--depth', '-D', type=str, dest='depth', \
         help='Path to Depth file', metavar='', required=True)
+    f_args.add_argument('--cache', '-c', metavar='', required=False, dest='numpy_cache', type=str, \
+        help='Path for cache (not required). If no cache exists at the path, a cache file will be created (highly encuraged)')
     f_args.add_argument('--output', '-o', type=str, dest='output', \
         help='Path to output file. If file exists, it will be overwritten', metavar='', required=True)
     f_args.add_argument('--MS', '-MS', type=str, dest='MS', \
         help='Path to MS file of genes', metavar='', required=True)
+    f_args.add_argument('--out_part', '-op', metavar='', required=False, default=None, type=str,\
+        help='Folder to output  partition before ensemblement', dest='partition_outdir')
     f_args.add_argument('--log', '-l', type=str, dest='logfile', default=None, \
         help='Path to output file', metavar='', required=False)
     
@@ -163,8 +183,10 @@ def main():
         help='Minimum number of partitions to use (default = 3)', metavar='', required=False)
     p_args.add_argument('--max', '-p1', type=int, dest='max', default=25, \
         help='Maximum number of partitions to use (default = 25)', metavar='', required=False)
-    p_args.add_argument('--chunksize', '-C', type=int, dest='chunksize', default=400, \
+    p_args.add_argument('--chunksize', '-H', type=int, dest='chunksize', default=400, \
         help='Chunksize to use while multiprocessing. Only impacts performance, higher = more memory usage (default=400)', metavar='', required=False)
+    p_args.add_argument('--LList', '-L', type=int, nargs='+', dest='LList', default=[1900000, 6500000],\
+         help='List of common contig lengths', metavar='', required=False)
     p_args.add_argument('--minSize', '-m', type=int, dest='minSize', default=1000, \
         help='Minimum size of contig to use in binning (default = 1000)', metavar='', required=False),
     p_args.add_argument('--stepsize', '-z', type=int, dest='stepsize', default=5,\
@@ -174,7 +196,7 @@ def main():
              "KMeans: sklearn's implementation using KMeans++ to initialize centers.\n" +\
              "PartialSeed: the KMeans initialization method proposed in the MetaBinner paper.\n" +\
              "Hierarchical: sklearns AgglomerativeClustering module with 'cannot-link' constraints.\n" +\
-             "Random: embedding is randomly generated between each partition generation" ) 
+             "Random: embedding is randomly generated between each partition generation" )
     
     if(len(sys.argv) <= 1):
         parser.print_help()
@@ -205,6 +227,19 @@ def main():
     if os.path.isfile(outfile):
         print(f"Output file '{outfile}' already exists, overriding file when process completes")
     
+    partition_outdir = None
+    if args.partition_outdir is not None:
+        partition_outdir = args.partition_outdir if args.partition_outdir.endswith('/') else args.partition_outdir + '/'
+        partition_outdir = os.path.dirname(partition_outdir)
+        if os.path.isdir(partition_outdir) is False:
+            raise NotADirectoryError(partition_outdir)
+    
+    numpy_cache = None
+    if args.numpy_cache is not None:
+        numpy_cache: str = os.path.abspath(args.numpy_cache)
+        if not numpy_cache.endswith('.npy'):
+            raise argparse.ArgumentError(args.numpy_cache, message='Provided cache file does not end in .npy')
+    
     #TUNING VARIABLES
     if not (0 <= args.a1min <= 1): 
         raise Exception("a1 is not in range 0 to 1")
@@ -218,10 +253,14 @@ def main():
     if 0 >= args.stepsize:
         raise Exception('stepsize must be a positive number larger than 0')
     
-    if args.rand != 0:
+    if (args.rand == 0) is False:
+        print('Setting seed to: ' + str(args.rand))
         random.seed(args.rand)
         np.random.seed(args.rand)
     
+    if len(args.LList) == 0:
+        raise Exception("Common contig length list has length 0! Change it ;)")
+
     print('Partition generation algorithm: ' + args.method)
     
     try:
@@ -232,7 +271,7 @@ def main():
             logfile = open(logfile_path)
             
         run(args.a1min, args.min, args.max, args.minSize, args.stepsize, args.method,\
-            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.chunksize, logfile)
+            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.numpy_cache, args.chunksize, args.LList, logfile, partition_outdir)
         
     finally:
         if logfile is not None:

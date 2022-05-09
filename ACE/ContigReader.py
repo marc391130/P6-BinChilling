@@ -5,6 +5,7 @@ import Constants as const
 import re
 import numpy as np
 from multiprocessing import Pool, cpu_count
+from SCGReader import SCGReader
 
 class ContigFilter:
     def __init__(self, min_len: int) -> None:
@@ -18,7 +19,7 @@ class ContigReader:
                  fasta_file: str, 
                  depth_file: str = None, 
                  SCG_filepath: str = None,
-                 SCG_db_path: str = None,
+                 SCG_db_path: List[str] = None,
                  enable_analyse_contig_comp: bool = False,
                  numpy_file: str = None,
                  max_threads: int or None = None):
@@ -98,10 +99,23 @@ class ContigReader:
         return result
         
 
-    def read_contig_SCGs(self) -> Dict[str, List[str]]:
+    def read_contig_SCGs(self) -> Dict[str, set]:
         if self.SCG_filepath is None:
             print("No SCG filepath supplied, skipping reading of SCGs, despite it being enabled")
             return dict()
+
+        if  len(self.SCG_filepath) > 1:
+            result = {}
+            for file in self.SCG_filepath:
+                data = SCGReader(file).read_scg()
+                for edge, scg_set in data.items():
+                    result[edge] = set([scg for scg in result.get(edge, [])] + [scg for scg in scg_set])
+
+            return result
+
+        
+
+        self.SCG_filepath = self.SCG_filepath[0]
         
         def parse_SCG_from_line(contig_name: str, scg_line: str) -> List[str]:
             scg_line = scg_line.replace('\n', '')
@@ -138,13 +152,17 @@ class ContigReader:
                 result[name] = parse_SCG_from_line(name, SCG_str)
         return result
 
-
-
     def read_total_SCGs_set(self) -> set:
         string = ''
-        with open(self.all_scg_db_path, 'r') as f:
-            string = ''.join(f.readlines())
-        return set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string))
+        result = set()
+        for file in self.all_scg_db_path:
+            with open(file, 'r') as f:
+                string = ''.join(f.readlines())
+            for item in set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string)):
+                result.add(item)
+            string = ''
+
+        return result
         
     
     
