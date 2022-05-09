@@ -109,7 +109,7 @@ class ContigReader:
             for file in self.SCG_filepath:
                 data = SCGReader(file).read_scg()
                 for edge, scg_lst in data.items():
-                    result[edge] = result.get(edge, []) + scg_lst
+                    result[edge] = result[edge] + scg_lst if edge in result else scg_lst
 
             return result
 
