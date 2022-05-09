@@ -39,7 +39,7 @@ from time import time
 
 
 def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Callable[[PartitionSet], int],\
-        fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
+        fasta_filepath: str, depth_filepath: str, scg_filepath: List[str],\
     numpy_cachepath: str, partition_folder: str, output_path: str,\
         max_processors: int or None, chunksize: int, min_contig_len: int, use_old: bool, LList: List[int]):
     

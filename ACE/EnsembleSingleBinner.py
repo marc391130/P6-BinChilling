@@ -24,6 +24,7 @@ from Binner2 import Binner2
 from BinRefiner import BinRefiner
 from time import time
 import sys
+import Assertions as Assert
 
 CAHCE_DIR = f'./cache_{time()}'
 
@@ -42,13 +43,49 @@ def compute_constraints(data: Dict[int, ContigData]) -> csr_matrix:
                 
     return matrix.tocsr(copy=True)
 
-def transform_contigs_to_features(items: List[ContigData]) -> Tuple[Dict[int, ContigData], List[List[float]], List[Tuple[int, int]]]:
-    index_map, features = {}, []
+def compute_partition_range(features: List[List[float]], weigths: List[float], contigs: List[ContigData], stepsize: int, min_partitions: int or None = None, max_partitions: int or None = None) -> Tuple[int, int]:
+    k0 = max(compute_3_4_scg_count(contigs), 2)
+    end_k = min(len(features), (k0 + max_partitions if max_partitions is not None else k0*3 + 2*stepsize))
+    
+    k_val1, k_val2 = np.NINF, np.NINF
+
+    
+    data = features
+    best_K, best_sil_val = k0+1, np.NINF
+    k1, k2 = None, None
+    min_partitions = min_partitions+1 if min_partitions is not None else 1
+    
+    print(f'Searching for best K value. (max value searched will be {end_k})')
+    for k in range(k0+1, end_k, stepsize):
+        kmeans = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=7, max_iter=300)
+        labels = kmeans.fit_predict(data, sample_weight=weigths)
+        score = silhouette_score(data, labels)
+        print(f"k value of '{k}'/{end_k} got score: {score}")
+        if score > best_sil_val:
+            best_sil_val = score
+            best_K = k
+        elif k > (k0 + min_partitions):
+            if k1 is None: 
+                k1, k_val1 = k, best_sil_val
+                best_sil_val = np.NINF
+            elif k2 is None: 
+                k2, k_val2 = k, best_sil_val
+                break
+    
+    best_K = k1 if k_val1 > k_val2 else k2
+    print(f'Found range partition range {k0} to {best_K}')
+    return (k0, best_K)
+                                                            
+def transform_contigs_to_features(items: List[ContigData]) \
+    -> Tuple[Dict[int, ContigData], List[List[float]], List[float], csr_matrix]:
+        #returns: contig index map, features, weights, constraint matrix
+    index_map, features, weights = {}, [], []
     for i in range(len(items)):
         item = items[i]
         index_map[i] = item
         features.append( item.composition.AsNormalizedFeatureList() )
-    return (index_map, features, compute_constraints(index_map))
+        weights.append( item.avg_abundance )
+    return (index_map, features, weights, compute_constraints(index_map))
 
 
 def partial_seed_init(scg_count: Dict[str, int], n_clusters: int, index_map: Dict[int, ContigData], featuers: List[List[float]])-> np.ndarray:
@@ -57,9 +94,7 @@ def partial_seed_init(scg_count: Dict[str, int], n_clusters: int, index_map: Dic
     sorted_contigs: List[Tuple[int, ContigData]] = sorted(index_map.items(), key=lambda x: x[1].contig_length, reverse=True)
     indexes: set[int] = set()
     while True:
-        x = np.random.randint(0, len(scg_sorted))
-        print(x)
-        scg, count = scg_sorted[ x ]
+        scg, count = scg_sorted[ np.random.randint(0, len(scg_sorted)) ]
         
         for index, contig in sorted_contigs:
             if scg in contig.SCG_genes:
@@ -73,11 +108,11 @@ def partial_seed_init(scg_count: Dict[str, int], n_clusters: int, index_map: Dic
     
 
 #returns labels
-def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int], index_map: Dict[int, ContigData], featuers: List[List[float]], constraints: csr_matrix, max_iter: int):
+def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int], index_map: Dict[int, ContigData], featuers: List[List[float]], weigths: List[float], constraints: csr_matrix, max_iter: int):
     if method == 'Kmeans':
-        return KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=n_clusters).fit_predict(featuers)
+        return KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=n_clusters).fit_predict(featuers, sample_weight=weigths)
     if method == 'PartialSeed':
-        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=0).fit_predict(featuers)
+        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=0).fit_predict(featuers, sample_weight=weigths)
     if method == 'Hierarchical':
         return AgglomerativeClustering(n_clusters=n_clusters, connectivity=constraints, memory=CAHCE_DIR).fit_predict(featuers)
     if method == 'Random':
@@ -88,16 +123,14 @@ def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int
 def run_clustering(partition: Partition, data: Tuple[Dict[int, ContigData], List[List[float]], List[Tuple[int, int]]],\
     method: str, n_clusters: int, scg_count: Dict[str, int] , max_iter: int = 300) -> Tuple[Partition, float]:
     
-    index_map, featuers, constraints = data
-    labels = run_clustering_method(method, n_clusters, scg_count, index_map, featuers, constraints, max_iter)
-    score = silhouette_score(featuers, labels, random_state=0)
-    print(f'{n_clusters} got score of {score}')
+    index_map, featuers, weights, constraints = data
+    labels = run_clustering_method(method, n_clusters, scg_count, index_map, featuers, weights,  constraints, max_iter)
     for i in range(len(labels)):
         partition.add(str(labels[i]), index_map[i])
-    return partition, score
+    return partition
 
 def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
-    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int, LList: List[int],\
+    fasta_file: str, abundance_file: str, gene_file: List[str], bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int, LList: List[int],\
     logfile: TextIOWrapper or None, partition_outdir: str or None = None):
     
     start_time = time()
@@ -118,25 +151,21 @@ def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_
     feature_data = transform_contigs_to_features(contigs)
     
     scg_count = count_scgs(contigs)
-    min_partitions = compute_3_4_scg_count(contigs)
     try:
-        i, best_score = min_partitions+1, -1.0
-        while True:
-            partition, score = run_clustering(gamma.create_partition(), feature_data, method, i, scg_count, max_iter=300)
-            
+        k_min, k_max = compute_partition_range(feature_data[1], feature_data[2], contigs, stepsize, min_partitions_gamma, max_partitions_gamma)
+        k_max = max(k_min + min_partitions_gamma, k_max)
+        
+        logger.log(f'Generating partitions with {k_min} to {k_max} bins...')
+        for k in tqdm(range(k_min, k_max)):
+            partition = run_clustering(gamma.create_partition(), feature_data, method, k, scg_count, max_iter=300)
             if partition_outdir is not None:
-                print_result(os.path.join(partition_outdir, 'Partition_'+str(i) +'.tsv'), partition)
-            
-            if (len(gamma) >= min_partitions_gamma and score < best_score) or len(gamma) > max_partitions_gamma:
-                break
-            best_score = max(score, best_score)
-            i += stepsize
+                print_result(os.path.join(partition_outdir, 'Partition_'+str(k) +'.tsv'), partition)
         #end_loop
     finally:
         shutil.rmtree(os.path.abspath(CAHCE_DIR), ignore_errors=True)
         
     
-    bin_evaluator = BinEvaluator(contig_reader.read_total_SCGs_set(), (1,2))
+    bin_evaluator = BinEvaluator(contig_reader.read_total_SCGs_set(), LList)
     bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), logger)
     chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
     binner = Binner2(bin_refiner, bin_evaluator, QualityMeasuerer(), logger=logger)
@@ -168,7 +197,7 @@ def main():
     f_args.add_argument('--output', '-o', type=str, dest='output', \
         help='Path to output file. If file exists, it will be overwritten', metavar='', required=True)
     f_args.add_argument('--MS', '-MS', type=str, dest='MS', \
-        help='Path to MS file of genes', metavar='', required=True)
+        help='Path to MS files of genes', metavar='', required=True)
     f_args.add_argument('--out_part', '-op', metavar='', required=False, default=None, type=str,\
         help='Folder to output  partition before ensemblement', dest='partition_outdir')
     f_args.add_argument('--log', '-l', type=str, dest='logfile', default=None, \
@@ -217,10 +246,12 @@ def main():
     SCG_path = os.path.abspath(args.SCG)
     if os.path.isfile(SCG_path) is False:
         raise FileNotFoundError(SCG_path)
+    SCG_path = [SCG_path]
     
     MS_path = os.path.abspath(args.MS)
     if os.path.isfile(MS_path) is False:
         raise FileNotFoundError(MS_path)
+    MS_path = [MS_path]
     
     outfile: str = os.path.abspath(args.output)
     outfile = outfile if outfile.endswith('.tsv') else outfile + '.tsv'

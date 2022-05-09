@@ -19,7 +19,7 @@ class ContigReader:
     def __init__(self, 
                  fasta_file: str, 
                  depth_file: str = None, 
-                 SCG_filepath: str = None,
+                 SCG_filepath: List[str] = None,
                  SCG_db_path: List[str] = None,
                  enable_analyse_contig_comp: bool = False,
                  numpy_file: str = None,
@@ -101,11 +101,11 @@ class ContigReader:
         
 
     def read_contig_SCGs(self) -> Dict[str, set]:
-        if self.SCG_filepath is None:
+        if self.SCG_filepath is None or len(self.SCG_filepath) == 0:
             print("No SCG filepath supplied, skipping reading of SCGs, despite it being enabled")
             return dict()
 
-        if  len(self.SCG_filepath) > 1:
+        if len(self.SCG_filepath) > 1:
             result = {}
             for file in self.SCG_filepath:
                 data = SCGReader(file).read_scg()
@@ -113,8 +113,6 @@ class ContigReader:
                     result[edge] = set([scg for scg in result.get(edge, [])] + [scg for scg in scg_set])
 
             return result
-
-        
 
         self.SCG_filepath = self.SCG_filepath[0]
         
@@ -271,8 +269,6 @@ def __partial_build_contig_multithread__(tuple: Tuple[str, List[str], float, boo
     
     contig = ContigData(name, composition, contig_length=len(dna_string), avg_abundance=abundance)
     return contig
-
-
 
 if __name__ == "__main__":
     reader = ContigReader(sys.argv[1], sys.argv[2], None)

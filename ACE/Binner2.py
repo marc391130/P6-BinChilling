@@ -166,10 +166,10 @@ class Binner2:
                 #score2 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items() if x is not item])
                 score2 = score1 - (values[item] * cluster_sim.get(item, 0.0))
 
-                score = similarity * (score1 - score2)
-                #score = similarity * (score1 if score1 >= score2 else score1 - score2 )
-                # if score1 > score2 and score1 < 0:
-                #     score *= -1
+                #score = similarity * (score1 - score2)
+                score = similarity * (score1 if score1 >= score2 else score1 - score2 )
+                if score1 > score2 and score1 < 0:
+                    score *= -1
                     
                 # if score1 >= score2:
                 #     score = similarity * score1
