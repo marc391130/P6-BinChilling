@@ -95,29 +95,37 @@ def run_clustering(partition: Partition, data: Tuple[Dict[int, ContigData], List
     return partition, score
 
 def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
-    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, chunksize: int,\
+    fasta_file: str, abundance_file: str, gene_file: str, bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int,\
     logfile: TextIOWrapper or None, partition_outdir: str or None = None):
     
+    start_time = time()
     logger = MyLogger(logfile=logfile)
     filter = ContigFilter(min_contig_len)
     contig_reader = ContigReader(fasta_file, abundance_file,\
-        gene_file, bacteria_file, enable_analyse_contig_comp=True)
+        gene_file, bacteria_file, numpy_file=numpy_cache, enable_analyse_contig_comp=True)
     
-    contigs = [x for x in list(contig_reader.read_file('../Dataset/edges.fasta', load_SCGs=True).values()) if filter.predicate(x)] 
+    contigs = [x for x in list(contig_reader.read_file_fast(load_SCGs=True).values()) if filter.predicate(x)] 
+    if any( (len(x.SCG_genes) > 0 for x in contigs) ) is False:
+        raise Exception('The set of contigs contains no SCGs')
+    if any( (x.__has_analysis__() for x in contigs) ) is False:
+        raise Exception('The contigs did not contain an analysis of composition. '+\
+            'This might be because the cache file is generated using fast analysis. '+\
+            'Try deleting cache file, or provide a different cache file path')
+    
     gamma = PartitionSet(contigs)
     feature_data = transform_contigs_to_features(contigs)
     
     scg_count = count_scgs(contigs)
     min_partitions = compute_3_4_scg_count(contigs)
     try:
-        i, best_score = min_partitions, -1.0
+        i, best_score = min_partitions+1, -1.0
         while True:
             partition, score = run_clustering(gamma.create_partition(), feature_data, method, i, scg_count, max_iter=300)
             
             if partition_outdir is not None:
                 print_result(os.path.join(partition_outdir, 'Partition_'+str(i) +'.tsv'), partition)
             
-            if (len(gamma) > min_partitions_gamma and score < best_score) or len(gamma) > max_partitions_gamma:
+            if (len(gamma) >= min_partitions_gamma and score < best_score) or len(gamma) > max_partitions_gamma:
                 break
             best_score = max(score, best_score)
             i += stepsize
@@ -127,13 +135,15 @@ def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_
         
     
     bin_evaluator = BinEvaluator(contig_reader.read_total_SCGs_set(), (1,2))
-    bin_refiner = BinRefiner(bin_evaluator, logger)
+    bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), logger)
     chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
     binner = Binner2(bin_refiner, bin_evaluator, QualityMeasuerer(), logger=logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
 
     final_partition = ensembler.ensemble(gamma)
     print_result(output_file, final_partition)
+    
+    logger.log(f"Completed binning in time: {(time() - start_time):0.02f}s")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -151,6 +161,8 @@ def main():
         help='Path to SCG file', metavar='', required=True)
     f_args.add_argument('--depth', '-D', type=str, dest='depth', \
         help='Path to Depth file', metavar='', required=True)
+    f_args.add_argument('--cache', '-c', metavar='', required=False, dest='numpy_cache', type=str, \
+        help='Path for cache (not required). If no cache exists at the path, a cache file will be created (highly encuraged)')
     f_args.add_argument('--output', '-o', type=str, dest='output', \
         help='Path to output file. If file exists, it will be overwritten', metavar='', required=True)
     f_args.add_argument('--MS', '-MS', type=str, dest='MS', \
@@ -169,7 +181,7 @@ def main():
         help='Minimum number of partitions to use (default = 3)', metavar='', required=False)
     p_args.add_argument('--max', '-p1', type=int, dest='max', default=25, \
         help='Maximum number of partitions to use (default = 25)', metavar='', required=False)
-    p_args.add_argument('--chunksize', '-C', type=int, dest='chunksize', default=400, \
+    p_args.add_argument('--chunksize', '-H', type=int, dest='chunksize', default=400, \
         help='Chunksize to use while multiprocessing. Only impacts performance, higher = more memory usage (default=400)', metavar='', required=False)
     p_args.add_argument('--minSize', '-m', type=int, dest='minSize', default=1000, \
         help='Minimum size of contig to use in binning (default = 1000)', metavar='', required=False),
@@ -218,6 +230,11 @@ def main():
         if os.path.isdir(partition_outdir) is False:
             raise NotADirectoryError(partition_outdir)
     
+    numpy_cache = None
+    if args.numpy_cache is not None:
+        numpy_cache: str = os.path.abspath(args.numpy_cache)
+        if not numpy_cache.endswith('.npy'):
+            raise argparse.ArgumentError(args.numpy_cache, message='Provided cache file does not end in .npy')
     
     #TUNING VARIABLES
     if not (0 <= args.a1min <= 1): 
@@ -247,7 +264,7 @@ def main():
             logfile = open(logfile_path)
             
         run(args.a1min, args.min, args.max, args.minSize, args.stepsize, args.method,\
-            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.chunksize, logfile, partition_outdir)
+            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.numpy_cache, args.chunksize, logfile, partition_outdir)
         
     finally:
         if logfile is not None:

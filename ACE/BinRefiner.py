@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, TypeVar
+from typing import Callable, List, Dict, Tuple, TypeVar, Iterator, Iterable
 from BinEvaluator import BinEvaluator
 from Cluster import Cluster
 from Domain import ContigData
@@ -8,27 +8,37 @@ import numpy as np
 from tqdm import tqdm
 from BinChilling import MyLogger
 import itertools
+import Assertions as Assert
 
 
 score_dct: Dict[Cluster, float] = {}
 
+def split_generator(source: List[Cluster], start: int, stop: int or None = None) -> Iterator[Cluster]:
+    stop = stop if stop is not None else len(source)
+    if start > stop: Assert.assert_fail(f'start is higher or equal to stop ({start} >= {stop})')
+    
+    return (source[i] for i in range(start, stop))
+
 class BinRefiner:
-    def __init__(self, bin_evaluator: BinEvaluator, logger: MyLogger) -> None:
+    def __init__(self, bin_evaluator: BinEvaluator, min_threshold: float, logger: MyLogger) -> None:
         self.bin_evaluator = bin_evaluator
         self.log = logger
+        self.min_threshold = min_threshold
         self.score_dct: Dict[Cluster, float] = {}
     
-    def __build_common_co_matrix__(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix) -> SparseDictHashMatrix[Cluster, float]:
+    def __build_common_co_matrix__(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix,\
+        old_matrix: SparseDictHashMatrix[Cluster, float] = None) -> SparseDictHashMatrix[Cluster, float]:
         avg_co_matrix = SparseDictHashMatrix[Cluster, float](SortKeysByHash, default_value=0.0)
         
         for i in tqdm(range(len(cluster_lst))):
             c1 = cluster_lst[i]
             for j in range(i+1, len(cluster_lst)):
                 c2 = cluster_lst[j]
-                value = co_matrix.bin_mean(c1, c2)
-                avg_co_matrix.set_entry(c1, c2, value)
+                value =  co_matrix.bin_mean(c1, c2) if old_matrix is None or old_matrix.has_entry(c1, c2) is False\
+                    else old_matrix[c1, c2]
+                avg_co_matrix.set_entry(c1, c2, value if value > self.min_threshold else 0.0)
         return avg_co_matrix
-    
+        
     def Refine(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix) -> List[Cluster]:
         
         self.log('Calculating cluster co-assosiation matrix to refine bins...')
@@ -51,7 +61,7 @@ class BinRefiner:
                     cluster_lst.remove(cls)
                 for cls in new_clusters:
                     cluster_lst.append(cls)
-                value_matrix = self.__build_common_co_matrix__(cluster_lst, co_matrix)
+                value_matrix = self.__build_common_co_matrix__(cluster_lst, co_matrix, old_matrix=value_matrix)
                 
             #end loop
             return cluster_lst
@@ -76,6 +86,8 @@ class BinRefiner:
             if cls not in score_dct: score_dct[cls] = self.bin_evaluator.score(cls) 
             return score_dct[cls]
         
+        # match_lst = match_lst if match_lst is not None else lambda _: source_lst
+        
         new_clusters = []
         for i in tqdm(range(len(source_lst))):
             c1 = source_lst[i]
@@ -91,7 +103,7 @@ class BinRefiner:
                 c2 = source_lst[j]
                 if c2 in skip_set or len(c2) == 0: continue
                 sim = value_matrix.getEntry(c1, c2)
-                if sim > (1/25):
+                if sim > self.min_threshold:
                     score2 = get_score(c2)
                     #Reminder that (c1 intersection c2) = Ø here,
                     #Scoring the item-chain will not result in polluted score.
