@@ -57,7 +57,9 @@ def partial_seed_init(scg_count: Dict[str, int], n_clusters: int, index_map: Dic
     sorted_contigs: List[Tuple[int, ContigData]] = sorted(index_map.items(), key=lambda x: x[1].contig_length, reverse=True)
     indexes: set[int] = set()
     while True:
-        scg, count = scg_sorted[ np.random.randint(0, len(scg_sorted)) ]
+        x = np.random.randint(0, len(scg_sorted))
+        print(x)
+        scg, count = scg_sorted[ x ]
         
         for index, contig in sorted_contigs:
             if scg in contig.SCG_genes:
@@ -75,7 +77,7 @@ def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int
     if method == 'Kmeans':
         return KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=n_clusters).fit_predict(featuers)
     if method == 'PartialSeed':
-        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=n_clusters).fit_predict(featuers)
+        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=0).fit_predict(featuers)
     if method == 'Hierarchical':
         return AgglomerativeClustering(n_clusters=n_clusters, connectivity=constraints, memory=CAHCE_DIR).fit_predict(featuers)
     if method == 'Random':
@@ -88,7 +90,7 @@ def run_clustering(partition: Partition, data: Tuple[Dict[int, ContigData], List
     
     index_map, featuers, constraints = data
     labels = run_clustering_method(method, n_clusters, scg_count, index_map, featuers, constraints, max_iter)
-    score = silhouette_score(featuers, labels)
+    score = silhouette_score(featuers, labels, random_state=0)
     print(f'{n_clusters} got score of {score}')
     for i in range(len(labels)):
         partition.add(str(labels[i]), index_map[i])
@@ -184,7 +186,7 @@ def main():
     p_args.add_argument('--chunksize', '-H', type=int, dest='chunksize', default=400, \
         help='Chunksize to use while multiprocessing. Only impacts performance, higher = more memory usage (default=400)', metavar='', required=False)
     p_args.add_argument('--LList', '-L', type=int, nargs='+', dest='LList', default=[1900000, 6500000],\
-         help='List of common contig lengths', metavar='', required=True)
+         help='List of common contig lengths', metavar='', required=False)
     p_args.add_argument('--minSize', '-m', type=int, dest='minSize', default=1000, \
         help='Minimum size of contig to use in binning (default = 1000)', metavar='', required=False),
     p_args.add_argument('--stepsize', '-z', type=int, dest='stepsize', default=5,\

@@ -50,8 +50,10 @@ def main():
     
     args = parser.parse_args()
 
-    paths = [args.fasta, args.depthfile, args.clusterpath] + list(args.SCG) + list(args.genefiles)
-
+    scg_files = [args.SCG] if isinstance(args.SCG, str) else args.SCG
+    gene_db_files = [args.genefiles] if isinstance(args.genefiles, str) else args.genefiles
+    paths = [args.fasta, args.depthfile, args.clusterpath] + scg_files + gene_db_files  
+    print(paths)
     for path in paths:
         if os.path.isfile(path) is False:
             raise FileNotFoundError(path)
@@ -61,7 +63,7 @@ def main():
         minSize = int(args.minSize)
 
     reader = ContigReader(fasta_file=args.fasta, depth_file=args.depthfile, \
-            SCG_filepath=args.SCG, SCG_db_path=args.genefiles, numpy_file=args.cache)
+            SCG_filepath=scg_files, SCG_db_path=gene_db_files, numpy_file=args.cache)
     cluster_reader = ClusterReader(file_path=args.clusterpath, contig_reader=reader)
     clusters = cluster_reader.clusters
     clusters = [cluster for cluster in clusters if get_total_size(cluster) >= minSize]
