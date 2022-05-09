@@ -50,7 +50,7 @@ def main():
     
     args = parser.parse_args()
 
-    paths = [args.fasta, args.depthfile, args.clusterpath] + args.SCG + args.genefiles
+    paths = [args.fasta, args.depthfile, args.clusterpath] + list(args.SCG) + list(args.genefiles)
 
     for path in paths:
         if os.path.isfile(path) is False:

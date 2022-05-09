@@ -152,17 +152,16 @@ class ContigReader:
                 result[name] = parse_SCG_from_line(name, SCG_str)
         return result
 
-
-
     def read_total_SCGs_set(self) -> set:
         string = ''
-        temp: List[set] = []
+        result = set()
         for file in self.all_scg_db_path:
             with open(file, 'r') as f:
                 string = ''.join(f.readlines())
-            temp.append(set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string)))
+            for item in set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string)):
+                result.add(item)
+            string = ''
 
-        result = set((item for item in (scg_set for scg_set in temp)))
         return result
         
     
