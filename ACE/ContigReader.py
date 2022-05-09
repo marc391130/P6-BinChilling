@@ -99,7 +99,7 @@ class ContigReader:
         return result
         
 
-    def read_contig_SCGs(self) -> Dict[str, List[str]]:
+    def read_contig_SCGs(self) -> Dict[str, set]:
         if self.SCG_filepath is None:
             print("No SCG filepath supplied, skipping reading of SCGs, despite it being enabled")
             return dict()
@@ -108,8 +108,8 @@ class ContigReader:
             result = {}
             for file in self.SCG_filepath:
                 data = SCGReader(file).read_scg()
-                for edge, scg_lst in data.items():
-                    result[edge] = result[edge] + scg_lst if edge in result else scg_lst
+                for edge, scg_set in data.items():
+                    result[edge] = set([scg for scg in result.get(edge, [])] + [scg for scg in scg_set])
 
             return result
 
