@@ -41,7 +41,7 @@ from time import time
 def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Callable[[PartitionSet], int],\
         fasta_filepath: str, depth_filepath: str, scg_filepath: str,\
     numpy_cachepath: str, partition_folder: str, output_path: str,\
-        max_processors: int or None, chunksize: int, min_contig_len: int, use_old: bool):
+        max_processors: int or None, chunksize: int, min_contig_len: int, use_old: bool, LList: List[int]):
     
     start_time = time()
     
@@ -55,7 +55,7 @@ def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Ca
     
     
     #set up ensembler
-    bin_evaluator = BinEvaluator(contigReader.read_total_SCGs_set(), (1,2))
+    bin_evaluator = BinEvaluator(contigReader.read_total_SCGs_set(), LList)
     # print('>SCG coutn ', len(bin_evaluator.all_SCGs))
     regulator = MergeRegulator(a1_min)  if True else\
                 MergeSCGEvaluator(a1_min, bin_evaluator, debug=True)
@@ -173,6 +173,8 @@ def main():
         default=50, help='The chunksize to split a list into when multithreading [default = 50, ignored if -t = 1]')
     ensemble_args.add_argument('--old', type=bool, dest='use_old', metavar='', default=False, \
         help='Use default ACE criterea for breaking merging process')
+    ensemble_args.add_argument('--LList', '-L', nargs='+', type=int, dest='LList', metavar='', default=[1900000, 6500000], \
+        help='List of contig common contig lengths')
     
     if(len(sys.argv) <= 1):
         parser.print_help()
@@ -244,6 +246,9 @@ def main():
 
     target_clusters = args.target_clusters if args.target_clusters is not None\
         else target_bin_3_4th_count_estimator
+
+    if len(args.LList) <= 0 and args.old is False:
+        raise Exception("Common contig length input is empty! --LList")
     
     if args.chunksize < 1:
         raise argparse.ArgumentError(args.chunksize, 'chunksize must be larger than 0')
@@ -270,7 +275,7 @@ def main():
                     outfile, args.threads, args.chunksize, logfile, args.min_contigs)
         else:
             run(logger, args.a1, args.a1_min, target_clusters, fasta_path, abundance_path, SCG_path,\
-                numpy_cache, partition_folder, outfile, args.threads, args.chunksize, args.min_contigs, args.use_old)
+                numpy_cache, partition_folder, outfile, args.threads, args.chunksize, args.min_contigs, args.use_old, args.LList)
     finally:
         if logfile is not None:
             logfile.close()
