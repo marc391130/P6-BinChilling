@@ -1,4 +1,6 @@
 import os
+from tabnanny import verbose
+from typing import Dict
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
@@ -7,11 +9,13 @@ import argparse
 import numpy as np
 from sklearn.model_selection import cross_val_score
 from tqdm import tqdm
+from typing import Dict, List, Tuple
 
 from Domain import ContigData
 from Cluster import Cluster, Partition
 from ContigReader import ContigReader
 from PartitionSetReader import PartitionSetReader
+import ClusterEnsembles as CE
 
 def parser():
     parser = argparse.ArgumentParser(
@@ -33,7 +37,10 @@ def parser():
         dest='depth', help='path to depthfile')
     io_args.add_argument('--threads' ,'-t', metavar='', required=False,\
         dest='threads', help='path to depthfile', default=1, type=int)
-    
+    io_args.add_argument('--output' ,'-o', metavar='', required=True,\
+        dest='output', help='path to outputfile')
+    io_args.add_argument('--solver' ,'-s', metavar='', required=True, default='all',\
+        dest='solver', help="Ensemble solver method ('cspa', 'mcla', 'hbgf', 'hgpa', 'nmf', 'all') ", choices=['cspa', 'mcla', 'hbgf', 'hgpa', 'nmf', 'all'])
     args = parser.parse_args()
     __assert_args__(args)
     return args
@@ -56,7 +63,7 @@ def __assert_args__(args):
 def run(args):
 
     # Read Fasta!
-    contig_reader = ContigReader(args.fasta, depth_file=args.depth, numpy_file=args.cache, enable_analyse_contig_comp=True, max_threads=args.threads)
+    contig_reader = ContigReader(args.fasta, depth_file=args.depth, numpy_file=args.cache, enable_analyse_contig_comp=False, max_threads=args.threads)
     contigs = contig_reader.read_file_fast(args.cache)
 
     # Read Partitions!
@@ -89,22 +96,28 @@ def run(args):
             result[item_map[item], cluster_map[cluster]] = 1
         return result.flatten('C').astype(np.short)
 
-    X = []
-    y = []
+    def __make_partition_array__(partition: Partition):
+        result = np.array([-1 for x in range(element_count)])
+
+        values = list(partition.values())
+        for idx in range(len(values)):
+            cluster = values[idx]
+            for item in cluster:
+                result[item_map[item]] = idx
+        return result
+
+    labels = []
 
     for partition in tqdm(partition_set):
-        for cluster in partition.values():
-            label = __make_matrix_label_for_cluster__(cluster)
-
-            for item in cluster:
-                X.append(item.as_composition_list())
-                y.append(label)
+        label = __make_partition_array__(partition)
+        labels.append(label)
 
     print("Started ensembling!")
 
     
-
-
+    label_ce = CE.cluster_ensembles(np.array(labels), solver = args.solver, verbose = True)
+    print(label_ce)
+    return label_ce, item_map
 
     # # Ensembling!
     # print("LR ...")
@@ -122,7 +135,25 @@ def run(args):
     #     scores = cross_val_score(clf, X, y, scoring='accuracy', cv=5, error_score='raise')
     #     print("Accuracy: %0.2f (+/- %0.2f) [%s]" % (scores.mean(), scores.std(), label))
 
+def make_output(ensembleArr:np.array, item_map:Dict[int, any], outputpath:str):
+    map_item = {i: item for item, i in item_map.items()}
+    clusterValueDict:Dict[int,List[any]] = {}
+    for idx in range(len(ensembleArr)):
+        item = map_item[idx]
+        clusterValueDict[ensembleArr[idx]] = clusterValueDict.get(ensembleArr[idx], []) + [item]
+    count = 0
+    with open(outputpath, 'w') as f:
+        for clusteridx, item_lst in clusterValueDict.items():
+            for item in item_lst:
+                count += 1
+                f.write(f"{clusteridx}\t{item.name}\n")
+    print(len(map_item),len(item_map), count)
+    
+
+
 
 if __name__ == '__main__':
     args = parser()
-    run(args)
+    ensemblearr, map_item = run(args)
+    make_output(ensemblearr, map_item, args.output)
+    print(len(ensemblearr))
