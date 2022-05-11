@@ -80,7 +80,11 @@ class MemberSimularityMatrix(DoubleSparseDictHashMatrix[object, Cluster, float])
         
     def cluster_mean(self, cluster: Cluster) -> float:
         return self.cluster_sum(cluster) / len(self.get_column(cluster))
-        
+    
+    def remove_cluster(self, cluster: Cluster) -> None:
+        for item in self.get_column(cluster).keys():
+            self.pop_entry(item, cluster)
+    
     def assign_item_to(self, cluster: Cluster, item: object, update_sim: bool = True) -> None:
         for cluster2 in self.get_row(item).keys():
             self.pop_entry(item, cluster2)

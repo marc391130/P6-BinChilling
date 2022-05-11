@@ -43,7 +43,7 @@ class Composition(Dict[str, float]):
 
     def AsNormalizedFeatureList(self) -> List[float]:
         total = sum([self[k] for k in self]) 
-        return [x / total for x in self.values()]
+        return [(10000*x / total) for x in self.values()]
 
        
     #prints only the values over the threshold

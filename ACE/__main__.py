@@ -248,7 +248,7 @@ def main():
     target_clusters = args.target_clusters if args.target_clusters is not None\
         else target_bin_3_4th_count_estimator
 
-    if len(args.LList) <= 0 and args.old is False:
+    if len(args.LList) < 0 and args.use_old is False:
         raise Exception("Common contig length input is empty! --LList")
     
     if args.chunksize < 1:

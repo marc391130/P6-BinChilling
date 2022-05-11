@@ -48,15 +48,12 @@ def compute_partition_range(features: List[List[float]], weigths: List[float], c
     end_k = min(len(features), (k0 + max_partitions if max_partitions is not None else k0*3 + 2*stepsize))
     
     k_val1, k_val2 = np.NINF, np.NINF
-
-    
     data = features
     best_K, best_sil_val = k0+1, np.NINF
     k1, k2 = None, None
     min_partitions = min_partitions+1 if min_partitions is not None else 1
-    
-    print(f'Searching for best K value. (max value searched will be {end_k})')
-    for k in range(k0+1, end_k, stepsize):
+    print(f'Searching for best K value. (Will stop when reaching {end_k} or silhouette_score decreases)')
+    for k in range(k0+1, end_k+1, stepsize):
         kmeans = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=7, max_iter=300)
         labels = kmeans.fit_predict(data, sample_weight=weigths)
         score = silhouette_score(data, labels)
@@ -64,12 +61,12 @@ def compute_partition_range(features: List[List[float]], weigths: List[float], c
         if score > best_sil_val:
             best_sil_val = score
             best_K = k
-        elif k > (k0 + min_partitions):
-            if k1 is None: 
-                k1, k_val1 = k, best_sil_val
-                best_sil_val = np.NINF
-            elif k2 is None: 
-                k2, k_val2 = k, best_sil_val
+        else:
+            if k_val1 <= k_val2: k1, k_val1 = best_K, best_sil_val
+            else: k2, k_val2 = best_K, best_sil_val
+
+            if k1 is not None and k2 is not None and k > (k0 + min_partitions):
+                print(k1, k2, k0+min_partitions)
                 break
     
     best_K = k1 if k_val1 > k_val2 else k2
@@ -84,7 +81,7 @@ def transform_contigs_to_features(items: List[ContigData]) \
         item = items[i]
         index_map[i] = item
         features.append( item.composition.AsNormalizedFeatureList() )
-        weights.append( item.avg_abundance )
+        weights.append( item.avg_abundance + 0.001 )
     return (index_map, features, weights, compute_constraints(index_map))
 
 
@@ -104,6 +101,7 @@ def partial_seed_init(scg_count: Dict[str, int], n_clusters: int, index_map: Dic
         i += 1
     list_result = [featuers[x] for x in sorted(indexes, key=lambda x: index_map[x].contig_length, reverse=True)[0:n_clusters]] 
     matrix = np.array(list_result, dtype=np.float16)
+    # np.savetxt('test.txt',list_result, newline='\n\n')
     return matrix
     
 
@@ -112,11 +110,11 @@ def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int
     if method == 'Kmeans':
         return KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=n_clusters).fit_predict(featuers, sample_weight=weigths)
     if method == 'PartialSeed':
-        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=0).fit_predict(featuers, sample_weight=weigths)
+        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=7).fit_predict(featuers, sample_weight=weigths)
     if method == 'Hierarchical':
         return AgglomerativeClustering(n_clusters=n_clusters, connectivity=constraints, memory=CAHCE_DIR).fit_predict(featuers)
     if method == 'Random':
-        return KMeans(n_clusters=n_clusters, max_iter=max_iter).fit_predict(np.random.rand( len(featuers), 32 ) )
+        return KMeans(n_clusters=n_clusters, init='random', max_iter=max_iter).fit_predict(np.random.rand( len(featuers), 32 ) )
     raise Exception(f'method name {method} not recognized')
     
 
