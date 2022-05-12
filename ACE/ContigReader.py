@@ -31,6 +31,7 @@ class ContigReader:
         self.numpy_file = numpy_file
         self.enable_analyse_contig_comp = enable_analyse_contig_comp
         self.max_threads = max_threads if max_threads is not None else cpu_count()
+        self.SCG_reader = SCGReader(SCG_filepath, SCG_db_path)
 
     def read_file_fast(self, numpy_file: str or None = None, load_SCGs:bool = False) -> Dict[str, ContigData]:
         numpy_path = numpy_file if numpy_file is not None else self.numpy_file
@@ -90,7 +91,8 @@ class ContigReader:
         
         if load_SCGs:
             print("loading SCGs...")
-            SCG_dct = self.read_contig_SCGs()
+            SCG_dct = self.SCG_reader.read_scg()
+            print("I do this!")
             for contig_name, contig in tqdm(result.items()):
                 if contig_name in SCG_dct:
                     contig.SCG_genes = set(SCG_dct[contig_name])
@@ -100,68 +102,35 @@ class ContigReader:
         return result
         
 
-    def read_contig_SCGs(self) -> Dict[str, set]:
-        if self.SCG_filepath is None or len(self.SCG_filepath) == 0:
-            print("No SCG filepath supplied, skipping reading of SCGs, despite it being enabled")
-            return dict()
+    # def read_contig_SCGs(self) -> Dict[str, set]:
+    #     if self.SCG_filepath is None or len(self.SCG_filepath) == 0:
+    #         print("No SCG filepath supplied, skipping reading of SCGs, despite it being enabled")
+    #         return dict()
 
-        if len(self.SCG_filepath) > 1:
-            result = {}
-            for file in self.SCG_filepath:
-                data = SCGReader(file).read_scg()
-                for edge, scg_set in data.items():
-                    result[edge] = set([scg for scg in result.get(edge, [])] + [scg for scg in scg_set])
+    #     if len(self.SCG_filepath) > 1:
+    #         result = {}
+    #         for file in self.SCG_filepath:
+    #             data = SCGReader(file).read_scg()
+    #             for edge, scg_set in data.items():
+    #                 result[edge] = set([scg for scg in result.get(edge, [])] + [scg for scg in scg_set])
 
-            return result
+    #         return result
 
-        self.SCG_filepath = self.SCG_filepath[0]
-        
-        def parse_SCG_from_line(contig_name: str, scg_line: str) -> List[str]:
-            scg_line = scg_line.replace('\n', '')
-            
-            result = []
-            start_indecies = [int(i.start()) for i in re.finditer('\'', scg_line)]
-            end_indecies = [int(i.start()) for i in re.finditer('\'', scg_line)]
-            
-            if len(start_indecies) != len(end_indecies):
-                raise ValueError(f"{len(start_indecies)} != {len(end_indecies)}")
-                        
-            for i in range(0, len(start_indecies), 2):
-                start, end = start_indecies[i], end_indecies[i+1]
-                if start > end:
-                    raise Exception("loop count broke")
-                if start == end or start+1 == end:
-                    continue
-
-                scg = scg_line[start+1:end]
-                if scg.startswith(contig_name) is False:
-                    result.append(scg)
-                
-            return result
+    #     self.SCG_filepath = self.SCG_filepath[0]
         
         
-        result = {}
-        with open(self.SCG_filepath, 'r') as f:
-            for line in f.readlines():
-                name = line.split('\t')[0]
-                
-                startindex, endindex = line.find('{'), line.rfind('}')
-                SCG_str = line[startindex:endindex+1]
-                
-                result[name] = parse_SCG_from_line(name, SCG_str)
-        return result
 
-    def read_total_SCGs_set(self) -> set:
-        string = ''
-        result = set()
-        for file in self.all_scg_db_path:
-            with open(file, 'r') as f:
-                string = ''.join(f.readlines())
-            for item in set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string)):
-                result.add(item)
-            string = ''
+    # def read_total_SCGs_set(self) -> set:
+    #     string = ''
+    #     result = set()
+    #     for file in self.all_scg_db_path:
+    #         with open(file, 'r') as f:
+    #             string = ''.join(f.readlines())
+    #         for item in set(re.findall("(?<=')([a-zA-Z0-9.,]+)(?=')", string)):
+    #             result.add(item)
+    #         string = ''
 
-        return result
+    #     return result
         
     
     

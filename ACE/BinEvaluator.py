@@ -135,8 +135,9 @@ class BinEvaluator:
     
 
 class ClusterReader:
-    def __init__(self, file_path: str, contig_reader: ContigReader) -> None:
+    def __init__(self, file_path: str, contig_reader: ContigReader, numpy_file: str = None) -> None:
         self.contigReader = contig_reader
+        self.numpy_file = numpy_file
         self.clusters = self.__read_clusters__(file_path)
 
     def __read_clusters__(self, file_path: str) -> List[Cluster]:
@@ -148,7 +149,7 @@ class ClusterReader:
                 cluster_idx, edge_name = split_line[0], split_line[1].replace('\n', '')
                 cluster_data_map[cluster_idx] = cluster_data_map[cluster_idx] + [edge_name] if cluster_idx in cluster_data_map else [edge_name]
         
-        contig_scg_dct = self.contigReader.read_file_fast(None, True)
+        contig_scg_dct = self.contigReader.read_file_fast(self.numpy_file, True)
         for cluster_idx, edge_lst in cluster_data_map.items():
             cluster = Cluster()
             for edge in edge_lst:
