@@ -142,8 +142,10 @@ if __name__ == '__main__':
         default=0, metavar='', dest='minsize')
     p_args.add_argument('--fasta', help='path to fasta file', type=str, required=True,\
         metavar='', dest='fastafile')
-    p_args.add_argument('--cache', help='path to abundance file', type=str, required=True,\
+    p_args.add_argument('--cache', help='path to cache file', type=str, required=False,\
         metavar='', dest='cachefile')
+    p_args.add_argument('--abund', help='path to abundance file', type=str, required=True,\
+        metavar='', dest='abundancefile')
 
     args = parser.parse_args()
     all_comb = args.comp == 'All'
@@ -156,7 +158,7 @@ if __name__ == '__main__':
     if len(partition_paths1) + len(partition_paths2) <= 1:
         raise argparse.ArgumentError(args.path, 'must have at least 2 partitions')
 
-    contig_dct = ContigReader(args.fastafile, numpy_file=args.cachefile).read_file_fast(args.cachefile)
+    contig_dct = ContigReader(args.fastafile, numpy_file=args.cachefile, depth_file=args.abundancefile).read_file_fast(args.cachefile)
     number_of_elements = len(contig_dct)
     path_lst = partition_paths1 + partition_paths2
     partitionDct = {path: filter_bins(PartitionSetReader.__read_single_partition__(path), args.minsize, contig_dct) for path in path_lst}
