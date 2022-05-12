@@ -11,9 +11,8 @@ from ContigReader import ContigReader
 
 
 class BinEvaluator:
-    def __init__(self, all_SCGs: set, genome_size_range: List[int]  ) -> None:
+    def __init__(self, all_SCGs: set  ) -> None:
         self.all_SCGs = all_SCGs
-        self.genome_size_range = genome_size_range
         
     def score(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
         comp, conn, mp = self.evaluate(cluster, skip_item, include_item)
@@ -21,10 +20,10 @@ class BinEvaluator:
     
     
         
-    def score_len(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
-        size = bin_size((x for x in self.__chain_cluster__(cluster, include_item=include_item) if x is not skip_item ))
-        if len(self.genome_size_range) == 0: return 0.0
-        return max( (self.__calc_len_score__( base_size - size ) for base_size in self.genome_size_range) )
+    # def score_len(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
+    #     size = bin_size((x for x in self.__chain_cluster__(cluster, include_item=include_item) if x is not skip_item ))
+    #     if len(self.genome_size_range) == 0: return 0.0
+    #     return max( (self.__calc_len_score__( base_size - size ) for base_size in self.genome_size_range) )
         
     def __calc_len_score__(self, size: int) -> float:
         return 1 / (log(0.001 * abs(size) + 2, 2) )

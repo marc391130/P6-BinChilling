@@ -4,7 +4,7 @@
 
 from io import TextIOWrapper
 from sklearn.metrics import silhouette_score
-from AdaptiveEnsemblerExtensions import MergeRegulator, QualityMeasuerer, print_result, target_bin_3_4th_count_estimator
+from AdaptiveEnsemblerExtensions import MergeRegulator, print_result, target_bin_3_4th_count_estimator
 from Cluster import Partition, Cluster, PartitionSet
 from ContigReader import ContigFilter, ContigReader
 import numpy as np
@@ -128,7 +128,7 @@ def run_clustering(partition: Partition, data: Tuple[Dict[int, ContigData], List
     return partition
 
 def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
-    fasta_file: str, abundance_file: str, gene_file: List[str], bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int, LList: List[int],\
+    fasta_file: str, abundance_file: str, gene_file: List[str], bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int, \
     logfile: TextIOWrapper or None, partition_outdir: str or None = None):
     
     start_time = time()
@@ -163,10 +163,10 @@ def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_
         shutil.rmtree(os.path.abspath(CAHCE_DIR), ignore_errors=True)
         
     
-    bin_evaluator = BinEvaluator(contig_reader.read_total_SCGs_set(), LList)
+    bin_evaluator = BinEvaluator(contig_reader.read_total_SCGs_set())
     bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), logger)
     chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
-    binner = Binner2(bin_refiner, bin_evaluator, QualityMeasuerer(), logger=logger)
+    binner = Binner2(bin_refiner, bin_evaluator, logger=logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
 
     final_partition = ensembler.ensemble(gamma)
@@ -212,8 +212,6 @@ def main():
         help='Maximum number of partitions to use (default = 25)', metavar='', required=False)
     p_args.add_argument('--chunksize', '-H', type=int, dest='chunksize', default=400, \
         help='Chunksize to use while multiprocessing. Only impacts performance, higher = more memory usage (default=400)', metavar='', required=False)
-    p_args.add_argument('--LList', '-L', type=int, nargs='+', dest='LList', default=[1900000, 6500000],\
-         help='List of common contig lengths', metavar='', required=False)
     p_args.add_argument('--minSize', '-m', type=int, dest='minSize', default=1000, \
         help='Minimum size of contig to use in binning (default = 1000)', metavar='', required=False),
     p_args.add_argument('--stepsize', '-z', type=int, dest='stepsize', default=5,\
@@ -286,9 +284,6 @@ def main():
         print('Setting seed to: ' + str(args.rand))
         random.seed(args.rand)
         np.random.seed(args.rand)
-    
-    if len(args.LList) == 0:
-        raise Exception("Common contig length list has length 0! Change it ;)")
 
     print('Partition generation algorithm: ' + args.method)
     
@@ -300,7 +295,7 @@ def main():
             logfile = open(logfile_path)
             
         run(args.a1min, args.min, args.max, args.minSize, args.stepsize, args.method,\
-            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.numpy_cache, args.chunksize, args.LList, logfile, partition_outdir)
+            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.numpy_cache, args.chunksize, logfile, partition_outdir)
         
     finally:
         if logfile is not None:

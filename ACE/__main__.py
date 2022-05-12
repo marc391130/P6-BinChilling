@@ -6,8 +6,8 @@ from io import TextIOWrapper
 from random import randrange, random, seed
 from typing import List, Dict, Tuple
 
-from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler
-from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, QualityMeasuerer, print_result
+from AdaptiveEnsembler import AdaptiveClusterEnsembler, Ensembler, QualityMeasuerer
+from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator, print_result
 from AdaptiveEnsemblerDomainExtensions import  MergeSCGEvaluator
 from BinEvaluator import BinEvaluator
 from Cluster import Cluster, Partition, PartitionSet
@@ -22,7 +22,7 @@ import argparse
 import sys
 import os
 import scipy as sp
-from BinChilling import BinChillingEnsembler, Binner, Chiller, MyLogger
+from BinChilling import BinChillingEnsembler, Chiller, MyLogger
 from BinRefiner import BinRefiner
 from Binner2 import Binner2
 from time import time
@@ -41,7 +41,7 @@ from time import time
 def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Callable[[PartitionSet], int],\
         fasta_filepath: str, depth_filepath: str, scg_filepath: List[str],\
     numpy_cachepath: str, partition_folder: str, output_path: str,\
-        max_processors: int or None, chunksize: int, min_contig_len: int, use_old: bool, LList: List[int]):
+        max_processors: int or None, chunksize: int, min_contig_len: int):
     
     start_time = time()
     
@@ -55,13 +55,13 @@ def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Ca
     
     
     #set up ensembler
-    bin_evaluator = BinEvaluator(contigReader.read_total_SCGs_set(), LList)
+    bin_evaluator = BinEvaluator(contigReader.read_total_SCGs_set())
     # print('>SCG coutn ', len(bin_evaluator.all_SCGs))
-    regulator = MergeRegulator(a1_min)  if True else\
+    regulator = MergeRegulator(a1_min) if True else\
                 MergeSCGEvaluator(a1_min, bin_evaluator, debug=True)
     bin_refiner = BinRefiner(bin_evaluator, 1 / len(gamma), logger)
     chiller = Chiller(a1_min, a1, regulator, 0.02, logger)
-    binner = Binner2(bin_refiner, bin_evaluator, QualityMeasuerer(), 0.75, logger)
+    binner = Binner2(bin_refiner, bin_evaluator, 0.75, logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)
 
     output = ensembler.ensemble(gamma)
@@ -88,33 +88,36 @@ def run(logger: MyLogger, a1:float, a1_min: float, target_cluster_est: int or Ca
 def run_old(a1_min, fasta_filepath: str, depth_filepath: str, scg_filepath: List[str], numpy_cachepath: str, partition_folder: str,\
     output_path: str, threads, chunksize, logfile: TextIOWrapper or None, min_contig_len: int = 0):
 
-    ensembler = AdaptiveClusterEnsembler(
-        initial_alpha1_thredshold=1,\
-        initial_delta_aplha=0.02,\
-        alpha1_min=a1_min,\
-        alpha2=0.8,\
-        taget_clusters_est=target_bin_3_4th_count_estimator,\
-        logfile=logfile,\
-        should_log=True,\
-        threads=threads,\
-        chunksize=chunksize)
+    
     
     contigFilter = ContigFilter(min_contig_len)
     contigReader = ContigReader(fasta_filepath, depth_filepath, scg_filepath, SCG_db_path=['../Dataset/Bacteria.ms'],\
         numpy_file=numpy_cachepath, max_threads=threads)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"),\
         contig_filter=contigFilter)
-    partition_set = partitionSetReader.read_file()
+    gamma = partitionSetReader.read_file()
+    
+    ensembler = AdaptiveClusterEnsembler(
+        initial_alpha1_thredshold=1,\
+        initial_delta_aplha=0.02,\
+        alpha1_min=a1_min,\
+        alpha2=(1 - (1/len(gamma))),\
+        taget_clusters_est=target_bin_3_4th_count_estimator,\
+        logfile=logfile,\
+        should_log=True,\
+        threads=threads,\
+        chunksize=chunksize)
+    
     
     regulator = MergeRegulator(ensembler.aplha1_min)
     ensembler.merge_regulator = regulator
 
-    output = ensembler.ensemble(partition_set)
+    output = ensembler.ensemble(gamma)
         
     print_result(output_path, output)
     print("Completed successfully")
-    all_elements_len = len(partition_set.get_all_elements())
-    true_cluster = partition_set[0]
+    all_elements_len = len(gamma.get_all_elements())
+    true_cluster = gamma[0]
     print(ARIEvaluator.evaluate(output, true_cluster, all_elements_len))
     print(NMIEvaluator.evaluate(output, true_cluster, all_elements_len))
     print(f'Can now be run on Evaluator: it has {all_elements_len} objects!')
@@ -171,11 +174,9 @@ def main():
         default=None, help='The number of bins to target during the process [default = 3rd quartile average]')
     ensemble_args.add_argument('-H', type=int, dest='chunksize', metavar='',
         default=50, help='The chunksize to split a list into when multithreading [default = 50, ignored if -t = 1]')
-    ensemble_args.add_argument('--old', type=bool, dest='use_old', metavar='', default=False, \
+    ensemble_args.add_argument('--old', dest='use_old', default=False, action='store_true', \
         help='Use default ACE criterea for breaking merging process')
-    ensemble_args.add_argument('--LList', '-L', nargs='+', type=int, dest='LList', metavar='', default=[1900000, 6500000], \
-        help='List of contig common contig lengths', required=False)
-    
+
     if(len(sys.argv) <= 1):
         parser.print_help()
         sys.exit()
@@ -247,9 +248,6 @@ def main():
 
     target_clusters = args.target_clusters if args.target_clusters is not None\
         else target_bin_3_4th_count_estimator
-
-    if len(args.LList) < 0 and args.use_old is False:
-        raise Exception("Common contig length input is empty! --LList")
     
     if args.chunksize < 1:
         raise argparse.ArgumentError(args.chunksize, 'chunksize must be larger than 0')
@@ -276,7 +274,7 @@ def main():
                     outfile, args.threads, args.chunksize, logfile, args.min_contigs)
         else:
             run(logger, args.a1, args.a1_min, target_clusters, fasta_path, abundance_path, scg,\
-                numpy_cache, partition_folder, outfile, args.threads, args.chunksize, args.min_contigs, args.use_old, args.LList)
+                numpy_cache, partition_folder, outfile, args.threads, args.chunksize, args.min_contigs)
     finally:
         if logfile is not None:
             logfile.close()

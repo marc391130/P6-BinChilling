@@ -2,9 +2,8 @@ import itertools
 from os import remove
 
 from math import sqrt, ceil
-from BinChilling import Binner, MyLogger
+from BinChilling import MyLogger
 from BinEvaluator import BinEvaluator
-from AdaptiveEnsemblerExtensions import QualityMeasuerer
 from BinRefiner import BinRefiner
 from Cluster import PartitionSet, Partition, Cluster
 from Domain import ContigData
@@ -20,13 +19,11 @@ class Binner2:
     def __init__(self,
             bin_refiner: BinRefiner,
             bin_evaluator: BinEvaluator,
-            quality_measurer: QualityMeasuerer,
             alpha2: float = 0.75,
             logger: MyLogger = None) -> None:
         self.bin_refiner = bin_refiner
         self.alpha2 = alpha2
         self.bin_evaluator = bin_evaluator
-        self.quality_measure = quality_measurer
         self.log = logger if logger is not None else MyLogger()
     
     def sort_by_sim(self, items: List[Tuple[ContigData, float]]) -> List[ContigData]:
@@ -165,8 +162,8 @@ class Binner2:
                 #score2 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items() if x is not item])
                 score2 = score1 - (values[item] * cluster_sim.get(item, 0.0))
 
-                # score = similarity * (score1 - score2)
-                score = similarity * (score1 if score1 >= score2 else score1 - score2 )
+                score = similarity * (score1 - score2)
+                # score = similarity * (score1 if score1 >= score2 else score1 - score2 )
                 # if score1 > score2 and score1 < 0:
                 #     score *= -1
                     

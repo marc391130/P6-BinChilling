@@ -4,17 +4,16 @@ from multiprocessing import cpu_count
 from posixpath import split
 from typing import Callable, Dict, List, Tuple, Generic, TypeVar
 
-from AdaptiveEnsembler import Ensembler
+from requests import head
+
 from Cluster import Cluster, Partition, PartitionSet
 import numpy as np
 from tqdm import tqdm
-from itertools import islice
 import Assertions as Assert
 from time import time
 from MemberSimularityMatrix import MemberMatrix, MemberSimularityMatrix
-from ClusterSimilarityMatrix import SparseClustserSimularity, SparseDictHashMatrix
-from AdaptiveEnsemblerExtensions import AssignRegulator, MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
-from AdaptiveEnsemblerDomainExtensions import MergeSCGEvaluator, SCGAssignRegulator
+from ClusterSimilarityMatrix import SparseClustserSimularity
+from AdaptiveEnsemblerExtensions import MergeRegulator, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
 from io import TextIOWrapper
 from BinEvaluator import BinEvaluator
 from Domain import ContigData
@@ -34,6 +33,14 @@ class MyLogger:
     def log(self, string: str) -> None:
         if self.__should_log__: print(string)
         if self.logfile is not None: print(string, file=self.logfile)
+        
+    def draw_line(self, header: str or None = None) -> None:
+        if header is None:
+            line =  '####################################||######################################'
+        else: 
+            line = f'#################################|{header}|#################################'
+        return self.log(line)
+        
 
 class AbstractEnsembler:
     def __init__(self, logger: MyLogger) -> None:
@@ -47,7 +54,7 @@ class AbstractEnsembler:
         found_items, dups = set(), 0
         
         for cluster_index in tqdm(range(len(candidate_clusters))):
-            cluster = candidate_clusters[cluster_index]
+            cluster: Cluster[ContigData] = candidate_clusters[cluster_index]
             for item in cluster:
                 if item in found_items:
                     self.log(f'Item {item.name} is a duplicate, having {len(item.SCG_genes)} and len {item.contig_length}')
@@ -64,7 +71,7 @@ class AbstractEnsembler:
 class BinChillingEnsembler(AbstractEnsembler):
     def __init__(self, 
                 chiller: Chiller,
-                binner: Binner,
+                binner,
                 bin_eval: BinEvaluator,
                 target_clusters_est: int or Callable[[PartitionSet], int] = None,
                 chunksize: int = 1,
@@ -177,6 +184,7 @@ class Chiller:
                 log_loop()
                 merged_clusters, max_merge_simularity = find_merge_clusters()
                 complete, best_result = self.merge_regulator.evaluate(alpha1, cluster_matrix, merged_clusters)
+                print(len(best_result))
                 if complete:
                     return best_result
                 
@@ -187,295 +195,293 @@ class Chiller:
         finally:
             self.merge_regulator.get_merge_result()
     
-class Binner:
-    def __init__(self,
-                bin_evaluator: BinEvaluator,
-                quality_measurer: QualityMeasuerer,
-                alpha2: float = 0.75,
-                logger: MyLogger = None) -> None:
-        self.alpha2 = alpha2
-        self.bin_evaluator = bin_evaluator
-        self.quality_measure = quality_measurer
-        self.log = logger if logger is not None else MyLogger()
+# class Binner:
+#     def __init__(self,
+#                 bin_evaluator: BinEvaluator,
+#                 quality_measurer: QualityMeasuerer,
+#                 alpha2: float = 0.75,
+#                 logger: MyLogger = None) -> None:
+#         self.alpha2 = alpha2
+#         self.bin_evaluator = bin_evaluator
+#         self.quality_measure = quality_measurer
+#         self.log = logger if logger is not None else MyLogger()
     
     
-    def assign_item_to_one_cluster(self, gamma: PartitionSet, cluster_lst: List[Cluster],\
-        similarity_matrix: MemberSimularityMatrix, non_cand_membermatrix: MemberMatrix) -> Partition:
+#     def assign_item_to_one_cluster(self, gamma: PartitionSet, cluster_lst: List[Cluster],\
+#         similarity_matrix: MemberSimularityMatrix, non_cand_membermatrix: MemberMatrix) -> Partition:
         
-        all_items = gamma.get_all_items()
+#         all_items = gamma.get_all_items()
         
-        def sort_by_sim(items: List[Tuple[ContigData, float]]) -> List[ContigData]:
-            return [x[0] for x in sorted(items, key=lambda x: x[1], reverse=True )]
+#         def sort_by_sim(items: List[Tuple[ContigData, float]]) -> List[ContigData]:
+#             return [x[0] for x in sorted(items, key=lambda x: x[1], reverse=True )]
         
-        def split_lst(items: List[ContigData]) -> Tuple[List[ContigData], List[ContigData]]:
-            scg, empty = [], []
-            for x in items: (empty if len(x.SCG_genes) == 0 else scg).append(x)
-            return scg, empty
+#         def split_lst(items: List[ContigData]) -> Tuple[List[ContigData], List[ContigData]]:
+#             scg, empty = [], []
+#             for x in items: (empty if len(x.SCG_genes) == 0 else scg).append(x)
+#             return scg, empty
         
-        self.log("Classifying object certainty...")
-        certain_lst, uncertain_lst, lost_lst \
-            = self.identify_object_certainy(all_items, similarity_matrix)
+#         self.log("Classifying object certainty...")
+#         certain_lst, uncertain_lst, lost_lst \
+#             = self.identify_object_certainy(all_items, similarity_matrix)
         
-        self.log("\nFound: ")
-        self.log(f"Certain objects: {len(certain_lst)}")
-        self.log(f"Uncertain objects: {len(uncertain_lst)}")
-        if len(lost_lst) > 0: self.log(f"Lost objects: {len(lost_lst)}")
-        self.log('\n')
+#         self.log("\nFound: ")
+#         self.log(f"Certain objects: {len(certain_lst)}")
+#         self.log(f"Uncertain objects: {len(uncertain_lst)}")
+#         if len(lost_lst) > 0: self.log(f"Lost objects: {len(lost_lst)}")
+#         self.log('\n')
         
-        scg_lst, uncertain_lst = split_lst(sort_by_sim(uncertain_lst))
+#         scg_lst, uncertain_lst = split_lst(sort_by_sim(uncertain_lst))
         
-        self.log("Assigning certain objects...")
-        candidate_clusters = self.__assign_certains_objects__(certain_lst, cluster_lst)
+#         self.log("Assigning certain objects...")
+#         candidate_clusters = self.__assign_certains_objects__(certain_lst, cluster_lst)
         
-        self.log("Assigning uncertain objects with SCG")        
-        candidate_clusters, bad_items = self.__assign_using_SCGs__(scg_lst,\
-            similarity_matrix, candidate_clusters, gamma, force=False)
+#         self.log("Assigning uncertain objects with SCG")        
+#         candidate_clusters, bad_items = self.__assign_using_SCGs__(scg_lst,\
+#             similarity_matrix, candidate_clusters, gamma, force=False)
 
-        self.log("Assigning uncertain objects...")
-        for item in tqdm(uncertain_lst):
-            x =self.__handle_item2__(item, similarity_matrix.get_row(item), similarity_matrix, force=False)
-            if x is not None: bad_items.append(x)
+#         self.log("Assigning uncertain objects...")
+#         for item in tqdm(uncertain_lst):
+#             x =self.__handle_item2__(item, similarity_matrix.get_row(item), similarity_matrix, force=False)
+#             if x is not None: bad_items.append(x)
 
-        bad_items += lost_lst
+#         bad_items += lost_lst
 
-        if len(bad_items) > 0:
-            self.log(f'Resulted in {len(bad_items)} bad items, trying to relocate using common co-assosication...')
-            candidate_clusters = self.assign_remaining(bad_items, candidate_clusters, similarity_matrix, gamma)
-        else:
-            self.log('No bad items, skipping relocation effert...')
+#         if len(bad_items) > 0:
+#             self.log(f'Resulted in {len(bad_items)} bad items, trying to relocate using common co-assosication...')
+#             candidate_clusters = self.assign_remaining(bad_items, candidate_clusters, similarity_matrix, gamma)
+#         else:
+#             self.log('No bad items, skipping relocation effert...')
 
-        return candidate_clusters
+#         return candidate_clusters
     
-    def assign_remaining(self, item_lst: List[object], cluster_lst: List[Cluster], \
-        simularity_matrix: MemberSimularityMatrix, gamma: PartitionSet) -> List[Cluster]:
+#     def assign_remaining(self, item_lst: List[object], cluster_lst: List[Cluster], \
+#         simularity_matrix: MemberSimularityMatrix, gamma: PartitionSet) -> List[Cluster]:
         
         
-        self.log(f'Resulted in {len(item_lst)} bad items, trying to relocate using common co-assosication...')
-        self.recalculate_simularity(item_lst, simularity_matrix, gamma, cluster_lst)
+#         self.log(f'Resulted in {len(item_lst)} bad items, trying to relocate using common co-assosication...')
+#         self.recalculate_simularity(item_lst, simularity_matrix, gamma, cluster_lst)
         
-        sim_lst = [ (x, simularity_matrix.item_max(x)) for x in item_lst ]
+#         sim_lst = [ (x, simularity_matrix.item_max(x)) for x in item_lst ]
         
-        def sort_by_sim(items: List[Tuple[ContigData, float]]) -> List[ContigData]:
-            return [x[0] for x in sorted(items, key=lambda x: x[1], reverse=True )]
-        def split_lst(items: List[ContigData]) -> Tuple[List[ContigData], List[ContigData]]:
-            scg, empty = [], []
-            for x in items: (empty if len(x.SCG_genes) == 0 else scg).append(x)
-            return scg, empty
+#         def sort_by_sim(items: List[Tuple[ContigData, float]]) -> List[ContigData]:
+#             return [x[0] for x in sorted(items, key=lambda x: x[1], reverse=True )]
+#         def split_lst(items: List[ContigData]) -> Tuple[List[ContigData], List[ContigData]]:
+#             scg, empty = [], []
+#             for x in items: (empty if len(x.SCG_genes) == 0 else scg).append(x)
+#             return scg, empty
         
         
-        self.log('Re-assigning objects using SCGs...')
-        scg_items, rest_lst = split_lst(sort_by_sim(sim_lst))
+#         self.log('Re-assigning objects using SCGs...')
+#         scg_items, rest_lst = split_lst(sort_by_sim(sim_lst))
         
-        cluster_lst, bad_items = self.__assign_using_SCGs__(scg_items,\
-            simularity_matrix, cluster_lst, gamma, force=True)
-        self.log("Re-assigning uncertain objects...")
-        for item in tqdm(rest_lst):
-            x = self.__handle_item2__(item, simularity_matrix.get_row(item), simularity_matrix, force=True)
-            if x is not None: bad_items.append(x)
+#         cluster_lst, bad_items = self.__assign_using_SCGs__(scg_items,\
+#             simularity_matrix, cluster_lst, gamma, force=True)
+#         self.log("Re-assigning uncertain objects...")
+#         for item in tqdm(rest_lst):
+#             x = self.__handle_item2__(item, simularity_matrix.get_row(item), simularity_matrix, force=True)
+#             if x is not None: bad_items.append(x)
             
-        if len(bad_items) > 0:
-            self.log(f'Killing {len(bad_items)} items')
-            # self.kill_items(bad_items, cluster_lst)
-            # return cluster_lst
-            self.log(f'Placing {len(bad_items)} bad items in isolated clusters')
-            for bad_item in item_lst:
-                isolated_cluster = Cluster()
-                isolated_cluster.add(bad_item)
-                cluster_lst.append(isolated_cluster)
+#         if len(bad_items) > 0:
+#             self.log(f'Killing {len(bad_items)} items')
+#             # self.kill_items(bad_items, cluster_lst)
+#             # return cluster_lst
+#             self.log(f'Placing {len(bad_items)} bad items in isolated clusters')
+#             for bad_item in item_lst:
+#                 isolated_cluster = Cluster()
+#                 isolated_cluster.add(bad_item)
+#                 cluster_lst.append(isolated_cluster)
         
-        return cluster_lst
+#         return cluster_lst
             
         
     
-    def recalculate_simularity(self, item_lst: List[object], simularity_matrix: MemberSimularityMatrix, gamma: PartitionSet, cluster_lst: List[Cluster]) \
-        -> SparseDictHashMatrix[object, Tuple[float, int]]:
+#     def recalculate_simularity(self, item_lst: List[object], simularity_matrix: MemberSimularityMatrix, gamma: PartitionSet, cluster_lst: List[Cluster]) \
+#         -> SparseDictHashMatrix[object, Tuple[float, int]]:
         
-        self.log("Building common co-assosiation matrix...")
-        all_items = gamma.get_all_items()
+#         self.log("Building common co-assosiation matrix...")
+#         all_items = gamma.get_all_items()
         
-        member_matrix = MemberMatrix.build(cluster_lst, all_items)
-        common_coassosiation = member_matrix.calculate_coassosiation_matrix(set(item_lst), gamma)
+#         member_matrix = MemberMatrix.build(cluster_lst, all_items)
+#         common_coassosiation = member_matrix.calculate_coassosiation_matrix(set(item_lst), gamma)
         
-        for item in tqdm(item_lst):
-            for cluster in cluster_lst:
-                value = member_matrix.average_common_neighbors(item, cluster, common_coassosiation)
-                simularity_matrix[item, cluster] = value
+#         for item in tqdm(item_lst):
+#             for cluster in cluster_lst:
+#                 value = member_matrix.average_common_neighbors(item, cluster, common_coassosiation)
+#                 simularity_matrix[item, cluster] = value
                 
-        return common_coassosiation
+#         return common_coassosiation
         
-    good_clusters = set()
-    def __assign_certains_objects__(self, certain_lst: List[Tuple[object, Cluster]], candidate_clusters: List[Cluster]) \
-        -> Tuple[List[Cluster], List[Cluster]]:
+#     good_clusters = set()
+#     def __assign_certains_objects__(self, certain_lst: List[Tuple[object, Cluster]], candidate_clusters: List[Cluster]) \
+#         -> Tuple[List[Cluster], List[Cluster]]:
         
-        for item_cluster in tqdm(certain_lst):
-            #done so type hinting can actually be done. Damn you tqdm
-            item: object = item_cluster[0]
-            cluster: Cluster = item_cluster[1]
+#         for item_cluster in tqdm(certain_lst):
+#             #done so type hinting can actually be done. Damn you tqdm
+#             item: object = item_cluster[0]
+#             cluster: Cluster = item_cluster[1]
             
-            #remove item from all other clusters in candidate clusters
-            for can_cluster in candidate_clusters:
-                can_cluster.remove(item)
-            #add it back into best cluster
-            cluster.add(item)
-            self.good_clusters.add(cluster)
-        print(f'Found {len(self.good_clusters)} good clusters')
-        return candidate_clusters
+#             #remove item from all other clusters in candidate clusters
+#             for can_cluster in candidate_clusters:
+#                 can_cluster.remove(item)
+#             #add it back into best cluster
+#             cluster.add(item)
+#             self.good_clusters.add(cluster)
+#         print(f'Found {len(self.good_clusters)} good clusters')
+#         return candidate_clusters
     
-    def kill_items(self, kill_lst: List[ContigData], cluster_lst: List[Cluster]):
-        self.log(f'Killing {len(kill_lst)} items')
-        for item in tqdm(kill_lst):
-            for cluster in cluster_lst:
-                cluster.remove(item)
-        return cluster_lst
+#     def kill_items(self, kill_lst: List[ContigData], cluster_lst: List[Cluster]):
+#         self.log(f'Killing {len(kill_lst)} items')
+#         for item in tqdm(kill_lst):
+#             for cluster in cluster_lst:
+#                 cluster.remove(item)
+#         return cluster_lst
         
-    def identify_object_certainy(self, items: List[object], similarity_matrix: MemberSimularityMatrix) \
-        -> Tuple[List[Tuple[object, Cluster]], List[Tuple[object, float]], List[object]]: 
-            #Totally certain objects,  object with certainty, Totally uncertain objects
-        certain_lst, uncertain_lst, lost_lst  = [], [], []
+#     def identify_object_certainy(self, items: List[object], similarity_matrix: MemberSimularityMatrix) \
+#         -> Tuple[List[Tuple[object, Cluster]], List[Tuple[object, float]], List[object]]: 
+#             #Totally certain objects,  object with certainty, Totally uncertain objects
+#         certain_lst, uncertain_lst, lost_lst  = [], [], []
     
         
-        for item in tqdm(items):
-            cluster, similarity = similarity_matrix.item_argMax(item)
+#         for item in tqdm(items):
+#             cluster, similarity = similarity_matrix.item_argMax(item)
             
-            if similarity >= 1:
-                certain_lst.append( (item, cluster) )
-            elif similarity == 0:
-                lost_lst.append( item )
-            elif 0 < similarity < 1:
-                uncertain_lst.append( (item, similarity) ) 
-            else:
-                raise Exception(f"something went wrong, simularity value of '{similarity}' outside bound [0, 1]")
+#             if similarity >= 1:
+#                 certain_lst.append( (item, cluster) )
+#             elif similarity == 0:
+#                 lost_lst.append( item )
+#             elif 0 < similarity < 1:
+#                 uncertain_lst.append( (item, similarity) ) 
+#             else:
+#                 raise Exception(f"something went wrong, simularity value of '{similarity}' outside bound [0, 1]")
         
-        return certain_lst, uncertain_lst, lost_lst
+#         return certain_lst, uncertain_lst, lost_lst
         
     
     
-    #force indicates whether items should be forcefully placed within a bin or to add it to bad_items return value.
-    def __assign_using_SCGs__(self, item_lst: List[ContigData], similarity_matrix: MemberSimularityMatrix, \
-        candidate_clusters: List[Cluster],  gamma: PartitionSet, force: bool = False) \
-            -> Tuple[List[Cluster], List[ContigData]]: 
-        #returns List of certain_clusters, List of negative contigs, 
-        bad_items = []
-        count = 0
-        for item in tqdm(item_lst):
-            item: ContigData
-            #Handle if no SCG
-            if len(item.SCG_genes) == 0:
-                Assert.assert_fail(f'Item {item} is trying to assign based on SCGs but has none')
+#     #force indicates whether items should be forcefully placed within a bin or to add it to bad_items return value.
+#     def __assign_using_SCGs__(self, item_lst: List[ContigData], similarity_matrix: MemberSimularityMatrix, \
+#         candidate_clusters: List[Cluster],  gamma: PartitionSet, force: bool = False) \
+#             -> Tuple[List[Cluster], List[ContigData]]: 
+#         #returns List of certain_clusters, List of negative contigs, 
+#         bad_items = []
+#         count = 0
+#         for item in tqdm(item_lst):
+#             item: ContigData
+#             #Handle if no SCG
+#             if len(item.SCG_genes) == 0:
+#                 Assert.assert_fail(f'Item {item} is trying to assign based on SCGs but has none')
             
-            row_data = similarity_matrix.get_row(item)
-            #if item has no simularity, add to bad and skip to next
-            if len(row_data) == 0:
-                bad_items.append(item)
-                continue
+#             row_data = similarity_matrix.get_row(item)
+#             #if item has no simularity, add to bad and skip to next
+#             if len(row_data) == 0:
+#                 bad_items.append(item)
+#                 continue
             
-            best_cluster: Cluster = None
-            best_score: float = np.NINF
+#             best_cluster: Cluster = None
+#             best_score: float = np.NINF
 
-            #Try and assign to bin with best impact.
-            #Impact being defined as similarity * score_diff
-            for cluster, similarity in row_data.items():
-                if len(cluster) == 0: continue
-                if similarity <= 0: continue
-                values = self.bin_evaluator.calculate_item_score(cluster, extra_item=item)
-                cluster_sim = similarity_matrix.get_column(cluster)
-                score1 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items()])
-                #score2 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items() if x is not item])
-                score2 = score1 - (values[item] * cluster_sim.get(item, 0.0))
+#             #Try and assign to bin with best impact.
+#             #Impact being defined as similarity * score_diff
+#             for cluster, similarity in row_data.items():
+#                 if len(cluster) == 0: continue
+#                 if similarity <= 0: continue
+#                 values = self.bin_evaluator.calculate_item_score(cluster, extra_item=item)
+#                 cluster_sim = similarity_matrix.get_column(cluster)
+#                 score1 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items()])
+#                 #score2 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items() if x is not item])
+#                 score2 = score1 - (values[item] * cluster_sim.get(item, 0.0))
 
-                score = similarity * abs(score1 - score2)
-                better_with = score1 >= score2
+#                 score = similarity * abs(score1 - score2)
+#                 better_with = score1 >= score2
                 
-                score = score if better_with else score*(-1)
+#                 score = score if better_with else score*(-1)
 
-                # score = (similarity) * (score1 - score2)
-                print(score)
+#                 # score = (similarity) * (score1 - score2)
+#                 print(score)
 
-                if score > best_score:
-                    best_score = score
-                    best_cluster = cluster
+#                 if score > best_score:
+#                     best_score = score
+#                     best_cluster = cluster
                     
-            print("next")
-            for cand_cluster in candidate_clusters:
-                if cand_cluster is best_cluster: continue #dont remove from best cluster
-                if item not in cand_cluster: continue 
-                cand_cluster.remove(item)
+#             print("next")
+#             for cand_cluster in candidate_clusters:
+#                 if cand_cluster is best_cluster: continue #dont remove from best cluster
+#                 if item not in cand_cluster: continue 
+#                 cand_cluster.remove(item)
             
-            #add to bad items if none
-            if best_cluster is None:
-                bad_items.append(item)
-                continue    
+#             #add to bad items if none
+#             if best_cluster is None:
+#                 bad_items.append(item)
+#                 continue    
             
-            #ensure item is in cluster
-            if item not in best_cluster:
-                best_cluster.add(item)
+#             #ensure item is in cluster
+#             if item not in best_cluster:
+#                 best_cluster.add(item)
             
-            if best_score < 0:
-                print('I GOT HERE NIGNOG', force)
-                if force:
-                    print('Fuck this 2')
-                    count += 1
-                else:
-                    best_cluster.remove(item)
-                    bad_items.append(item)
-            else: self.good_clusters.add(best_cluster)
-            similarity_matrix.assign_item_to(best_cluster, item)
+#             if best_score < 0:
+#                 print('I GOT HERE NIGNOG', force)
+#                 if force:
+#                     print('Fuck this 2')
+#                     count += 1
+#                 else:
+#                     best_cluster.remove(item)
+#                     bad_items.append(item)
+#             else: self.good_clusters.add(best_cluster)
+#             similarity_matrix.assign_item_to(best_cluster, item)
             
-        if force: self.log(f'Forcefully placed {count} items in bins')
-        print('>REMOVE LATER scgs:' , len(bad_items), ' | good clusters ', len(self.good_clusters))
-        return candidate_clusters, bad_items
+#         if force: self.log(f'Forcefully placed {count} items in bins')
+#         print('>REMOVE LATER scgs:' , len(bad_items), ' | good clusters ', len(self.good_clusters))
+#         return candidate_clusters, bad_items
     
     
-    def __handle_item2__(self, item: ContigData, related_clusters: Dict[Cluster, float],\
-        similarity_matrix: MemberSimularityMatrix, force: bool = True) -> ContigData or None:
+#     def __handle_item2__(self, item: ContigData, related_clusters: Dict[Cluster, float],\
+#         similarity_matrix: MemberSimularityMatrix, force: bool = True) -> ContigData or None:
         
-        if len(related_clusters) == 0:
-            return item #bad
-        best_cluster, max_sim = max(related_clusters.items(), key=lambda x: x[1])
-        if max_sim > 0.5 or force:
-            similarity_matrix.assign_item_to(best_cluster, item)
+#         if len(related_clusters) == 0:
+#             return item #bad
+#         best_cluster, max_sim = max(related_clusters.items(), key=lambda x: x[1])
+#         if max_sim > 0.5 or force:
+#             similarity_matrix.assign_item_to(best_cluster, item)
 
-            if item not in best_cluster:
-                best_cluster.add(item)
+#             if item not in best_cluster:
+#                 best_cluster.add(item)
             
-            for cluster, sim in related_clusters.items():
-                if cluster is best_cluster: continue
+#             for cluster, sim in related_clusters.items():
+#                 if cluster is best_cluster: continue
                 
-                cluster.remove(item)
-            return None #i.e., its good
-        else:
-            return item #i.e., its bad
+#                 cluster.remove(item)
+#             return None #i.e., its good
+#         else:
+#             return item #i.e., its bad
         
     
-    def __handle_item_without_SCGs__(self, item: ContigData, related_clusters: Dict[Cluster, float],\
-        gamma: PartitionSet, similarity_matrix: MemberSimularityMatrix\
-        ) -> ContigData or None: #Bad items
+#     def __handle_item_without_SCGs__(self, item: ContigData, related_clusters: Dict[Cluster, float],\
+#         gamma: PartitionSet, similarity_matrix: MemberSimularityMatrix\
+#         ) -> ContigData or None: #Bad items
         
-        best_value, best_clusters = np.NINF, []
-        for cluster, similarity in related_clusters.items(): #Best clusters
-            if similarity > best_value:
-                best_clusters = [cluster]
-            elif similarity == best_value:
-                best_clusters.append(cluster)
+#         best_value, best_clusters = np.NINF, []
+#         for cluster, similarity in related_clusters.items(): #Best clusters
+#             if similarity > best_value:
+#                 best_clusters = [cluster]
+#             elif similarity == best_value:
+#                 best_clusters.append(cluster)
         
-        if best_value < self.alpha2:
-            return item
+#         if best_value < self.alpha2:
+#             return item
         
-        best_cluster = None
-        if len(best_clusters) > 1:
-            biggest_change = np.NINF
-            for cluster in best_clusters:
-                quality_change: float = self.quality_measure.calculate_excluding_quality(cluster, item, len(gamma) - 1, similarity_matrix)
-                if quality_change > biggest_change:
-                    best_cluster = cluster
-                    biggest_change = quality_change
-        else:
-            best_cluster = best_clusters[0]
+#         best_cluster = None
+#         if len(best_clusters) > 1:
+#             biggest_change = np.NINF
+#             for cluster in best_clusters:
+#                 quality_change: float = self.quality_measure.calculate_excluding_quality(cluster, item, len(gamma) - 1, similarity_matrix)
+#                 if quality_change > biggest_change:
+#                     best_cluster = cluster
+#                     biggest_change = quality_change
+#         else:
+#             best_cluster = best_clusters[0]
 
-        similarity_matrix.assign_item_to(best_cluster, item)
-        for cluster in related_clusters.keys():
-            if cluster is not best_cluster:
-                cluster.remove(item)
-        return None
-    
-
+#         similarity_matrix.assign_item_to(best_cluster, item)
+#         for cluster in related_clusters.keys():
+#             if cluster is not best_cluster:
+#                 cluster.remove(item)
+#         return None

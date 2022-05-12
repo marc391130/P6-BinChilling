@@ -1,9 +1,6 @@
 from __future__ import annotations
 import itertools
-from logging import exception
 from typing import Dict, List, Generic, TypeVar, Tuple, Iterable, Iterator
-from math import sqrt
-import Constants as Constant
 import Assertions as Assert
 import sys
 

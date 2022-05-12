@@ -69,7 +69,7 @@ def main():
     clusters = [cluster for cluster in clusters if get_total_size(cluster) >= minSize]
 
     all_scgs = reader.read_total_SCGs_set() # 
-    evaluator = BinEvaluator(all_scgs, (0,0))
+    evaluator = BinEvaluator(all_scgs)
     data = evaluator.evaluate_lst(clusters)
 
     result_dto_lst, total_com, total_con = [], 0, 0

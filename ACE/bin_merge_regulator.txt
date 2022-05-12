@@ -1,112 +1,18 @@
-0> result: 1, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.25, ratio: 7573.6 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-1> result: 2, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.23, ratio: 7696.747967479675 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-2> result: 3, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.21, ratio: 7823.966942148761 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-3> result: 4, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.19, ratio: 7955.46218487395 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-4> result: 5, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.17, ratio: 8091.452991452992 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-5> result: 6, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.15, ratio: 8232.173913043478 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-6> result: 7, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.13, ratio: 8377.876106194692 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-7> result: 8, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.1099999999999999, ratio: 8528.82882882883 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-8> result: 9, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.0899999999999999, ratio: 8685.321100917432 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-9> result: 10, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.0699999999999998, ratio: 8847.66355140187 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-10> result: 11, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.0499999999999998, ratio: 9016.190476190477 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-11> result: 12, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.0299999999999998, ratio: 9191.262135922332 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-12> result: 13, average_sim: 0.04000000000000487, total_cluster: 9467 | a1: 1.0099999999999998, ratio: 9373.267326732675 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-13> result: 14, average_sim: 0.07534421010743993, total_cluster: 5026 | a1: 1.0, ratio: 5026.0 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-14> result: 15, average_sim: 0.13452220248668315, total_cluster: 2815 | a1: 1.0, ratio: 2815.0 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-15> result: 16, average_sim: 0.22301531213191617, total_cluster: 1698 | a1: 1.0, ratio: 1698.0 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-16> result: 17, average_sim: 0.3298606271776983, total_cluster: 1148 | a1: 1.0, ratio: 1148.0 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-17> result: 18, average_sim: 0.47513174404014963, total_cluster: 797 | a1: 1.0, ratio: 797.0 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-18> result: 19, average_sim: 0.4769269521410593, total_cluster: 794 | a1: 0.9999999999999999, ratio: 794.0000000000001 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-19> result: 20, average_sim: 0.4775283732660796, total_cluster: 793 | a1: 0.9999999999999999, ratio: 793.0000000000001 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-20> result: 21, average_sim: 0.48362707535121446, total_cluster: 783 | a1: 0.9999999999999998, ratio: 783.0000000000002 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-21> result: 22, average_sim: 0.486735218508999, total_cluster: 778 | a1: 0.9999999999999998, ratio: 778.0000000000002 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-22> result: 23, average_sim: 0.4879896907216509, total_cluster: 776 | a1: 0.9999999999999998, ratio: 776.0000000000002 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-23> result: 24, average_sim: 0.48861883870967887, total_cluster: 775 | a1: 0.9945139717278693, ratio: 779.2751253695455 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-24> result: 25, average_sim: 0.48924957350448867, total_cluster: 774 | a1: 0.9941389719074344, ratio: 778.5631806737662 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-25> result: 26, average_sim: 0.48988194021338594, total_cluster: 773 | a1: 0.9941389719074344, ratio: 777.5572850915004 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-26> result: 27, average_sim: 0.49051589982988114, total_cluster: 772 | a1: 0.9937021908547948, ratio: 776.8927220900218 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-27> result: 28, average_sim: 0.49114213016987796, total_cluster: 771 | a1: 0.9931059706889742, ratio: 776.3521947865376 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-28> result: 29, average_sim: 0.49177793991366875, total_cluster: 770 | a1: 0.9896973735771946, ratio: 778.0156041203654 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-29> result: 30, average_sim: 0.492416423172691, total_cluster: 769 | a1: 0.9892040958420185, ratio: 777.3926566139226 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-30> result: 31, average_sim: 0.4930565053209193, total_cluster: 768 | a1: 0.9890798432050427, ratio: 776.4792754357937 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-31> result: 32, average_sim: 0.49369825652298926, total_cluster: 767 | a1: 0.9890798432050427, ratio: 775.46823471257 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-32> result: 33, average_sim: 0.4943405954131411, total_cluster: 766 | a1: 0.9890798432050427, ratio: 774.4571939893464 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-33> result: 34, average_sim: 0.49498574651825633, total_cluster: 765 | a1: 0.9890080293553118, ratio: 773.5023147371895 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-34> result: 35, average_sim: 0.49563258650061004, total_cluster: 764 | a1: 0.9889475151130719, ratio: 772.5384697616108 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-35> result: 36, average_sim: 0.4962796011670071, total_cluster: 763 | a1: 0.9890476190476191, ratio: 771.4492055849784 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-36> result: 37, average_sim: 0.4969298472588169, total_cluster: 762 | a1: 0.9891070479982857, ratio: 770.3918413503416 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-37> result: 38, average_sim: 0.496929847258817, total_cluster: 762 | a1: 0.9889069799400002, ratio: 770.5477011055506 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-38> result: 39, average_sim: 0.4975817704135189, total_cluster: 761 | a1: 0.9887410540331504, ratio: 769.6656236694358 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-39> result: 40, average_sim: 0.49823419493980675, total_cluster: 760 | a1: 0.9886230654859617, ratio: 768.7459725880651 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-40> result: 41, average_sim: 0.49888948430702995, total_cluster: 759 | a1: 0.9886230654859617, ratio: 767.7344647293966 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-41> result: 42, average_sim: 0.49888948430702995, total_cluster: 759 | a1: 0.9883793356150896, ratio: 767.9237845737215 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-42> result: 43, average_sim: 0.5002027506280043, total_cluster: 757 | a1: 0.9881244432834893, ratio: 766.097838329478 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-43> result: 44, average_sim: 0.5008632442594999, total_cluster: 756 | a1: 0.9880667019477217, ratio: 765.1305306713997 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-44> result: 45, average_sim: 0.5015244093164372, total_cluster: 755 | a1: 0.9883689925806617, ratio: 763.8847491852936 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-45> result: 46, average_sim: 0.5021883273227478, total_cluster: 754 | a1: 0.9878576051093916, ratio: 763.2679002521876 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-46> result: 47, average_sim: 0.5028528435462923, total_cluster: 753 | a1: 0.9876415080696357, ratio: 762.4223909662859 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-47> result: 48, average_sim: 0.5035005099708119, total_cluster: 752 | a1: 0.9864993513171986, ratio: 762.2914287737856 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-48> result: 49, average_sim: 0.5041693987343632, total_cluster: 751 | a1: 0.9839206580328236, ratio: 763.2729263978383 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-49> result: 50, average_sim: 0.5055123076762441, total_cluster: 749 | a1: 0.9838110955214598, ratio: 761.3250179934183 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-50> result: 51, average_sim: 0.5061864551463995, total_cluster: 748 | a1: 0.9838110955214598, ratio: 760.3085626956968 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-51> result: 52, average_sim: 0.5068625212864298, total_cluster: 747 | a1: 0.9838054575461914, ratio: 759.2964587360271 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-52> result: 53, average_sim: 0.5075403690109266, total_cluster: 746 | a1: 0.9836310400573344, ratio: 758.4144558477097 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-53> result: 54, average_sim: 0.5075403690109266, total_cluster: 746 | a1: 0.983205682110587, ratio: 758.7425638129021 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-54> result: 55, average_sim: 0.5082199876407454, total_cluster: 745 | a1: 0.9830478987487322, ratio: 757.8471007854955 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-55> result: 56, average_sim: 0.5088999340399404, total_cluster: 744 | a1: 0.9836310400573344, ratio: 756.3811731242574 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-56> result: 57, average_sim: 0.5095831949021716, total_cluster: 743 | a1: 0.9828867829101996, ratio: 755.9365055251571 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-57> result: 58, average_sim: 0.5109477919194514, total_cluster: 741 | a1: 0.9827534489188422, ratio: 754.0039679486216 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-58> result: 59, average_sim: 0.5116269428988817, total_cluster: 740 | a1: 0.9825541268214165, ratio: 753.1391704535563 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-59> result: 60, average_sim: 0.512317481818476, total_cluster: 739 | a1: 0.9818438611732501, ratio: 752.6654992953107 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-60> result: 61, average_sim: 0.5130036492383846, total_cluster: 738 | a1: 0.980870141429653, ratio: 752.3931750275718 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-61> result: 62, average_sim: 0.5136975909233065, total_cluster: 737 | a1: 0.9793053761651338, ratio: 752.5742408216133 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-62> result: 63, average_sim: 0.5143933972174741, total_cluster: 736 | a1: 0.9781348636733537, ratio: 752.4524759663263 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-63> result: 64, average_sim: 0.5150861536881043, total_cluster: 735 | a1: 0.9775856785291243, ratio: 751.8522582142174 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-64> result: 65, average_sim: 0.5157831671660587, total_cluster: 734 | a1: 0.9771346086387681, ratio: 751.1759316585099 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-65> result: 66, average_sim: 0.5164751263639676, total_cluster: 733 | a1: 0.9771346086387681, ratio: 750.152531206659 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-66> result: 67, average_sim: 0.5171782096215439, total_cluster: 732 | a1: 0.9765756375434858, ratio: 749.557916313886 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-67> result: 68, average_sim: 0.5185896567711918, total_cluster: 730 | a1: 0.9742484464277744, ratio: 749.2955238231609 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-68> result: 69, average_sim: 0.5192968782344115, total_cluster: 729 | a1: 0.9732371398801893, ratio: 749.0466301869078 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-69> result: 70, average_sim: 0.5200073804269708, total_cluster: 728 | a1: 0.9731460088600912, ratio: 748.0891802174202 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-70> result: 71, average_sim: 0.5214319384788123, total_cluster: 726 | a1: 0.9731054310430247, ratio: 746.0650992583976 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-71> result: 72, average_sim: 0.5221236283386127, total_cluster: 725 | a1: 0.9729063216740789, ratio: 745.1899364293299 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-72> result: 73, average_sim: 0.5228418857490833, total_cluster: 724 | a1: 0.9728985163696033, ratio: 744.1680584544678 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-73> result: 74, average_sim: 0.5235623030211848, total_cluster: 723 | a1: 0.9726181469140599, ratio: 743.3544215619945 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-74> result: 75, average_sim: 0.5242847159089983, total_cluster: 722 | a1: 0.9726181469140599, ratio: 742.3262688350761 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-75> result: 76, average_sim: 0.5250089592553936, total_cluster: 721 | a1: 0.9716461324212177, ratio: 742.0396952575321 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-76> result: 77, average_sim: 0.5257351353624675, total_cluster: 720 | a1: 0.9713245561539996, ratio: 741.2558402218001 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-77> result: 78, average_sim: 0.5264607868942768, total_cluster: 719 | a1: 0.9731460088600912, ratio: 738.8408249674796 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-78> result: 79, average_sim: 0.5271809108806115, total_cluster: 718 | a1: 0.9697146533769406, ratio: 740.4239974095804 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-79> result: 80, average_sim: 0.5279130123589061, total_cluster: 717 | a1: 0.9695585036903575, ratio: 739.5118471664546 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-80> result: 81, average_sim: 0.5286470980014357, total_cluster: 716 | a1: 0.9694019271777037, ratio: 738.5997282722011 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-81> result: 82, average_sim: 0.5293702846735342, total_cluster: 715 | a1: 0.9688210795545146, ratio: 738.0103665052095 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-82> result: 83, average_sim: 0.5301084042022415, total_cluster: 714 | a1: 0.9688210795545146, ratio: 736.978184174433 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-83> result: 84, average_sim: 0.5308447168267203, total_cluster: 713 | a1: 0.9683401776309676, ratio: 736.3114910137734 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-84> result: 85, average_sim: 0.5315819327637002, total_cluster: 712 | a1: 0.9678555456171736, ratio: 735.6469704846069 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-85> result: 86, average_sim: 0.5323231336124307, total_cluster: 711 | a1: 0.9676680679755575, ratio: 734.756083754496 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-86> result: 87, average_sim: 0.5330693633780819, total_cluster: 710 | a1: 0.9673809450558466, ratio: 733.9404436573969 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-87> result: 88, average_sim: 0.5338176981642287, total_cluster: 709 | a1: 0.9664434673444405, ratio: 733.6176651368603 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-88> result: 89, average_sim: 0.5345680717612271, total_cluster: 708 | a1: 0.9662457618147677, ratio: 732.7328387658437 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-89> result: 90, average_sim: 0.5353079970958043, total_cluster: 707 | a1: 0.9657738095238094, ratio: 732.0554699537751 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-90> result: 91, average_sim: 0.5360367597488759, total_cluster: 706 | a1: 0.9683568304709668, ratio: 729.0700884059776 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-91> result: 92, average_sim: 0.5367909845139164, total_cluster: 705 | a1: 0.9650013793016928, ratio: 730.5689039638073 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-92> result: 93, average_sim: 0.5375496838290403, total_cluster: 704 | a1: 0.9646251807191855, ratio: 729.817149781562 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-93> result: 94, average_sim: 0.5383104108036342, total_cluster: 703 | a1: 0.9640416809327349, ratio: 729.2215823280893 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-94> result: 95, average_sim: 0.5390695926023328, total_cluster: 702 | a1: 0.9634869587108892, ratio: 728.6035308036247 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-95> result: 96, average_sim: 0.5398345176376326, total_cluster: 701 | a1: 0.9632002611389664, ratio: 727.782194713154 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-96> result: 97, average_sim: 0.5405992764332336, total_cluster: 700 | a1: 0.9621989416983521, ratio: 727.500280518339 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-97> result: 98, average_sim: 0.5413686998941856, total_cluster: 699 | a1: 0.9615215558531369, ratio: 726.9727815720082 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-98> result: 99, average_sim: 0.5421401319987488, total_cluster: 698 | a1: 0.9606296021170513, ratio: 726.6067987721137 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-99> result: 100, average_sim: 0.5429103036751901, total_cluster: 697 | a1: 0.9626277780432195, ratio: 724.0597205877706 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-100> result: 101, average_sim: 0.5436822723669769, total_cluster: 696 | a1: 0.9604340490945705, ratio: 724.6723506482717 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-101> result: 102, average_sim: 0.5444601217904159, total_cluster: 695 | a1: 0.9603466995964078, ratio: 723.6969734910094 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-102> result: 103, average_sim: 0.5452402128548445, total_cluster: 694 | a1: 0.9594743761978777, ratio: 723.3126983027138 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-103> result: 104, average_sim: 0.5460059716353126, total_cluster: 693 | a1: 0.9592758361620422, ratio: 722.4199483358377 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-104> result: 105, average_sim: 0.5467905511852524, total_cluster: 692 | a1: 0.9581818181818181, ratio: 722.2011385199241 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-105> result: 106, average_sim: 0.5475770305164419, total_cluster: 691 | a1: 0.954955905704806, ratio: 723.5936192153363 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-106> result: 107, average_sim: 0.5483608677463063, total_cluster: 690 | a1: 0.9547710554682483, ratio: 722.6863404039866 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-107> result: 108, average_sim: 0.5491448395828565, total_cluster: 689 | a1: 0.9538356459691769, ratio: 722.346667281362 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-108> result: 109, average_sim: 0.5499007319236879, total_cluster: 688 | a1: 0.9530443121518746, ratio: 721.8971785756402 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-109> result: 110, average_sim: 0.550695876564572, total_cluster: 687 | a1: 0.9526184433614231, ratio: 721.1701650199443 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-110> result: 111, average_sim: 0.5514114245486105, total_cluster: 686 | a1: 0.9516664203249944, ratio: 720.8408170645874 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
-111> result: 112, average_sim: 0.5522113707510725, total_cluster: 685 | a1: 0.950190306914184, ratio: 720.9082170334805 | Comp: 0.0, cont: 0.0, purity: 0.0 | near: 0, sub: 0, mode: 0, part: 0, bad: 0
+0> result: -266832.528700585, average_sim: 0.06606429192006825, total_cluster: 1151 | a1: 1.0, ratio: 1151.0 | Comp: 8.644656820156388, cont: 2.8292838475689996, megabin: 4.091759673862193
+1> result: -221014.70325679792, average_sim: 0.09836998706338844, total_cluster: 773 | a1: 1.0, ratio: 773.0 | Comp: 9.75345805552792, cont: 3.5697158136307037, megabin: 5.44954721862872
+2> result: -193366.10858224172, average_sim: 0.14793774319066252, total_cluster: 514 | a1: 1.0, ratio: 514.0 | Comp: 11.530978748877587, cont: 4.77919398550957, megabin: 7.6062556120921885
+3> result: -181337.65021012386, average_sim: 0.1485156250000005, total_cluster: 512 | a1: 0.9999999999999998, ratio: 512.0000000000001 | Comp: 11.247370793269237, cont: 4.514522043001383, megabin: 6.98993389423077
+4> result: -171288.1309793546, average_sim: 0.1488062622309203, total_cluster: 511 | a1: 0.9999999999999998, ratio: 511.0000000000001 | Comp: 11.073686587385225, cont: 4.327662007860485, megabin: 6.418410356766522
+5> result: -169511.02126636525, average_sim: 0.1490972549019613, total_cluster: 510 | a1: 0.9945139717278693, ratio: 512.8133083077009 | Comp: 10.99358974358975, cont: 4.252632732204147, megabin: 6.372549019607843
+6> result: -167649.54049713453, average_sim: 0.14938816180545114, total_cluster: 509 | a1: 0.9931059706889742, ratio: 512.5334204232784 | Comp: 10.826280791899658, cont: 4.1745436020120135, megabin: 6.300060450355147
+7> result: -166903.01682849546, average_sim: 0.1496805396533875, total_cluster: 508 | a1: 0.9881852551984878, ratio: 514.0736489717838 | Comp: 10.650741974560878, cont: 4.125977440114096, megabin: 6.255678376741369
+8> result: -165125.9071155061, average_sim: 0.14997265078086994, total_cluster: 507 | a1: 0.9835116526563247, ratio: 515.4997387480518 | Comp: 10.569336974662424, cont: 4.050106404310391, megabin: 6.20922470034896
+9> result: -165461.99853597625, average_sim: 0.1502649146097505, total_cluster: 506 | a1: 0.9825541268214165, ratio: 514.9843516885128 | Comp: 10.424901185770759, cont: 4.053982386499848, megabin: 6.219595621769536
+10> result: -165461.99853597625, average_sim: 0.1502649146097505, total_cluster: 506 | a1: 0.9825185268770668, ratio: 515.0030113002755 | Comp: 10.424901185770759, cont: 4.053982386499848, megabin: 6.219595621769535
+11> result: -165495.20534106175, average_sim: 0.15055913382575734, total_cluster: 505 | a1: 0.9768708340462511, ratio: 516.9567791355414 | Comp: 10.279893373952785, cont: 4.048353536326307, megabin: 6.220487433358721
+12> result: -163718.09562807242, average_sim: 0.15085393330156277, total_cluster: 504 | a1: 0.9726181469140599, ratio: 518.1889743668676 | Comp: 10.197268009768013, cont: 3.9718768715321273, megabin: 6.173687423687424
+13> result: -162206.56033287765, average_sim: 0.1511439523360105, total_cluster: 503 | a1: 0.9724933027171832, ratio: 517.2272123567318 | Comp: 10.081816791558346, cont: 3.9001103791590075, megabin: 6.132436152316869
+14> result: -152208.00264056996, average_sim: 0.15144056779752804, total_cluster: 502 | a1: 0.968503421224695, ratio: 518.3254792896956 | Comp: 9.990806006742266, cont: 3.708676336089603, megabin: 5.9282102359791615
+15> result: -152307.04110210843, average_sim: 0.15173254240326645, total_cluster: 501 | a1: 0.9663409616945763, ratio: 518.450546814704 | Comp: 9.813066175341628, cont: 3.7160788836666288, megabin: 5.940042990941195
+16> result: -148676.10507385098, average_sim: 0.15203079009676868, total_cluster: 500 | a1: 0.9650013793016928, ratio: 518.1339744424165 | Comp: 9.67115384615385, cont: 3.6020824700053904, megabin: 5.8500000000000005
+17> result: -148676.10507385098, average_sim: 0.15203079009676868, total_cluster: 500 | a1: 0.9537456008044244, ratio: 524.2488139167106 | Comp: 9.67115384615385, cont: 3.6020824700053904, megabin: 5.85
