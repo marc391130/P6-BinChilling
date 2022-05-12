@@ -48,7 +48,7 @@ class SparseClustserSimularity:
         return matrix
     
     @staticmethod
-    def build_multithread_old(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
+    def build_multithread_windows(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
         processes: int, chunksize: int = 75) -> SparseClustserSimularity:
         if processes <= 1: return SparseClustserSimularity.build(cluster_lst, total_item_count, a1_min)
         matrix_dct = SparseTupleHashMatrix(SortKeysByHash)
@@ -61,7 +61,6 @@ class SparseClustserSimularity:
                     matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
         
         return SparseClustserSimularity(cluster_lst, total_item_count, a1_min, matrix_dct)
-    
     
     @staticmethod
     def build_multithread(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\

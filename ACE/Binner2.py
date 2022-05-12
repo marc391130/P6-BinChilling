@@ -1,9 +1,9 @@
 import itertools
 from os import remove
 
-from BinChilling import Binner, MyLogger
+from math import sqrt, ceil
+from BinChilling import MyLogger
 from BinEvaluator import BinEvaluator
-from AdaptiveEnsemblerExtensions import QualityMeasuerer
 from BinRefiner import BinRefiner
 from Cluster import PartitionSet, Partition, Cluster
 from Domain import ContigData
@@ -19,13 +19,11 @@ class Binner2:
     def __init__(self,
             bin_refiner: BinRefiner,
             bin_evaluator: BinEvaluator,
-            quality_measurer: QualityMeasuerer,
             alpha2: float = 0.75,
             logger: MyLogger = None) -> None:
         self.bin_refiner = bin_refiner
         self.alpha2 = alpha2
         self.bin_evaluator = bin_evaluator
-        self.quality_measure = quality_measurer
         self.log = logger if logger is not None else MyLogger()
     
     def sort_by_sim(self, items: List[Tuple[ContigData, float]]) -> List[ContigData]:
@@ -64,30 +62,28 @@ class Binner2:
             cluster_lst, bad_items2 = self.__assign_uncertain_items_noSCG__(self.sort_by_sim(uncertain_lst), cluster_lst,\
                 similarity_matrix, force=False)
 
-            recalc_lst = lost_lst + bad_scgs + bad_items2 #+ [x[0] for x in scg_lst]
-            if len(recalc_lst) == old_len or len(recalc_lst) == 0:
+            recalc_lst: List[ContigData] = lost_lst + bad_scgs + bad_items2 #+ [x[0] for x in scg_lst]
+            
+            #Isolate a part of the clusters if none was placed
+            if len(recalc_lst) == old_len and len(recalc_lst) != 0:
+                isolate_count = max(ceil(sqrt(len(recalc_lst))), 1)
+                sorted_recalc = sorted(recalc_lst, key=lambda x: x.contig_length, reverse=True)
+                isolate_lst, recalc_lst = sorted_recalc[:isolate_count], sorted_recalc[isolate_count:]
+                cluster_lst = self.isolate_items(isolate_lst, cluster_lst)
+
+            self.log(f"Managed to assign {old_len - len(recalc_lst)} items, {len(recalc_lst)} items remain...")
+            if len(recalc_lst) == 0:
                 break
             else:
-                # self.log("Building co-assosiation matrix...")
-                # co_matrix_2 = CoAssosiationMatrix.build(gamma)
-                
-                # for x, dct in co_matrix.__internal__.items():
-                #     for y, v in dct.items():
-                #         diff = round(float(v) - float(co_matrix_2[x, y]), 3)
-                #         if co_matrix_2[x, y] == 0 and v == 0: continue
-                #         if diff == 0.0: continue
-                #         # if diff == 0.04 or diff == 0.08  or diff == 0.0: continue
-                #         print(f'{x.name}, {y.name} should be {v} but found {co_matrix_2[x, y]}. diff {diff}')
-                
-                # self.remove_empty_clusters(cluster_lst)
-                self.log(f"Managed to assign {old_len - len(recalc_lst)} items...")
+                self.remove_empty_clusters(cluster_lst, similarity_matrix)
                 self.recalculate_simularity(recalc_lst, similarity_matrix, cluster_lst, co_matrix, partition_count)
                 old_len = len(recalc_lst)
             
         #loop break
-        cluster_lst = self.remove_empty_clusters(cluster_lst)
-        cluster_lst = self.kill_items(recalc_lst, cluster_lst)
-        cluster_lst = self.isolate_items(recalc_lst, cluster_lst)
+        # cluster_lst += self.Handle_remaining_items(recalc_lst, co_matrix)
+        cluster_lst = self.remove_empty_clusters(cluster_lst, similarity_matrix)
+        # cluster_lst = self.kill_items(recalc_lst, cluster_lst)
+        # cluster_lst = self.isolate_items(recalc_lst, cluster_lst)
         # remaining_lst = self.Handle_remaining_items(recalc_lst, gamma)
         # cluster_lst += remaining_lst
         
@@ -166,10 +162,10 @@ class Binner2:
                 #score2 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items() if x is not item])
                 score2 = score1 - (values[item] * cluster_sim.get(item, 0.0))
 
-                #score = similarity * (score1 - score2)
-                score = similarity * (score1 if score1 >= score2 else score1 - score2 )
-                if score1 > score2 and score1 < 0:
-                    score *= -1
+                score = similarity * (score1 - score2)
+                # score = similarity * (score1 if score1 >= score2 else score1 - score2 )
+                # if score1 > score2 and score1 < 0:
+                #     score *= -1
                     
                 # if score1 >= score2:
                 #     score = similarity * score1
@@ -221,7 +217,7 @@ class Binner2:
     
     def __assign_uncertain_items_noSCG__(self, item_lst: List[ContigData], cluster_lst: List[Cluster],
         similarity_matrix: MemberSimularityMatrix, force: bool = True) -> Tuple[List[Cluster], List[ContigData]]:
-        #return self.__assign_using_dna_len__(item_lst, cluster_lst, similarity_matrix)
+        # return self.__assign_using_dna_len__(item_lst, cluster_lst, similarity_matrix)
     
         bad_items = []
         for item in tqdm(item_lst):
@@ -266,9 +262,10 @@ class Binner2:
             
             best_score: float  = np.NINF
             best_cluster: Cluster = None
+            best_sim: float = 0.0
             
             for cluster, sim in related_clusters:
-                if len(cluster) == 0 or sim < 0.5: continue
+                if len(cluster) == 0 or sim < 0.2: continue
                 score1 = self.bin_evaluator.score_len(cluster, include_item=item)
                 score2 = self.bin_evaluator.score_len(cluster, skip_item=item)
                 score = sim * (score1 - score2)
@@ -276,6 +273,7 @@ class Binner2:
                 if best_score > score:
                     best_cluster = cluster
                     best_score = score
+                    best_sim = sim
             #end loop
 
             self.remove_from_all(item, cluster_lst)
@@ -287,7 +285,7 @@ class Binner2:
             if item not in best_cluster:
                 best_cluster.append(item)
             
-            if best_score < 0.0:
+            if best_score < best_sim:
                 best_cluster.remove(item)
                 bad_items.append(item)
                 
@@ -301,38 +299,12 @@ class Binner2:
         self.log("Recalculating simularity matrix")
         for item in tqdm(item_lst):
             for cluster in cluster_lst:
-                if len(cluster) == 0: continue
+                if len(cluster) == 0: 
+                    simularity_matrix[item, cluster] = 0.0
+                    continue
                 value = min(co_matrix.cluster_mean(item, cluster), 1.0)
                 simularity_matrix[item, cluster] = value if 0.0 < value <= 1.0 else 0
         return cluster_lst
-    
-    
-    
-    def Handle_remaining_items(self, item_lst: List[ContigData], gamma: PartitionSet) -> List[Cluster]:    
-        skip_set, result_lst = set(), []
-        item_lst = sorted(item_lst, key=lambda x: x.contig_length, reverse=True)
-        
-        co_dct = CoAssosiationMatrix.build(gamma)
-        
-        for i in range(len(item_lst)):
-            item = item_lst[i]
-            if item in skip_set: continue
-            cluster = Cluster() 
-            cluster.add(item)
-            score1 = self.bin_evaluator.score(cluster)
-            
-            
-            for j in range(i+1, len(item_lst)):
-                other_item = item_lst[j]
-                if not co_dct.has_entry(item, other_item): continue
-                score2 = self.bin_evaluator.score(cluster, include_item=other_item)
-                if score2 > score1:
-                    score1 = score2
-                    cluster.add(other_item)
-                    skip_set.add(other_item) 
-            result_lst.append(cluster)
-            
-        return result_lst
         
                 
     def kill_items(self, kill_lst: List[ContigData], cluster_lst: List[Cluster]):
@@ -347,93 +319,21 @@ class Binner2:
     
     def isolate_items(self, item_lst: List[ContigData], cluster_lst: List[Cluster]) -> List[Cluster]:
         for item in item_lst:
+            self.remove_from_all(item, cluster_lst)
             cluster = Cluster()
             cluster.add(item)
             cluster_lst.append(cluster)
         return cluster_lst
 
-    def remove_empty_clusters(self, cluster_lst: List[Cluster]) -> List[Cluster]:
+    def remove_empty_clusters(self, cluster_lst: List[Cluster], similarity_matrix: MemberSimularityMatrix, should_log:bool = False) -> List[Cluster]:
         remove_lst = []
         for cluster in cluster_lst:
             if len(cluster) == 0:
                 remove_lst.append(cluster)
+                similarity_matrix.remove_cluster(cluster)
         
-        self.log(f'Found {len(remove_lst)} empty clusters...')
+        if should_log:
+            self.log(f'Found {len(remove_lst)} empty clusters...')
         for r_cls in remove_lst:
             cluster_lst.remove(r_cls)
-        return cluster_lst
-    
-    def refine_bins(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix) -> List[Cluster]:
-        skip_set = set()
-        score_dct: Dict[Cluster, float] = {}
-        
-        avg_co_matrix = SparseDictHashMatrix[Cluster, float](SortKeysByHash, default_value=0.0)
-        
-        self.log('Calculating common co-assosiation')
-        for i in tqdm(range(len(cluster_lst))):
-            c1 = cluster_lst[i]
-            for j in range(i+1, len(cluster_lst)):
-                c2 = cluster_lst[j]
-                value = co_matrix.bin_mean(c1, c2)
-                avg_co_matrix.set_entry(c1, c2, value)
-                
-        
-        def get_score(cls: Cluster) -> float:
-            nonlocal score_dct
-            if cls not in score_dct: score_dct[cls] = self.bin_evaluator.score(cls) 
-            return score_dct[cls]
-        
-        self.log('Refining bins...')
-        
-        def split_bin(cluster: Cluster) -> List[Cluster]:
-            result = []
-            for item in cluster:
-                cluster2 = Cluster()
-                cluster2.add(item)
-                result.append(cluster2)
-            return result
-        
-        def refine(source_lst: List[Cluster]) -> List[Cluster]:
-            nonlocal skip_set
-            new_clusters = []
-            for i in tqdm(range(len(source_lst))):
-                c1 = source_lst[i]
-                if c1 in skip_set or len(c1) == 0: continue
-                score1 = get_score(c1)
-                
-                if score1 < 0.0:
-                    print(f'cluster is bad{[x.name for x in c1]} with score of {score1}')
-                    skip_set.add(c1)
-                    new_clusters += split_bin(c1)
-                    continue
-                
-                for j in range(i+1, len(source_lst)):
-                    c2 = source_lst[j]
-                    if c2 in skip_set or len(c2) == 0: continue
-                    sim = avg_co_matrix.getEntry(c1, c2)
-                    if sim > 0.0:
-                        score2 = get_score(c2)
-                        combo = self.bin_evaluator.score_item_lst(itertools.chain(c1, c2))
-                        if combo >= max(score1, score2):
-                            skip_set.add(c1)
-                            skip_set.add(c2)
-                            mc = Cluster.merge(c1, c2)
-                            new_clusters.append( mc )
-                            break
-            return new_clusters
-        #end func
-        
-        source_clusters = cluster_lst    
-        while True:
-            new_clusters = refine(source_clusters)
-            if len(new_clusters) == 0:
-                break 
-            else:
-                source_clusters = new_clusters
-            
-            self.log(f'Refined {len(skip_set)} clusters into {len(new_clusters)} new clusters')
-            for cls in skip_set:
-                cluster_lst.remove(cls)
-            for cls in new_clusters:
-                cluster_lst.append(cls)
         return cluster_lst

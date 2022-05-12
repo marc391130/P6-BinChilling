@@ -1,13 +1,8 @@
 import os
-from tabnanny import verbose
 from typing import Dict
-from sklearn.naive_bayes import GaussianNB
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from scipy.sparse import lil_matrix, csr_matrix, csc_matrix
 import argparse
 import numpy as np
-from sklearn.model_selection import cross_val_score
 from tqdm import tqdm
 from typing import Dict, List, Tuple
 
@@ -15,7 +10,7 @@ from Domain import ContigData
 from Cluster import Cluster, Partition
 from ContigReader import ContigReader
 from PartitionSetReader import PartitionSetReader
-import ClusterEnsembles as CE
+import ClusterEnsembleFuckhead as CE
 
 def parser():
     parser = argparse.ArgumentParser(
@@ -64,7 +59,7 @@ def run(args):
 
     # Read Fasta!
     contig_reader = ContigReader(args.fasta, depth_file=args.depth, numpy_file=args.cache, enable_analyse_contig_comp=False, max_threads=args.threads)
-    contigs = contig_reader.read_file_fast(args.cache)
+    # contigs = contig_reader.read_file_fast(args.cache)
 
     # Read Partitions!
     partition_reader = PartitionSetReader(args.partionFolder, contig_reader)
@@ -115,7 +110,7 @@ def run(args):
     print("Started ensembling!")
 
     
-    label_ce = CE.cluster_ensembles(np.array(labels), solver = args.solver, verbose = True)
+    label_ce = CE.cluster_ensembles(np.array(labels), solver = args.solver, verbose = True, random_state=7)
     print(label_ce)
     return label_ce, item_map
 

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from functools import partialmethod
 import itertools
 from logging import exception
@@ -13,8 +14,7 @@ from time import time
 from Domain import ContigData
 from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, Build_simularity_matrix
 from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
-from AdaptiveEnsemblerExtensions import AssignRegulator, MergeRegulator, QualityMeasuerer, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
-from AdaptiveEnsemblerDomainExtensions import MergeSCGEvaluator, SCGAssignRegulator
+from AdaptiveEnsemblerExtensions import MergeRegulator, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
 from io import TextIOWrapper
 
 __global_disable_tqdm = False
@@ -157,8 +157,7 @@ class AdaptiveClusterEnsembler(Ensembler):
             self.log("no totally uncertain objects found, skipping reidentification step")
         
         # Assigning Assign Regulator based opon which MergeRegulator that is used
-        regulator = AssignRegulator(self.quality_measure, self.log) if type(self.merge_regulator) != MergeSCGEvaluator else \
-                    SCGAssignRegulator(self.quality_measure, self.merge_regulator, self.log)
+        regulator = AssignRegulator(self.quality_measure, self.log)
         
         candidate_clusters = regulator.assign_items(candidate_clusters, totally_certain_lst, certain_lst, uncertain_lst, totally_uncertain_map, gamma, similarity_matrix, lost_items)
         
@@ -301,5 +300,148 @@ class AdaptiveClusterEnsembler(Ensembler):
             alpha1 = min(1, alpha1) #make sure float doesnt end up in 1.00000002
             # alpha1 = alpha1 - self.delta_alpha
         
+class QualityMeasuerer:
+    def calculate_quality(self, cluster: Cluster, partition_count: int, simularity_matrix: MemberSimularityMatrix) -> float:
+        if len(cluster) == 0:
+            return 0.0
+        
+        cluster_sim_dct = simularity_matrix.get_column(cluster)
+        mean = sum(cluster_sim_dct.values()) / len(cluster_sim_dct)
+        
+        sum_value = sum([ (sim - mean)**2 for sim in cluster_sim_dct.values() ])
+        
+        return sum_value / len(cluster)
     
+    def calculate_speculative_quality(self, initial_quality: float, include_item: object, \
+        cluster: Cluster, gamma: PartitionSet, simularity_matrix: MemberSimularityMatrix) -> float:
+        if include_item in cluster:
+            return initial_quality
+
+        mean = simularity_matrix.cluster_mean(cluster)
+        total_var = initial_quality * len(cluster)
+        simularity = (simularity_matrix.getEntry(include_item, cluster) - mean)**2
+        
+
+        return (total_var + simularity) / (len(cluster) +1)
+    
+    def calculate_excluding_quality(self, cluster: Cluster, exclude_item: object, partition_count: int, similarity_maxtrix: MemberSimularityMatrix) -> float:
+
+        if len(cluster) == 0:
+            return 0
+
+        if len(cluster) == 1 and exclude_item in cluster:
+            return 0
+
+        if exclude_item not in cluster:
+            return self.calculate_quality(cluster, partition_count, similarity_maxtrix)
+
+        all_member_similarity = similarity_maxtrix.get_column(cluster)
+
+        fuckery = all_member_similarity.get(exclude_item)
+
+        all_member_similarity.pop(exclude_item, None)
+
+        mean = sum(all_member_similarity.values()) / (len(cluster) - 1)
+
+        fuckery = (fuckery - mean)**2
+
+        quality = sum([(value - mean)**2 for value in all_member_similarity.values()])
+        return (quality + fuckery / len(cluster)) - (quality / (len(cluster) - 1))
+    
+    
+    
+class AssignRegulator:
+    def __init__(self, quality_measure: QualityMeasuerer, logger: Callable[[str], None] = None) -> None:
+        self.logger = logger
+        self.quality_measure = quality_measure
+
+    def log(self, string: str) -> None:
+        if self.logger is not None:
+            self.logger(string)
+
+    def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[object], certain_lst: List[object], \
+        uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet,\
+            similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
+
+        self.log("Assigning totally certain objects...")
+        candidate_clusters = self.__assign_certains__(totally_certain_lst, candidate_clusters)
+        
+        self.log("Assign certain objects...")
+        candidate_clusters = self.__assign_certains__(certain_lst, candidate_clusters)
+        
+        self.log("Assign uncertain objects")
+        candidate_clusters = self.__assign_uncertains__(uncertain_lst, candidate_clusters, gamma, similarity_matrix)
+    
+        candidate_clusters = self.__assign_lost_objects__(candidate_clusters, totally_uncertain_map, lost_items)
+        
+        return candidate_clusters
+
+
+    def __assign_certains__(self, certain_lst: List[Tuple[object, Cluster]],\
+        candidate_clusters: List[Cluster]) -> List[Cluster]:
+        
+        for item_cluster in tqdm(certain_lst):
+            #done so type hinting can actually be done. Damn you tqdm
+            item: object = item_cluster[0]
+            cluster: Cluster = item_cluster[1]
+            
+            
+            #remove item from all other clusters in candidate clusters
+            for can_cluster in candidate_clusters:
+                can_cluster.remove(item)
+            #add it back into best cluster
+            cluster.add(item)
+        return candidate_clusters
+
+    def __assign_uncertains__(self, uncertain_item_lst: List, candidate_clusters: List[Cluster],\
+        gamma: PartitionSet, simularity_matrix: MemberSimularityMatrix) -> List[Cluster]:
+        
+        self.log("Calculate initial quality...")
+        initial_quality = {}
+        for cluster in tqdm(candidate_clusters):
+            quality = self.quality_measure.calculate_quality(cluster, len(gamma), simularity_matrix)
+            initial_quality[cluster] = quality
+        
+        self.log("Assigning uncertain clusters...")
+        for item in tqdm(uncertain_item_lst):
+            #this is cursed
+            #takes all candidate clusters, makes a tuple of (cluster, speculative_quality)
+            #then finds the cluster and new quality with the smallest delta quality,
+            # by taking the abselute value of initial quality - speculative quality
+            min_changed_cluster, new_quality = min([(cluster, self.quality_measure.calculate_speculative_quality( \
+                initial_quality[cluster], item, cluster, gamma, simularity_matrix)) \
+                for cluster in candidate_clusters], key= lambda x: abs(initial_quality[x[0]] - x[1]) )
+            initial_quality[min_changed_cluster] = new_quality
+            
+            for cluster in candidate_clusters:
+                cluster.remove(item)
+                
+            min_changed_cluster.add(item)
+        return candidate_clusters
+
+    def __assign_lost_objects__(self, candidate_clusters: List[Cluster], assosiation_map: Dict[object, object],\
+        lost_items: List[object]) -> List[Cluster]:
+        if len(assosiation_map) > 0:
+            self.log('Trying to assigning remaining totally uncertain objects using co-assosiation..')
+            for item, assosiate_item in tqdm(assosiation_map.items()):
+                found = False
+                for cluster in candidate_clusters:
+                    if assosiate_item in cluster:
+                        cluster.append(item)
+                        found = True
+                        break
+                if not found: #This eliminates the circular reference problem 
+                    isolated_cluster = Cluster()
+                    isolated_cluster.add(item)
+                    candidate_clusters.append(isolated_cluster)
+                    
+        if len(lost_items) > 0:
+            self.log(f"Adding remaining '{len(lost_items)}' items to isolated clusters...")
+            for item in lost_items:
+                isolated_cluster = Cluster()
+                isolated_cluster.add(item)
+                candidate_clusters.append(isolated_cluster)
+        return candidate_clusters
+
+
 

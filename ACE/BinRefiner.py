@@ -41,7 +41,8 @@ class BinRefiner:
         
     def Refine(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix) -> List[Cluster]:
         
-        self.log('Calculating cluster co-assosiation matrix to refine bins...')
+        self.log(f'\n\nStarting bin refinement of {len(cluster_lst)} bins...')
+        self.log('Calculating common co-assosiation between clusters matrix...')
         value_matrix = self.__build_common_co_matrix__(cluster_lst, co_matrix)
         
         try:

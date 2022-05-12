@@ -11,9 +11,8 @@ from ContigReader import ContigReader
 
 
 class BinEvaluator:
-    def __init__(self, all_SCGs: set, genome_size_range: List[int]  ) -> None:
+    def __init__(self, all_SCGs: set  ) -> None:
         self.all_SCGs = all_SCGs
-        self.genome_size_range = genome_size_range
         
     def score(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
         comp, conn, mp = self.evaluate(cluster, skip_item, include_item)
@@ -21,10 +20,10 @@ class BinEvaluator:
     
     
         
-    def score_len(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
-        size = bin_size((x for x in self.__chain_cluster__(cluster, include_item=include_item) if x is not skip_item ))
-        if len(self.genome_size_range) == 0: return 0.0
-        return max( (self.__calc_len_score__( base_size - size ) for base_size in self.genome_size_range) )
+    # def score_len(self, cluster: Cluster, skip_item: ContigData = None,  include_item: ContigData = None) -> float:
+    #     size = bin_size((x for x in self.__chain_cluster__(cluster, include_item=include_item) if x is not skip_item ))
+    #     if len(self.genome_size_range) == 0: return 0.0
+    #     return max( (self.__calc_len_score__( base_size - size ) for base_size in self.genome_size_range) )
         
     def __calc_len_score__(self, size: int) -> float:
         return 1 / (log(0.001 * abs(size) + 2, 2) )
@@ -136,8 +135,9 @@ class BinEvaluator:
     
 
 class ClusterReader:
-    def __init__(self, file_path: str, contig_reader: ContigReader) -> None:
+    def __init__(self, file_path: str, contig_reader: ContigReader, numpy_file: str = None) -> None:
         self.contigReader = contig_reader
+        self.numpy_file = numpy_file
         self.clusters = self.__read_clusters__(file_path)
 
     def __read_clusters__(self, file_path: str) -> List[Cluster]:
@@ -149,7 +149,7 @@ class ClusterReader:
                 cluster_idx, edge_name = split_line[0], split_line[1].replace('\n', '')
                 cluster_data_map[cluster_idx] = cluster_data_map[cluster_idx] + [edge_name] if cluster_idx in cluster_data_map else [edge_name]
         
-        contig_scg_dct = self.contigReader.read_file_fast(None, True)
+        contig_scg_dct = self.contigReader.read_file_fast(self.numpy_file, True)
         for cluster_idx, edge_lst in cluster_data_map.items():
             cluster = Cluster()
             for edge in edge_lst:

@@ -4,7 +4,7 @@
 
 from io import TextIOWrapper
 from sklearn.metrics import silhouette_score
-from AdaptiveEnsemblerExtensions import MergeRegulator, QualityMeasuerer, print_result, target_bin_3_4th_count_estimator
+from AdaptiveEnsemblerExtensions import MergeRegulator, print_result, target_bin_3_4th_count_estimator
 from Cluster import Partition, Cluster, PartitionSet
 from ContigReader import ContigFilter, ContigReader
 import numpy as np
@@ -48,15 +48,12 @@ def compute_partition_range(features: List[List[float]], weigths: List[float], c
     end_k = min(len(features), (k0 + max_partitions if max_partitions is not None else k0*3 + 2*stepsize))
     
     k_val1, k_val2 = np.NINF, np.NINF
-
-    
     data = features
     best_K, best_sil_val = k0+1, np.NINF
     k1, k2 = None, None
     min_partitions = min_partitions+1 if min_partitions is not None else 1
-    
-    print(f'Searching for best K value. (max value searched will be {end_k})')
-    for k in range(k0+1, end_k, stepsize):
+    print(f'Searching for best K value. (Will stop when reaching {end_k} or silhouette_score decreases)')
+    for k in range(k0+1, end_k+1, stepsize):
         kmeans = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=7, max_iter=300)
         labels = kmeans.fit_predict(data, sample_weight=weigths)
         score = silhouette_score(data, labels)
@@ -64,12 +61,12 @@ def compute_partition_range(features: List[List[float]], weigths: List[float], c
         if score > best_sil_val:
             best_sil_val = score
             best_K = k
-        elif k > (k0 + min_partitions):
-            if k1 is None: 
-                k1, k_val1 = k, best_sil_val
-                best_sil_val = np.NINF
-            elif k2 is None: 
-                k2, k_val2 = k, best_sil_val
+        else:
+            if k_val1 <= k_val2: k1, k_val1 = best_K, best_sil_val
+            else: k2, k_val2 = best_K, best_sil_val
+
+            if k1 is not None and k2 is not None and k > (k0 + min_partitions):
+                print(k1, k2, k0+min_partitions)
                 break
     
     best_K = k1 if k_val1 > k_val2 else k2
@@ -84,7 +81,7 @@ def transform_contigs_to_features(items: List[ContigData]) \
         item = items[i]
         index_map[i] = item
         features.append( item.composition.AsNormalizedFeatureList() )
-        weights.append( item.avg_abundance )
+        weights.append( item.avg_abundance + 0.001 )
     return (index_map, features, weights, compute_constraints(index_map))
 
 
@@ -104,6 +101,7 @@ def partial_seed_init(scg_count: Dict[str, int], n_clusters: int, index_map: Dic
         i += 1
     list_result = [featuers[x] for x in sorted(indexes, key=lambda x: index_map[x].contig_length, reverse=True)[0:n_clusters]] 
     matrix = np.array(list_result, dtype=np.float16)
+    # np.savetxt('test.txt',list_result, newline='\n\n')
     return matrix
     
 
@@ -112,11 +110,11 @@ def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int
     if method == 'Kmeans':
         return KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=n_clusters).fit_predict(featuers, sample_weight=weigths)
     if method == 'PartialSeed':
-        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=0).fit_predict(featuers, sample_weight=weigths)
+        return KMeans(n_clusters=n_clusters, init=partial_seed_init(scg_count, n_clusters, index_map, featuers), n_init=1, max_iter=max_iter, random_state=7).fit_predict(featuers, sample_weight=weigths)
     if method == 'Hierarchical':
         return AgglomerativeClustering(n_clusters=n_clusters, connectivity=constraints, memory=CAHCE_DIR).fit_predict(featuers)
     if method == 'Random':
-        return KMeans(n_clusters=n_clusters, max_iter=max_iter).fit_predict(np.random.rand( len(featuers), 32 ) )
+        return KMeans(n_clusters=n_clusters, init='random', max_iter=max_iter).fit_predict(np.random.rand( len(featuers), 32 ) )
     raise Exception(f'method name {method} not recognized')
     
 
@@ -130,7 +128,7 @@ def run_clustering(partition: Partition, data: Tuple[Dict[int, ContigData], List
     return partition
 
 def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
-    fasta_file: str, abundance_file: str, gene_file: List[str], bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int, LList: List[int],\
+    fasta_file: str, abundance_file: str, gene_file: List[str], bacteria_file: str, output_file: str, numpy_cache: str, chunksize: int, \
     logfile: TextIOWrapper or None, partition_outdir: str or None = None):
     
     start_time = time()
@@ -165,10 +163,10 @@ def run(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_
         shutil.rmtree(os.path.abspath(CAHCE_DIR), ignore_errors=True)
         
     
-    bin_evaluator = BinEvaluator(contig_reader.read_total_SCGs_set(), LList)
+    bin_evaluator = BinEvaluator(contig_reader.read_total_SCGs_set())
     bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), logger)
     chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
-    binner = Binner2(bin_refiner, bin_evaluator, QualityMeasuerer(), logger=logger)
+    binner = Binner2(bin_refiner, bin_evaluator, logger=logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
 
     final_partition = ensembler.ensemble(gamma)
@@ -214,8 +212,6 @@ def main():
         help='Maximum number of partitions to use (default = 25)', metavar='', required=False)
     p_args.add_argument('--chunksize', '-H', type=int, dest='chunksize', default=400, \
         help='Chunksize to use while multiprocessing. Only impacts performance, higher = more memory usage (default=400)', metavar='', required=False)
-    p_args.add_argument('--LList', '-L', type=int, nargs='+', dest='LList', default=[1900000, 6500000],\
-         help='List of common contig lengths', metavar='', required=False)
     p_args.add_argument('--minSize', '-m', type=int, dest='minSize', default=1000, \
         help='Minimum size of contig to use in binning (default = 1000)', metavar='', required=False),
     p_args.add_argument('--stepsize', '-z', type=int, dest='stepsize', default=5,\
@@ -288,9 +284,6 @@ def main():
         print('Setting seed to: ' + str(args.rand))
         random.seed(args.rand)
         np.random.seed(args.rand)
-    
-    if len(args.LList) == 0:
-        raise Exception("Common contig length list has length 0! Change it ;)")
 
     print('Partition generation algorithm: ' + args.method)
     
@@ -302,7 +295,7 @@ def main():
             logfile = open(logfile_path)
             
         run(args.a1min, args.min, args.max, args.minSize, args.stepsize, args.method,\
-            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.numpy_cache, args.chunksize, args.LList, logfile, partition_outdir)
+            fasta_path, abundance_path, SCG_path, MS_path, outfile, args.numpy_cache, args.chunksize, logfile, partition_outdir)
         
     finally:
         if logfile is not None:

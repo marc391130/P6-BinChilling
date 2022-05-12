@@ -64,12 +64,13 @@ def main():
 
     reader = ContigReader(fasta_file=args.fasta, depth_file=args.depthfile, \
             SCG_filepath=scg_files, SCG_db_path=gene_db_files, numpy_file=args.cache)
-    cluster_reader = ClusterReader(file_path=args.clusterpath, contig_reader=reader)
+    cluster_reader = ClusterReader(file_path=args.clusterpath, contig_reader=reader, numpy_file=args.cache)
     clusters = cluster_reader.clusters
     clusters = [cluster for cluster in clusters if get_total_size(cluster) >= minSize]
+    scg_reader = reader.SCG_reader
 
-    all_scgs = reader.read_total_SCGs_set() # 
-    evaluator = BinEvaluator(all_scgs, (0,0))
+    all_scgs = scg_reader.get_db_set_data() # 
+    evaluator = BinEvaluator(all_scgs)
     data = evaluator.evaluate_lst(clusters)
 
     result_dto_lst, total_com, total_con = [], 0, 0
