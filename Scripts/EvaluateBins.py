@@ -48,7 +48,6 @@ def main():
     if len(sys.argv) <= 1:
         parser.print_help()
         return
-    
     args = parser.parse_args()
 
     scg_files = [args.SCG] if isinstance(args.SCG, str) else args.SCG
