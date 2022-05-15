@@ -6,10 +6,11 @@ import argparse
 import os
 
 sys.path.insert(1, '../ACE')
-from Cluster import Cluster
+from BinReaders import ContigReader, PartitionSetReader, SCGReader, ClusterReader
+from ClusterDomain import Cluster
 from Domain import ContigData
-from ContigReader import ContigReader
-from BinEvaluator import BinEvaluator, ClusterReader
+from BinEvaluator import BinEvaluator
+
 
 def get_total_size(cluster) -> int:
     return sum([contig.contig_length for contig in cluster])
@@ -62,14 +63,15 @@ def main():
     if args.minSize is not None:
         minSize = int(args.minSize)
 
-    reader = ContigReader(fasta_file=args.fasta, depth_file=args.depthfile, \
-            SCG_filepath=scg_files, SCG_db_path=gene_db_files, numpy_file=args.cache)
+    scg_reader = SCGReader(scg_files, gene_db_files)
+    reader = ContigReader(fasta_file=args.fasta, scg_reader=scg_reader, depth_file=args.depthfile, \
+            numpy_file=args.cache)
     cluster_reader = ClusterReader(file_path=args.clusterpath, contig_reader=reader, numpy_file=args.cache)
     clusters = cluster_reader.clusters
     clusters = [cluster for cluster in clusters if get_total_size(cluster) >= minSize]
     scg_reader = reader.SCG_reader
 
-    all_scgs = scg_reader.get_db_set_data() # 
+    all_scgs = scg_reader.read_MS_scgs() # 
     evaluator = BinEvaluator(all_scgs)
     data = evaluator.evaluate_lst(clusters)
 

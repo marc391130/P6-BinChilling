@@ -6,6 +6,9 @@
 #   Contact: tsano430@gmail.com
 #   License: MIT License
 
+#This is taken from: https://github.com/tsano430/ClusterEnsembles
+#The create_hypergraph method has been modified to use sparse matricies instead of numpy,
+# - as it used too much memory for our usecase when not using sparse.
 
 import os
 import warnings

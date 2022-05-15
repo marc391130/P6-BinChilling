@@ -1,10 +1,9 @@
 import queue
 from sys import maxsize
 from typing import List, Dict, Tuple, Callable, Iterator
-from AdaptiveEnsemblerExtensions import MergeRegulator, target_bin_3_4th_count_estimator
-from MemberSimularityMatrix import MemberSimularityMatrix
-from ClusterSimilarityMatrix import SparseClustserSimularity
-from Cluster import Cluster, Partition, PartitionSet
+from EnsemblerTools import MergeRegulator, target_bin_3_4th_count_estimator
+from Cluster_matrices import MemberSimularityMatrix, ClustserSimularityMatrix
+from ClusterDomain import Cluster, Partition, PartitionSet
 from Domain import ContigData
 from BinEvaluator import BinEvaluator 
 from time import time
@@ -54,47 +53,21 @@ class MergeSCGEvaluator(MergeRegulator):
         self.buffer = ACEqueue(maxsize=BUFFER_COUNT)
         self.LastScore, self.merge_count = 0, 0
         
-    def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity, merged_clusters: List[Cluster]) \
+    def evaluate(self, alpha1: float, cluster_matrix: ClustserSimularityMatrix, merged_clusters: List[Cluster]) \
         -> Tuple[bool, List[Cluster]]:
         self.merge_count += 1
-        #if alpha1 < self.a1_min: return (self.__log_result__(True, {}, -1, alpha1), self.buffer.get_best_list())
         partitions_count = len(self.__context__)
 
         all_clusters: List[Cluster[ContigData]] = cluster_matrix.get_available_clusters() + merged_clusters
         non_merged_clusters = [cluster for cluster in all_clusters if cluster.__partition_id__ is not None]
         all_merged_clusters = [cluster for cluster in all_clusters if cluster.__partition_id__ is None]
         
-        # xxx_dct = self.bin_evaluator.score(non_merged_clusters)
         total_dct = self.bin_evaluator.score_lst(all_clusters)
-        # zero_count = len([x for x in total_dct.values() if x <= 0])
-        # pentalty =  zero_count / len(total_dct)
         pentalty2 = 100 / len(all_clusters ) #- ( (len(non_merged_clusters) / len(all_clusters)) **2 )
         
-        # value_lst = [(value, cluster.mean_member_simularity(partitions_count)**2) for cluster, value in total_dct.items()]
         score = sum([value for value in total_dct.values()])
-        # score = self.merge_count
-        #harmonic mean
-        # divisor = sum([(x[1] / x[0] if x[0] != 0 else 0) for x in value_lst])
-        # score = sum([x[1] for x in value_lst]) / divisor if divisor != 0 else 0
-        # values_lst = [(self.bin_evaluator.__calculate_completeness__(cluster), self.bin_evaluator.__calculate_purity__(cluster), cluster.mean_member_simularity(partitions_count)) for cluster in all_clusters]
-        #score = 3 * (sum([x[0] * x[1] * x[2] for x in values_lst]) / sum([x[0] + x[1] + x[2] for x in values_lst]))
-        #score *= pentalty2
         print(score)
         
-        ## REEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-        ### Marcus was here!
-        ## REEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-        
-        # value = self.buffer.put( (score, all_clusters) )
-        
-        # if self.buffer.full() is False:
-        #     return (self.__log_result__(False, total_dct, score, alpha1), self.buffer.get_best_list())
-        
-        # complete = value > max(self.buffer)
-        
-        # # return return_val
-        # print('>Best value', self.buffer.best_value)
-        # return (self.__log_result__(complete, total_dct, score , alpha1), self.buffer.get_best_list())
 
         result = super().evaluate(alpha1, cluster_matrix, merged_clusters)
         self.__log_result__(result, total_dct, score, alpha1) 
@@ -125,10 +98,7 @@ class MergeSCGEvaluator(MergeRegulator):
             
             plot.plot([(x[4][0] - x[4][1]) / x[2] for x in self.log_container], label='total')
             plot.plot([(x[4][0] / x[4][1]) if x[4][1] > 0 else 0 for x in self.log_container], label='ratio')
-            # plot.plot([z[i][0]* (self.target_clusters / z[i][2]) for i in range(len(self.log_container)) ], label='Marcus *score')
-            # plot.plot([0.1*i* (1 - (self.target_clusters / z[i][2])) for i in range(len(self.log_container)) ], label='Marcus 0.1*score')
-            # plot.plot([(1 - (self.target_clusters / z[i][2])) for i in range(len(self.log_container)) ], label='Marcus 1 -(lambda/c) score')
-            # plot.plot([x[3] for x in self.log_container], label='alpha1')
+
             plot.legend()
             plot.show()
 
@@ -145,109 +115,3 @@ class MergeSCGEvaluator(MergeRegulator):
             self.log_container.append( (result_value, average_sim, len(values), a1, (total_completeness, total_contamination, total_mp ) ) )
             
         return result
-        
-        
-    # def __log_output__(self, values: Dict[Cluster, float], result_value: float, last_value) -> None:
-    #     if not self.debug: return
-    #     with open(f'./{self.log_filename}_{self.call_count}.txt', 'x') as f:
-    #         f.write(f'result_value: {result_value}, last_value: {last_value}, cluster_count: {len(values)}\n\n\n')
-            
-    #         for cluster, value in values.items():
-    #             f.write(f'{cluster}: {value}\n\n')
-# class SCGAssignRegulator(AssignRegulator):
-#     def __init__(self, quality_measure: QualityMeasuerer, merge_regulator: MergeSCGEvaluator, logger: Callable[[str], None] = None) -> None:
-#         super().__init__(quality_measure, logger)
-#         self.bin_evaluator = merge_regulator.bin_evaluator
-
-#     def assign_items(self, candidate_clusters: List[Cluster], totally_certain_lst: List[Tuple[object, Cluster]], certain_lst: List[Tuple[object, Cluster]], \
-#         uncertain_lst: List[object], totally_uncertain_map: Dict[object, object], gamma: PartitionSet, similarity_matrix:MemberSimularityMatrix, lost_items: List[object]) -> List[Cluster]:
-
-#         self.log("Assigning totally certain objects...")
-#         candidate_clusters = self.__assign_certains__(totally_certain_lst, candidate_clusters)
-
-#         certain_lst = sorted([x for x, y in certain_lst] + uncertain_lst, key=lambda x: similarity_matrix.item_mean(x), reverse=True )
-
-#         self.log("Assign Certain Objects...")
-#         candidate_clusters = self.__assign_using_SCGs__(certain_lst, similarity_matrix, candidate_clusters, gamma)
-#         # for item in certain_lst:
-#         #     for cluster in candidate_clusters:
-#         #         cluster.remove(item)
-        
-#         # self.log("Assign uncertain objects...")
-#         # candidate_clusters = self.__handle_SCG_certain__(uncertain_lst, similarity_matrix, candidate_clusters, gamma)
-#         # # for item in uncertain_lst:
-#         # #     for cluster in candidate_clusters:
-#         # #         cluster.remove(item)
-
-#         self.log("handling lost objects...")
-#         candidate_clusters = self.__assign_lost_objects__(candidate_clusters, totally_uncertain_map, lost_items)
-
-#         return candidate_clusters
-
-#     def __assign_using_SCGs__(self, item_lst: List[ContigData], similarity_matrix: MemberSimularityMatrix, candidate_clusters: List[Cluster], \
-#         gamma: PartitionSet) -> Tuple[List[Cluster], List[ContigData]]: 
-#         #List of cleaned clusters, List of badly placed contigs
-#         count = 0
-#         for item in item_lst:
-#             row_data = similarity_matrix.get_row(item)
-#             if len(item.SCG_genes) == 0:
-#                 self.__handle_item_without_SCGs__(item, row_data, gamma, similarity_matrix)
-#                 print('skipping empty contig')
-#                 continue
-
-#             best_cluster: Cluster = None
-#             best_score: float = np.NINF
-
-#             for cluster, similarity in row_data.items():
-#                 if len(cluster) == 0: continue
-#                 #score1 = self.bin_evaluator.calculate_score(cluster)
-#                 #score2 = self.bin_evaluator.calculate_score(cluster, item)
-#                 values = self.bin_evaluator.score_items(cluster, extra_item=item)
-#                 cluster_sim = similarity_matrix.get_column(cluster)
-#                 score1 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items()])
-#                 score2 = sum([y * cluster_sim.get(x, 0.0) for x, y in values.items() if x is not item])
-
-#                 score = (similarity) * (score1 - score2)
-#                 print(score)
-
-#                 if score > best_score:
-#                     best_score = score
-#                     best_cluster = cluster
-#             print('>next')
-#             if best_score < 0:
-#                 count += 1 
-#                 #best_cluster.remove(item)
-#             for cand_cluster in candidate_clusters:
-#                 if cand_cluster is best_cluster: continue
-#                 if item not in cand_cluster: continue 
-#                 cand_cluster.remove(item)
-
-#             similarity_matrix.assign_item_to(best_cluster, item)
-#         print('>Found bad: ', count)
-#         return candidate_clusters
-    
-#     def __handle_item_without_SCGs__(self, item: ContigData, related_clusters: Dict[Cluster, float], gamma: PartitionSet, similarity_matrix: MemberSimularityMatrix) -> None:
-        
-#         best_value = np.NINF
-#         best_clusters = []
-#         for cluster, similarity in related_clusters.items():
-#             if similarity > best_value:
-#                 best_clusters = [cluster]
-#             elif similarity == best_value:
-#                 best_clusters.append(cluster)
-        
-#         best_cluster = None
-#         if len(best_clusters) > 1:
-#             biggest_change = np.NINF
-#             for cluster in best_clusters:
-#                 quality_change: float = self.quality_measure.calculate_excluding_quality(cluster, item, len(gamma) - 1, similarity_matrix)
-#                 if quality_change > biggest_change:
-#                     best_cluster = cluster
-#                     biggest_change = quality_change
-#         else:
-#             best_cluster = best_clusters[0]
-
-#         similarity_matrix.assign_item_to(best_cluster, item)
-#         for cluster in related_clusters.keys():
-#             if cluster is not best_cluster:
-#                 cluster.remove(item)

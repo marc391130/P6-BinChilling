@@ -1,13 +1,14 @@
 import itertools
 import sys
-from math import log
+from math import log, sqrt
 from typing import Iterable, Iterator, List, Dict, Tuple, TypeVar, Generic
 from tqdm import tqdm
 
-from Cluster import Cluster
+from ClusterDomain import Cluster
 from Domain import ContigData, bin_size
-from ContigReader import ContigReader
-
+from SparseMatrix_implementations import SparseDictHashMatrix, SortKeysByHash
+from EnsemblerTools import BinLogger
+from Cluster_matrices import CoAssosiationMatrix
 
 
 class BinEvaluator:
@@ -48,7 +49,7 @@ class BinEvaluator:
         return self.__score_scg_count__(scg_count)
     
     def calc_score(self, completeness: float, contamination: float, megabin_pen: float) -> float:
-        return completeness - (contamination**2) - (0.5*megabin_pen)
+        return completeness - ((0.5*contamination)**2) - sqrt(megabin_pen)
         # return completeness - 0.5*contamination - 0.5*megabin_pen
     
     def score_items(self, cluster: Cluster, extra_item: ContigData = None) -> Dict[ContigData, float]:
@@ -132,28 +133,105 @@ class BinEvaluator:
             else itertools.chain(cluster.__iter__(), [include_item])
     
 
+
+score_dct: Dict[Cluster, float] = {}
+
+class BinRefiner:
+    def __init__(self, bin_evaluator: BinEvaluator, min_threshold: float, logger: BinLogger) -> None:
+        self.bin_evaluator = bin_evaluator
+        self.log = logger
+        self.min_threshold = min_threshold
+        self.score_dct: Dict[Cluster, float] = {}
     
-
-class ClusterReader:
-    def __init__(self, file_path: str, contig_reader: ContigReader, numpy_file: str = None) -> None:
-        self.contigReader = contig_reader
-        self.numpy_file = numpy_file
-        self.clusters = self.__read_clusters__(file_path)
-
-    def __read_clusters__(self, file_path: str) -> List[Cluster]:
-        result_clusters = []
-        cluster_data_map = {}
-        with open(file_path, 'r') as f:
-            for line in tqdm(f.readlines()):
-                split_line = line.split('\t')
-                cluster_idx, edge_name = split_line[0], split_line[1].replace('\n', '')
-                cluster_data_map[cluster_idx] = cluster_data_map[cluster_idx] + [edge_name] if cluster_idx in cluster_data_map else [edge_name]
+    def __build_common_co_matrix__(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix,\
+        old_matrix: SparseDictHashMatrix[Cluster, Cluster, float] = None) -> SparseDictHashMatrix[Cluster, Cluster, float]:
+        avg_co_matrix = SparseDictHashMatrix[Cluster, Cluster, float](SortKeysByHash, default_value=0.0)
         
-        contig_scg_dct = self.contigReader.read_file_fast(self.numpy_file, True)
-        for cluster_idx, edge_lst in cluster_data_map.items():
-            cluster = Cluster()
-            for edge in edge_lst:
-                r = contig_scg_dct.get(edge, None)
-                if r is not None: cluster.add(r)
-            result_clusters.append(cluster)
-        return result_clusters
+        for i in tqdm(range(len(cluster_lst)), 'Adjusting CCO'):
+            c1 = cluster_lst[i]
+            for j in range(i+1, len(cluster_lst)):
+                c2 = cluster_lst[j]
+                value =  co_matrix.bin_mean(c1, c2) if old_matrix is None or old_matrix.has_entry(c1, c2) is False\
+                    else old_matrix[c1, c2]
+                avg_co_matrix.set_entry(c1, c2, value if value > self.min_threshold else 0.0)
+        return avg_co_matrix
+        
+    def Refine(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix) -> List[Cluster]:
+        
+        self.log(f'\n\nStarting bin refinement of {len(cluster_lst)} bins...')
+        self.log('Calculating cluster co-assosiation matrix using CO matrix...')
+        value_matrix = self.__build_common_co_matrix__(cluster_lst, co_matrix)
+        
+        try:
+            self.log('\nRefining bins...')
+            source_clusters = cluster_lst    
+            while True:
+                skip_set = set()
+                new_clusters = self.__refine_clusters__(cluster_lst, value_matrix, skip_set)
+                if len(new_clusters) == 0:
+                    break 
+                else:
+                    source_clusters = new_clusters
+                    self.log(f'Refined {len(skip_set)} clusters into {len(new_clusters)} new clusters.\n')
+                    # self.log('Adjusting cluster co-assosiation matrix...')
+                
+                for cls in skip_set:
+                    cluster_lst.remove(cls)
+                for cls in new_clusters:
+                    cluster_lst.append(cls)
+                value_matrix = self.__build_common_co_matrix__(cluster_lst, co_matrix, old_matrix=value_matrix)
+                
+            #end loop
+            self.log('\n')
+            return cluster_lst
+                
+        finally:
+            global score_dct
+            score_dct.clear()
+            
+    def __split_bin__(self, cluster: Cluster) -> List[Cluster]:
+        result = []
+        for item in cluster:
+            cluster2 = Cluster()
+            cluster2.add(item)
+            result.append(cluster2)
+        return result
+    
+    def __refine_clusters__(self, source_lst: List[Cluster], value_matrix: SparseDictHashMatrix[Cluster, Cluster, float],\
+        skip_set: set) -> List[Cluster]:
+        
+        def get_score(cls: Cluster) -> float:
+            global score_dct
+            if cls not in score_dct: score_dct[cls] = self.bin_evaluator.score(cls) 
+            return score_dct[cls]
+        
+        # match_lst = match_lst if match_lst is not None else lambda _: source_lst
+        
+        new_clusters = []
+        for i in tqdm(range(len(source_lst)), desc='Refining bins'):
+            c1 = source_lst[i]
+            if c1 in skip_set or len(c1) == 0: continue
+            score1 = get_score(c1)
+            
+            if score1 < 0.0:
+                skip_set.add(c1)
+                new_clusters += self.__split_bin__(c1)
+                continue
+            
+            for j in range(i+1, len(source_lst)):
+                c2 = source_lst[j]
+                if c2 in skip_set or len(c2) == 0: continue
+                sim = value_matrix.getEntry(c1, c2)
+                if sim <= self.min_threshold: continue
+                score2 = get_score(c2)
+                #Reminder that (c1 intersection c2) = Ø here,
+                #Scoring the item-chain will not result in polluted score.
+                combo = self.bin_evaluator.score_item_lst(itertools.chain(c1, c2))
+                if combo >= max(score1, score2):
+                    skip_set.add(c1)
+                    skip_set.add(c2)
+                    mc = Cluster.merge(c1, c2)
+                    new_clusters.append( mc )
+                    break
+        #end loop
+        return new_clusters

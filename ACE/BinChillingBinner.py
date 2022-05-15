@@ -1,0 +1,243 @@
+from io import TextIOWrapper
+from sklearn.metrics import label_ranking_average_precision_score, silhouette_score
+from EnsemblerTools import BinLogger, MergeRegulator, print_result, target_bin_3_4th_count_estimator
+from ClusterDomain import Partition, Cluster, PartitionSet
+from BinReaders import ContigReader, PartitionSetReader, SCGReader, ContigFilter
+import numpy as np
+import os
+import shutil
+import argparse
+import random
+import Constants as const
+from scipy.sparse import lil_matrix, csr_matrix
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from Domain import ContigData, compute_3_4_scg_count, compute_scgs_count, compute_max_scg_count
+from typing import List, Dict, TypeVar, Tuple
+from tqdm import tqdm
+from BinChillingEnsembler import BinChillingEnsembler, Chiller, Binner
+from BinEvaluator import BinEvaluator, BinRefiner
+from time import time
+import sys
+import Assertions as Assert
+import functools
+
+CAHCE_DIR = f'./cache_{time()}'
+
+def compute_constraints(data: Dict[int, ContigData]) -> csr_matrix:
+    matrix_shape = (len(data), len(data))
+    matrix = lil_matrix(np.zeros(shape=matrix_shape), dtype=float, shape=matrix_shape, copy=True)
+    lst = list(data.items())
+    
+    print('Building connectivity matrix...')
+    for i1 in tqdm(range(len(lst))):
+        index1, contig1 = lst[i1]
+        for i2 in range(i1+1, len(lst)):
+            index2, contig2 = lst[i2]
+            if len(contig1.SCG_genes.intersection(contig2.SCG_genes)) == 0:
+                matrix[index1, index2] = 1.0
+                
+    return matrix.tocsr(copy=True)
+
+
+#This has been taken from the metabinner implementation
+def silhouette(X, W, label, len_weight):
+    X_colsum = np.sum(X**2, axis=1)
+    X_colsum = X_colsum.reshape(len(X_colsum), 1)
+    W_colsum = np.sum(W**2, axis=1)
+    W_colsum = W_colsum.reshape(len(W_colsum), 1)
+
+    Dsquare = np.tile(X_colsum, (1, W.shape[0])) + np.tile(W_colsum.T, (X.shape[0], 1)) - 2 * X.dot(W.T)
+    # avoid error caused by accuracy
+    Dsquare[Dsquare < 0] = 0
+    D = np.sqrt(Dsquare)
+    aArr = D[np.arange(D.shape[0]), label]
+    D[np.arange(D.shape[0]), label] = np.inf
+    bArr = np.min(D, axis=1)
+    tmp = (bArr - aArr) / np.maximum(aArr, bArr)
+    return np.average(tmp, weights=len_weight)
+
+def compute_partition_range(features: List[List[float]], weigths: List[float], contigs: List[ContigData], stepsize: int, min_partitions: int or None = None, max_partitions: int or None = None) -> Tuple[int, int]:
+    k0 = max(compute_3_4_scg_count(contigs), 2) #Must have at least 2 clusters
+    end_k = min(len(features), (k0 + max_partitions if max_partitions is not None else k0*5 + 2*stepsize+1))
+    
+    data = np.array(features)
+    
+    best_K1, best_sil_val_1 = k0+1, np.NINF
+    best_K2, best_sil_val_2 = k0+1, np.NINF
+    
+    min_partitions = min_partitions+1 if min_partitions is not None else 1
+    print(f'Searching for best K value. (Will stop when reaching {end_k} or silhouette_score decreases)')
+    for k in range(k0+1, end_k+1, stepsize):
+        kmeans = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=7, max_iter=300)
+        labels = kmeans.fit_predict(features, sample_weight=weigths)
+        # score = silhouette_score(features, labels)
+        score = silhouette(data, kmeans.cluster_centers_, labels, weigths)
+        print(f"k value of '{k}'/{end_k} got score: {score}")
+        if score > best_sil_val_1:
+            best_sil_val_1 = score
+            best_K1 = k
+        else:
+            break
+    
+    for k in range(best_K1+2*stepsize, end_k+1, stepsize):
+        kmeans = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=7, max_iter=300)
+        labels = kmeans.fit_predict(features, sample_weight=weigths)
+        score = silhouette_score(features, labels)
+        print(f"k value of '{k}'/{end_k} got score: {score}")
+        if score > best_sil_val_2:
+            best_sil_val_2 = score
+            best_K2 = k
+        else:
+            break
+    
+    best_K = best_K1 if best_sil_val_1 > best_sil_val_2 else best_K2
+    print(f'Found range partition range {k0} to {best_K}')
+    return (k0, best_K)
+                                
+                                
+class FeaturesDto:
+    def __init__(self, index_map: Dict[int, ContigData],\
+        len_weights: np.ndarray, constraint_matrix: csr_matrix or None) -> None:
+        self.index_map = index_map
+        self.len_weights = len_weights
+        self.constraint_matrix = constraint_matrix
+    def asTuple(self) -> Tuple[Dict[int, ContigData], np.ndarray, csr_matrix or None]:
+        return (self.index_map, self.len_weights, self.constraint_matrix)
+                                                            
+def transform_contigs_to_features(items: List[ContigData], include_constraint_matrix: bool = False) \
+    -> Tuple[np.ndarray, np.ndarray, np.ndarray, FeaturesDto]:
+        #returns: contig index map, features, weights, constraint matrix
+    index_map, comp_matrix, cov_matrix, len_weights = {}, [], [], []
+    for i in range(len(items)):
+        item = items[i]
+        index_map[i] = item
+        comp_matrix.append( item.AsNormalizedCompositionVector() )
+        cov_matrix.append( item.AsNormalizedAbundanceVector() )
+        # weights.append( item.avg_abundance + 0.001 )
+        len_weights.append( item.contig_length )
+        
+    comp_matrix = np.array(comp_matrix)
+    cov_matrix = np.array(cov_matrix)
+    combo_matrix = np.hstack((comp_matrix, cov_matrix))
+    constraint_matrix = compute_constraints(index_map) if include_constraint_matrix else None
+    return (combo_matrix, comp_matrix, cov_matrix, FeaturesDto(index_map, len_weights, constraint_matrix))
+
+
+def partial_seed_init(features: np.ndarray, n_clusters: int, random_state: int, scg_count: Dict[str, int], index_map: Dict[int, ContigData]):
+    scg_sorted, i = list(scg_count.items()), 0
+    sorted_contigs: List[Tuple[int, ContigData]] = sorted(index_map.items(), key=lambda x: x[1].contig_length, reverse=True)
+    indexes: set[int] = set()
+    while True:
+        scg, count = scg_sorted[ np.random.randint(0, len(scg_sorted)) ]
+        
+        for index, contig in sorted_contigs:
+            if scg in contig.SCG_genes:
+                indexes.add(index)
+        if len(indexes) >= n_clusters:
+            break
+        i += 1
+    list_result = [features[x] for x in sorted(indexes, key=lambda x: index_map[x].contig_length, reverse=True)[0:n_clusters]] 
+    matrix = np.array(list_result, dtype=np.float16)
+    # np.savetxt('test.txt', list_result, fmt='%.2e', newline='\n\n')
+    return matrix
+    
+
+#returns labels
+def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int], matrix: np.ndarray, data:FeaturesDto, max_iter: int):
+    index_map, weights, constraints = data.asTuple()
+    if method == 'Kmeans':
+        return KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=n_clusters).fit_predict(matrix, sample_weight=weights)
+    if method == 'PartialSeed':
+        return KMeans(n_clusters=n_clusters, random_state=7, n_init=30,
+                    init=functools.partial(partial_seed_init, scg_count=scg_count, index_map=index_map))\
+                    .fit_predict(matrix, sample_weight=weights)
+    if method == 'Hierarchical':
+        return AgglomerativeClustering(n_clusters=n_clusters, connectivity=constraints, memory=CAHCE_DIR).fit_predict(matrix)
+    if method == 'Random':
+        return KMeans(n_clusters=n_clusters, init='random', max_iter=max_iter).fit_predict(np.random.rand( len(matrix), 32 ) )
+    raise Exception(f'method name {method} not recognized')
+    
+
+def generate_partition(partition: Partition, matrix: np.ndarray, data: FeaturesDto,\
+    method: str, n_clusters: int, scg_count: Dict[str, int] , max_iter: int = 300) -> Partition:
+    
+    labels = run_clustering_method(method, n_clusters, scg_count, matrix, data, max_iter)
+    for i in range(len(labels)):
+        partition.add(str(labels[i]), data.index_map[i])
+    return partition
+
+def generate_partition_with_matrix(gamma: PartitionSet, matrix: np.ndarray, k_range: Tuple[int, int], scg_count: Dict[str, int],\
+    data: FeaturesDto, method: str, max_iter: int, logger: BinLogger, partition_outdir: str or None = None):
+    
+    k_min, k_max = k_range
+    logger.log(f'Generating combo partitions with {k_min} to {k_max} bins...')
+    for k in tqdm(range(k_min, k_max)):
+        partition = generate_partition(gamma.create_partition(), matrix, data, method, k, scg_count, max_iter)
+        if partition_outdir is not None:
+            print_result(os.path.join(partition_outdir, 'Partition_'+str(k) +'.tsv'), partition)
+    pass
+
+def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
+    fasta_file: str, abundance_file: str, scg_file: List[str], ms_file: List[str], output_file: str, numpy_cache: str, chunksize: int,\
+        logger: BinLogger, max_iter: int = 300, partition_outdir: str or None = None):
+    
+    start_time = time()
+    scg_reader = SCGReader(scg_file, ms_file, logger=logger)
+    filter = ContigFilter(min_contig_len)
+    contig_reader = ContigReader(fasta_file, scg_reader, depth_file=abundance_file,\
+        numpy_file=numpy_cache, enable_analyse_contig_comp=True, logger=logger)
+    
+    contigs = [x for x in list(contig_reader.read_file_fast(load_SCGs=True).values()) if filter.predicate(x)] 
+    if any( (len(x.SCG_genes) > 0 for x in contigs) ) is False:
+        raise Exception('The set of contigs contains no SCGs')
+    if any( (x.__has_analysis__() for x in contigs) ) is False:
+        raise Exception('The contigs did not contain an analysis of composition. '+\
+            'This might be because the cache file is generated using fast analysis. '+\
+            'Try deleting cache file, or provide a different cache file path')
+    
+    gamma = PartitionSet(contigs)
+    feature_data = transform_contigs_to_features(contigs, include_constraint_matrix= (method == 'Hierarchical'))
+    combo_matrix, comp_matrix, cov_matrix, data_dto = feature_data
+    
+    scg_count = compute_scgs_count(contigs)
+    try:
+        k_min, k_max = compute_partition_range(combo_matrix, data_dto.len_weights, contigs, stepsize, min_partitions_gamma, max_partitions_gamma)
+        k_max = max(k_min + min_partitions_gamma, k_max)
+        k_range = (k_min, k_max)
+        
+        logger.log(f'Generating partitions with {k_min} to {k_max} bins using features matricies...')
+        logger.log(f'Generating partitions using combo matrix...')
+        generate_partition_with_matrix(gamma, combo_matrix, k_range, scg_count,\
+            data_dto, method, max_iter, logger, partition_outdir)
+        
+        logger.log(f'Generating partitions using composition_matrix...')
+        generate_partition_with_matrix(gamma, comp_matrix, k_range, scg_count,\
+            data_dto, method, max_iter, logger, partition_outdir)
+        
+        logger.log(f'Generating partitions using abundance matrix...')
+        generate_partition_with_matrix(gamma, cov_matrix, k_range, scg_count,\
+            data_dto, method, max_iter, logger, partition_outdir)
+        
+        # generate_partition_with_matrix(gamma, combo_matrix, k_range, scg_count,\
+        #     data_dto, 'Kmeans', max_iter, logger, partition_outdir)
+        
+        # generate_partition_with_matrix(gamma, comp_matrix, k_range, scg_count,\
+        #     data_dto, 'Kmeans', max_iter, logger, partition_outdir)
+        
+        # generate_partition_with_matrix(gamma, cov_matrix, k_range, scg_count,\
+        #     data_dto, 'Kmeans', max_iter, logger, partition_outdir)
+        #end_loop
+    finally:
+        shutil.rmtree(os.path.abspath(CAHCE_DIR), ignore_errors=True)
+        
+    
+    bin_evaluator = BinEvaluator(scg_reader.read_MS_scgs())
+    bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), logger)
+    chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
+    binner = Binner(bin_refiner, bin_evaluator, logger=logger)
+    ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
+
+    final_partition = ensembler.ensemble(gamma)
+    print_result(output_file, final_partition)
+    
+    logger.log(f"Completed binning in time: {(time() - start_time):0.02f}s")

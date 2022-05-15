@@ -5,11 +5,12 @@ import argparse
 import numpy as np
 from tqdm import tqdm
 from typing import Dict, List, Tuple
+import sys
 
+sys.path.insert(1, '../ACE')
 from Domain import ContigData
-from Cluster import Cluster, Partition
-from ContigReader import ContigReader
-from PartitionSetReader import PartitionSetReader
+from ClusterDomain import Cluster, Partition
+from BinReaders import ContigReader, PartitionSetReader, SCGReader, ContigFilter
 import ClusterEnsembleFuckhead as CE
 
 def parser():
@@ -58,7 +59,7 @@ def __assert_args__(args):
 def run(args):
 
     # Read Fasta!
-    contig_reader = ContigReader(args.fasta, depth_file=args.depth, numpy_file=args.cache, enable_analyse_contig_comp=False, max_threads=args.threads)
+    contig_reader = ContigReader(args.fasta, SCGReader([], []), depth_file=args.depth, numpy_file=args.cache, enable_analyse_contig_comp=False, max_threads=args.threads)
     # contigs = contig_reader.read_file_fast(args.cache)
 
     # Read Partitions!

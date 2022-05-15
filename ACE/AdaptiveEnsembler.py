@@ -1,10 +1,7 @@
 from __future__ import annotations
-from functools import partialmethod
-import itertools
-from logging import exception
-from multiprocessing import cpu_count, Pool, get_context
+from multiprocessing import cpu_count
 from typing import Callable, Dict, List, Tuple, Generic, TypeVar
-from Cluster import Cluster, Partition, PartitionSet
+from ClusterDomain import Cluster, Partition, PartitionSet
 import numpy as np
 from tqdm import tqdm
 from itertools import islice
@@ -12,22 +9,14 @@ import Assertions as Assert
 from sys import maxsize as MAXSIZE
 from time import time
 from Domain import ContigData
-from MemberSimularityMatrix import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, Build_simularity_matrix
-from ClusterSimilarityMatrix import SparseClustserSimularity, cluster_simularity
-from AdaptiveEnsemblerExtensions import MergeRegulator, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, partial_sort_merge, MergeClusters, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
+from Cluster_matrices import CoAssosiationMatrix, MemberMatrix, MemberSimularityMatrix, ClustserSimularityMatrix, ClustserSimularityMatrix, cluster_simularity
+from EnsemblerTools import AbstractEnsembler, MergeRegulator, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
 from io import TextIOWrapper
 
-__global_disable_tqdm = False
-tqdm.__init__ = partialmethod(tqdm.__init__, disable=__global_disable_tqdm)
 
 THREAD_COUNT = cpu_count()
 
-class Ensembler:
-    def ensemble(self, gamma: PartitionSet) -> Partition:
-        pass
-    
-
-class AdaptiveClusterEnsembler(Ensembler):
+class AdaptiveClusterEnsembler(AbstractEnsembler):
     def __init__(self, 
             initial_alpha1_thredshold: float = 0.8, 
             initial_delta_aplha: float = 0.1,
@@ -78,7 +67,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         self.merge_regulator.set_context(gamma, target_clusters)
         
         self.log("Builing cluster similarity matrix...")
-        cluster_matrix = SparseClustserSimularity.build_multithread(\
+        cluster_matrix = ClustserSimularityMatrix.build_multithread(\
             all_clusters, len(all_items), self.aplha1_min, self.thread_count, self.chunksize)
         
         self.log("Merging initial clusters (step 2.1)")
@@ -258,7 +247,7 @@ class AdaptiveClusterEnsembler(Ensembler):
         return partition
     
             
-    def merge_clusters(self, cluster_matrix: SparseClustserSimularity, alpha1: float) -> List[Cluster]:
+    def merge_clusters(self, cluster_matrix: ClustserSimularityMatrix, alpha1: float) -> List[Cluster]:
         i, start_22 = 0, time()
         
         def log_loop() -> None:

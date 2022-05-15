@@ -1,13 +1,55 @@
-from BinEvaluator import BinEvaluator
-from Cluster import Cluster, Partition, PartitionSet
+from ClusterDomain import Cluster, Partition, PartitionSet
 import numpy as np
 from typing import List, Dict, Tuple, Callable
 from tqdm import tqdm
-from ClusterSimilarityMatrix import SparseClustserSimularity
-from ClusterSimilarityMatrix import cluster_simularity
 from multiprocessing import cpu_count, Pool
 from Domain import ContigData
-from MemberSimularityMatrix import MemberSimularityMatrix
+from io import TextIOWrapper
+from Cluster_matrices import ClustserSimularityMatrix, cluster_simularity
+
+
+class BinLogger:
+    def __init__(self, console_log: bool = True, logfile: TextIOWrapper = None) -> None:
+        self.__should_log__, self.logfile = console_log, logfile 
+    
+    def __call__(self, string: str) -> None:
+        self.log(string)
+        
+    def log(self, string: str) -> None:
+        if self.__should_log__: print(string)
+        if self.logfile is not None: print(string, file=self.logfile)
+        
+    def draw_line(self, header: str or None = None) -> None:
+        if header is None:
+            line =  '####################################||######################################'
+        else: 
+            line = f'#################################|{header}|#################################'
+        return self.log(line)
+
+class AbstractEnsembler:
+    def __init__(self, logger: BinLogger) -> None:
+        self.log = logger
+    
+    def ensemble(self, gamma: PartitionSet) -> Partition:
+        pass
+    
+    def build_final_partition(self, gamma: PartitionSet, candidate_clusters: List[Cluster]):
+        partition = Partition(list(gamma.get_all_elements().keys()))
+        found_items, dups = set(), 0
+        
+        for cluster_index in tqdm(range(len(candidate_clusters))):
+            cluster: Cluster[ContigData] = candidate_clusters[cluster_index]
+            for item in cluster:
+                if item in found_items:
+                    self.log(f'Item {item.name} is a duplicate, having {len(item.SCG_genes)} and len {item.contig_length}')
+                    dups += 1
+                    continue
+                partition.add(str(cluster), item)
+                found_items.add(item)
+        
+        if dups > 0: self.log(f'{dups} duplicate_items')
+        self.log(f'{len(found_items)} total items')
+        return partition
 
 def print_result(file_path: str, parititon: Partition[ContigData]):
     with open(file_path, 'w') as file:
@@ -15,7 +57,6 @@ def print_result(file_path: str, parititon: Partition[ContigData]):
         for cluster_idx in range(len(cluster_lst)):
             for item in cluster_lst[cluster_idx]:
                 file.write(f"{cluster_idx+1}\t{item.name}\n")
-
 
 class MergeRegulator:
     def __init__(self, a1_min: float) -> None:
@@ -27,7 +68,7 @@ class MergeRegulator:
         self.target_clusters = target_clusters
         self.__context__ = gamma
     
-    def evaluate(self, alpha1: float, cluster_matrix: SparseClustserSimularity, merged_clusters: List[Cluster]) \
+    def evaluate(self, alpha1: float, cluster_matrix: ClustserSimularityMatrix, merged_clusters: List[Cluster]) \
         -> Tuple[bool, List[Cluster]]:
         if alpha1 < self.a1_min: return True, self.result
         self.result = cluster_matrix.get_available_clusters() + merged_clusters
@@ -57,7 +98,7 @@ def target_bin_3_4th_count_estimator(gamma: PartitionSet) -> int:
     third = (max(partition_ln) - average ) / 2
     return int(average + third)
 
-def sort_merged_cluster_singlethread(cluster_matrix: SparseClustserSimularity, merged_lst: List[Cluster]) -> float:
+def sort_merged_cluster_singlethread(cluster_matrix: ClustserSimularityMatrix, merged_lst: List[Cluster]) -> float:
     max_simularity = -1
     for merged_cluster in merged_lst:
         cluster_matrix.add_cluster(merged_cluster)
@@ -72,7 +113,7 @@ def sort_merged_cluster_singlethread(cluster_matrix: SparseClustserSimularity, m
             max_simularity = max(max_simularity, similarity)
     return max_simularity
 
-def sort_merged_cluster_multithread(cluster_matrix: SparseClustserSimularity, merged_lst: List[Cluster],\
+def sort_merged_cluster_multithread(cluster_matrix: ClustserSimularityMatrix, merged_lst: List[Cluster],\
     threads: int = cpu_count(), chunksize:int = 1) -> float:
     max_simularity = -1
     for c in merged_lst: cluster_matrix.add_cluster(c)

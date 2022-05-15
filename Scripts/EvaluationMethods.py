@@ -1,13 +1,16 @@
-from Cluster import Cluster, Partition
 from typing import List, Dict, Tuple
 from math import factorial, floor, log, sqrt
-from Domain import ContigData, bin_size
-from PartitionSetReader import PartitionSetReader
-from ContigReader import ContigReader
 import argparse
 import os
 from os.path import join
 from tqdm import tqdm
+import sys
+
+sys.path.insert(1, '../ACE')
+from BinReaders import ContigReader, PartitionSetReader
+from ClusterDomain import Cluster, Partition
+from Domain import ContigData, bin_size
+
 
 class Evaluator:
     @staticmethod
