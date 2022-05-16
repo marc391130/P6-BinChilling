@@ -36,14 +36,14 @@ tqdm.__init__ = partialmethod(tqdm.__init__, disable=__global_disable_tqdm)
 
 
 def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est: int or Callable[[PartitionSet], int],\
-        fasta_filepath: str, depth_filepath: str, scg_filepath: List[str],\
+        fasta_filepath: str, depth_filepath: str, scg_filepath: List[str], db_path: List[str],\
     numpy_cachepath: str, partition_folder: str, output_path: str,\
         max_processors: int or None, chunksize: int, min_contig_len: int):
     
     start_time = time()
     
     #Load data
-    scg_reader = SCGReader(scg_filepath, ['../Dataset/Bacteria.ms'], logger=logger)
+    scg_reader = SCGReader(scg_filepath, db_path, logger=logger)
     contigFilter = ContigFilter(min_contig_len)
     contigReader = ContigReader(fasta_filepath, scg_reader,\
         depth_file=depth_filepath, numpy_file=numpy_cachepath, max_threads=max_processors, logger=logger)
@@ -77,12 +77,12 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
     logger.log("Completed successfully")
     sys.exit(0)
     
-def run_ACE(a1_min, fasta_filepath: str, depth_filepath: str, scg_filepath: List[str], numpy_cachepath: str, partition_folder: str,\
+def run_ACE(a1_min, fasta_filepath: str, depth_filepath: str, scg_filepath: List[str], db_file: List[str], numpy_cachepath: str, partition_folder: str,\
     output_path: str, threads, chunksize, logfile: TextIOWrapper or None, min_contig_len: int = 0):
 
-    scg_reader = SCGReader(scg_filepath, ['../Dataset/Bacteria.ms'])   
+    scg_reader = SCGReader(scg_filepath, db_file)   
     contigFilter = ContigFilter(min_contig_len)
-    contigReader = ContigReader(fasta_filepath, scg_reader, depth_filepath, scg_filepath, SCG_db_path=['../Dataset/Bacteria.ms'],\
+    contigReader = ContigReader(fasta_filepath, scg_reader, depth_filepath, scg_filepath,\
         numpy_file=numpy_cachepath, max_threads=threads)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"),\
         contig_filter=contigFilter)
@@ -120,8 +120,8 @@ def main():
         )
     
     req_args = parser.add_argument_group(title='Required args', description=None)
-    req_args.add_argument('--Module', '-M', metavar='', required=True, type=str,\
-        dest='module', choices=['Bin', 'Ensemble', 'ACE'], help="The module to run ('Bin', 'Ensembler', 'ACE'). (REQUIRED)"
+    req_args.add_argument('--Module', '-M', metavar='', required=False, type=str, default='Ensemble',\
+        dest='module', choices=['Bin', 'Ensemble', 'ACE'], help="The module to run ('Ensemble', 'Bin', 'ACE'). (REQUIRED)"
         )
     
     p_args = parser.add_argument_group(title='Common IO options (used by all modules)', description=None)
@@ -330,11 +330,11 @@ def main():
             run_binner(a1min, args.min_p, args.max_p, minlen, args.stepsize, args.algorithm, fasta_path, abundance_path,\
                 SCG_path, MS_path, outfile, numpy_cache, chunksize,  logger, 300, partition_outdir)
         elif run_ensemble_mod:
-            run_ensemble(logger, args.a1, args.a1_min, target_clusters, fasta_path, abundance_path, scg,\
+            run_ensemble(logger, args.a1, args.a1_min, target_clusters, fasta_path, abundance_path, scg, MS_path,\
                 numpy_cache, partition_folder, outfile, args.threads, args.chunksize, minlen)
         elif run_ACE_mod:
-            run_ACE(args.a1_min, fasta_path, abundance_path, SCG_path, numpy_cache, partition_folder, 
-                    outfile, args.threads, args.chunksize, logfile, args.min_contigs)
+            run_ACE(args.a1_min, fasta_path, abundance_path, SCG_path, MS_path, numpy_cache, partition_folder, 
+                    outfile, args.threads, args.chunksize, logfile, minlen)
         else:
             raise Exception('module not recognized')
             

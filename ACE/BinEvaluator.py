@@ -213,11 +213,6 @@ class BinRefiner:
             if c1 in skip_set or len(c1) == 0: continue
             score1 = get_score(c1)
             
-            if score1 < 0.0:
-                skip_set.add(c1)
-                new_clusters += self.__split_bin__(c1)
-                continue
-            
             for j in range(i+1, len(source_lst)):
                 c2 = source_lst[j]
                 if c2 in skip_set or len(c2) == 0: continue
@@ -233,5 +228,12 @@ class BinRefiner:
                     mc = Cluster.merge(c1, c2)
                     new_clusters.append( mc )
                     break
+            #end loop
+            
+            if c1 in skip_set: continue
+            if score1 < 0.0:
+                skip_set.add(c1)
+                new_clusters += self.__split_bin__(c1)
+                continue
         #end loop
         return new_clusters

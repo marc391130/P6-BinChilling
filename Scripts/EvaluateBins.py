@@ -25,23 +25,23 @@ def main():
         )
     
     file_args = parser.add_argument_group(title='Contig input (required)', description=None)
-    file_args.add_argument('--fasta', metavar='', required=True,\
+    file_args.add_argument('--fasta', '-f', metavar='', required=True,\
         dest='fasta', help='path to fasta file of contigs')
-    file_args.add_argument('--SCG', nargs='+', metavar='', required=True, \
+    file_args.add_argument('--SCG', '-g', nargs='+', metavar='', required=True, \
         dest='SCG', help='Path to single copy genes file (required)')
-    file_args.add_argument('--genefiles', metavar='', required=True, \
+    file_args.add_argument('--genefiles', '-ms', metavar='', type=str, required=False, default=[], \
         dest='genefiles', help='Paths to gene files (required)')
-    file_args.add_argument('--cache', metavar='', required=False, \
+    file_args.add_argument('--cache', '-c', metavar='', required=False, \
         dest='cache', help='Path to cache numpy file')
-    file_args.add_argument('--cluster', metavar='', required=True, \
+    file_args.add_argument('--cluster', '-p', metavar='', required=True, \
         dest='clusterpath', help='Path to cluster file (required)')
-    file_args.add_argument('--depthfile', metavar='', required=True, \
+    file_args.add_argument('--depthfile', '-d', metavar='', required=True, \
         dest='depthfile', help='Path to depth file (required)')
-    file_args.add_argument('--outputpath', metavar='', required=True, \
+    file_args.add_argument('--outputpath', '-o', metavar='', required=True, \
         dest='outputfile', help='Path to output file (required)')
     
     extra_args = parser.add_argument_group(title='Extra arguments', description=None)
-    extra_args.add_argument('--minSize', metavar='', required=False,\
+    extra_args.add_argument('--minSize', '-m', metavar='', required=False,\
         dest='minSize', help='Minimum total size of clusters!')
 
 

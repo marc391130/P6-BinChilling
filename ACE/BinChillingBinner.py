@@ -238,7 +238,7 @@ def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int
         
         scg_seed = list(scg_count.keys())[ np.random.randint(0, len(scg_count)) ]
         seed_idx = [i for i, contig in index_map.items() if scg_seed in contig.SCG_genes]
-        return KMeans(n_clusters=n_clusters, random_state=7, n_init=10,
+        return KMeans(n_clusters=n_clusters, random_state=7, n_init=1,
                     init=functools.partial(partial_seed_init3, seed_idx=seed_idx))\
                     .fit_predict(matrix, sample_weight=weights)
     if method == 'Hierarchical':
