@@ -160,7 +160,7 @@ class ContigReader:
         
         def get_abundance(name: str) -> List[float]:
             nonlocal abundance_length_dict
-            if abundance_length_dict is None: return 0.0
+            if abundance_length_dict is None: return [0.0]
             return abundance_length_dict[name][0] if not self.depth_file.endswith('.npz')\
                 else abundance_length_dict[str(temp_result_index_map[name])]
         

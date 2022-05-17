@@ -7,12 +7,19 @@ import Assertions as Assert
 import scipy.sparse as sp  
 from SparseMatrix_implementations import DoubleSparseDictHashMatrix, SortKeysByHash, SparseDictHashMatrix, SparseTupleHashMatrix
 from math import sqrt
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, Queue, process
 
+import ray
 
-def cluster_simularity(cluster1: Cluster, cluster2: Cluster, total_elements: int) -> float:    
-    if cluster1.SamePartitionAs(cluster2): return np.NINF
-    intersection_len, len1, len2 = cluster1.intersection_len(cluster2), len(cluster1), len(cluster2)
+def cluster_simularity(c1: Cluster, c2: Cluster, total_elements: int) -> float:    
+    if c1.SamePartitionAs(c2): return np.NINF
+    intersection_len, len1, len2 =  len(c1.__membership__.keys() & c2.__membership__.keys() ), len(c1), len(c2)
+    counter = intersection_len - ((len1 * len2) / total_elements)
+    divisor = sqrt(len1 * len2 * (1 - (len1 / total_elements)) * (1 - (len2 / total_elements)))
+    return min(counter / divisor, 1.0) if divisor != 0 else 0.0
+
+def cluster_simularity_vector(c1: np.ndarray, c2: np.ndarray, total_elements: int) -> float:    
+    intersection_len, len1, len2 = len(np.intersect1d(c1, c2, assume_unique=True)), len(c1), len(c2)
     counter = intersection_len - ((len1 * len2) / total_elements)
     divisor = sqrt(len1 * len2 * (1 - (len1 / total_elements)) * (1 - (len2 / total_elements)))
     return min(counter / divisor, 1.0) if divisor != 0 else 0.0
@@ -290,41 +297,61 @@ class ClustserSimularityMatrix:
         return matrix
     
     @staticmethod
-    def build_multithread_windows(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
-        processes: int, chunksize: int = 75) -> ClustserSimularityMatrix:
-        if processes <= 1: return ClustserSimularityMatrix.build(cluster_lst, total_item_count, a1_min)
-        matrix_dct = SparseTupleHashMatrix(SortKeysByHash)
-        
-        parameters = [(i, cluster_lst, total_item_count, a1_min) for i in range(len(cluster_lst))]
-        # result : List[List[Tuple[Cluster, Cluster, float]]] = None
-        with Pool(min(cpu_count(), processes)) as p:
-            for chunk_result in tqdm(p.imap(partial_build_similarity_row, parameters, chunksize=chunksize), total=len(cluster_lst)):
-                for i1, i2, sim in chunk_result:
-                    matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
-        
-        return ClustserSimularityMatrix(cluster_lst, total_item_count, a1_min, matrix_dct)
-    
-    @staticmethod
     def build_multithread(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
         processes: int, chunksize: int = 75) -> ClustserSimularityMatrix:
-        if processes <= 1: return ClustserSimularityMatrix.build(cluster_lst, total_item_count, a1_min)
+        return ClustserSimularityMatrix.build_multithread_vector(cluster_lst, total_item_count, a1_min, processes, chunksize)
+       
+    
+    @staticmethod
+    def build_multithread_vector(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
+        processes: int, chunksize: int = 75) -> ClustserSimularityMatrix:
+        if processes <= 1: return ClustserSimularityMatrix.build(cluster_lst, total_item_count, a1_min)       
         matrix_dct = SparseTupleHashMatrix(SortKeysByHash)
+
         try: 
+            vector_lst = [c.to_hash_vector() for c in cluster_lst]
             global shared_cluster_lst_memory 
-            shared_cluster_lst_memory = cluster_lst
-                
-            parameters = [(i, total_item_count, a1_min) for i in range(len(cluster_lst))]
+            # shared_cluster_lst_memory = member_matrix
             # result : List[List[Tuple[Cluster, Cluster, float]]] = None
-            with Pool(min(cpu_count(), processes)) as p:
-                for chunk_result in tqdm(p.imap_unordered(partial_build_similarity_row_shared_mem, parameters, chunksize=chunksize), total=len(cluster_lst)):
-                    for i1, i2, sim in chunk_result:
+            parameters = ((i,j, total_item_count) for i in tqdm(range(len(cluster_lst)))\
+                    for j in range(i+1, len(cluster_lst)) if cluster_lst[i].__partition_id__ != cluster_lst[j].__partition_id__)
+            
+            # parameters = ((i, total_item_count, a1_min) for i in tqdm(range(len(cluster_lst))))
+            
+            with Pool(min(cpu_count(), processes), initializer=init_similarity_matrix_process, initargs=(vector_lst,)) as p:
+                for i1, i2, sim in p.imap_unordered(partial_build_similarity_vector_single, iterable=parameters, chunksize=chunksize):
+                    if sim >= a1_min:
                         matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
-            #end pool            
+                        
             return ClustserSimularityMatrix(cluster_lst, total_item_count, a1_min, matrix_dct)
         finally:
             #del will not work here, as the variable still needs to be know, but should not hold a reference
             shared_cluster_lst_memory = None
     
+    @staticmethod
+    def build_multithread_ray(cluster_lst: List[Cluster], total_item_count: int, a1_min: float,\
+        processes: int, chunksize: int = 75) -> ClustserSimularityMatrix:
+        if processes <= 1: return ClustserSimularityMatrix.build(cluster_lst, total_item_count, a1_min)
+        def chunks(lst: List, n) -> List[List]:
+            """Yield successive n-sized chunks from lst."""
+            for i in tqdm(range(0, len(lst), n)):
+                yield lst[i:i + n]
+        matrix_dct = SparseTupleHashMatrix(SortKeysByHash)
+
+        try:
+            ray.init(num_cpus = processes)
+            lst_ptr = ray.put(np.array(cluster_lst, dtype=Cluster))
+            
+            for chunk in chunks(range(len(cluster_lst)), chunksize):
+                result_ids = [ partial_build_similarity_ray.remote(lst_ptr, i, total_item_count, a1_min) for i in range(len(chunk)) ]
+                # output: List[Tuple[int, int, float]] = ray.get(result_ids)
+                for r_i in tqdm(result_ids):
+                    output: Tuple[int, int, float] = ray.get(r_i)    
+                    for i1, i2, sim in output:
+                        matrix_dct[ cluster_lst[i1], cluster_lst[i2] ] = sim
+            return ClustserSimularityMatrix(cluster_lst, total_item_count, a1_min, matrix_dct)  
+        finally:
+            ray.shutdown()
     
     @staticmethod
     def hash_sort_cluster(a: Cluster, b: Cluster) -> Tuple[Cluster, Cluster]:
@@ -387,6 +414,11 @@ class ClustserSimularityMatrix:
     def __len__(self):
         return len(self.__all_clusters__)
     
+
+
+def init_similarity_matrix_process(q):
+    global shared_cluster_lst_memory
+    shared_cluster_lst_memory = q
     
 def partial_build_similarity_row(tup: Tuple[int, List[Cluster], int, int]) -> List[Tuple[int, int, float]]:
     i1, cluster_lst, total_count, a1_min = tup
@@ -398,11 +430,30 @@ def partial_build_similarity_row(tup: Tuple[int, List[Cluster], int, int]) -> Li
             lst.append( (i1, i2, similarity) )
     return lst
 
+
+
 shared_cluster_lst_memory : List[Cluster] or None = None 
 def partial_build_similarity_row_shared_mem(tup: Tuple[int, int, int]) -> List[Tuple[int, int, float]]:
     i1, total_count, a1_min = tup
     global shared_cluster_lst_memory
     cluster_lst = shared_cluster_lst_memory
+    lst, c1 = [], cluster_lst[i1]
+    for i2 in range(i1+1, len(cluster_lst)):
+        c2 = cluster_lst[i2]
+        similarity = cluster_simularity(c1, c2, total_count)
+        if similarity >= a1_min:
+            lst.append( (i1, i2, similarity) )
+    return lst
+
+def partial_build_similarity_vector_single(tup: Tuple[int, int, float] ) -> List[Tuple[int, int, float]]:
+    i1, i2, total_count = tup
+    c1, c2 = shared_cluster_lst_memory[i1], shared_cluster_lst_memory[i2]
+    sim = cluster_simularity_vector(c1, c2, total_count)
+    return (i1, i2, sim)
+
+
+@ray.remote
+def partial_build_similarity_ray(cluster_lst: List[Cluster], i1: int, total_count: int, a1_min: float) -> List[Tuple[int, int, float]]:
     lst, c1 = [], cluster_lst[i1]
     for i2 in range(i1+1, len(cluster_lst)):
         c2 = cluster_lst[i2]

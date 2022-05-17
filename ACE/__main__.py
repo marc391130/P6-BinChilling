@@ -129,8 +129,8 @@ def main():
         dest='fasta', help='path to fasta file of contigs [required]')
     p_args.add_argument('--SCG', '-g', nargs='+', metavar='', required=True, \
         dest='SCG', help='Path to single copy marker genes files (.tsv format) [requires at least 1]')
-    p_args.add_argument('--MS', '-MS', type=str, dest='MS', nargs='+', default=None, \
-        help='Path to MS files of genes. If no ms files, the union of all SCGs are used [optional]', metavar='', required=False)
+    p_args.add_argument('--MS', '-MS', dest='MS', nargs='+', default=None, \
+        help='Path to MS files of genes. If no ms files supplied, the union of all SCGs are used [optional]', metavar='', required=False)
     p_args.add_argument('--cache', '-c', metavar='', type=str, required=False,\
         dest='numpy_cache', help='Path for contig cache. If no cache exists at the path, a cache file will be created (optional, but highly encuraged)')
     
