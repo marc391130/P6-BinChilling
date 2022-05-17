@@ -1,6 +1,0 @@
-matplotlib==3.5.2
-numpy==1.21.2
-ray==1.12.0
-scikit_learn==1.1.0
-scipy==1.7.1
-tqdm==4.62.3
