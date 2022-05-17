@@ -100,7 +100,6 @@ class SCGReader:
         return result_dct
 
     def __read_SCG_db_set__(self, ms_file: str) -> set:
-        print(self.db_filepaths, "Here <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
         if ms_file is None or len(ms_file) == 0: return self.read_contig_scg_superset()
         string = ''
         result = set()
