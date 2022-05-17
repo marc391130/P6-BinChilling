@@ -20,9 +20,10 @@ class SCGReader:
 
     def read_contig_scg_superset(self) -> set:
         scgs = self.read_scg()
-        return set(itertools.chain(scgs.values()))
+        return set(itertools.chain.from_iterable(scgs.values()))
 
     def read_MS_scgs(self) -> set:
+        if self.db_filepaths is None or len(self.db_filepaths) == 0: return self.__read_SCG_db_set__(None)
         return set(itertools.chain.from_iterable((self.__read_SCG_db_set__(x) for x in self.db_filepaths) ))
 
     def read_scg(self) -> Dict[str, set]:
@@ -99,7 +100,8 @@ class SCGReader:
         return result_dct
 
     def __read_SCG_db_set__(self, ms_file: str) -> set:
-        if len(ms_file) == 0: return self.read_contig_scg_superset()
+        print(self.db_filepaths, "Here <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+        if ms_file is None or len(ms_file) == 0: return self.read_contig_scg_superset()
         string = ''
         result = set()
         with open(ms_file, 'r') as f:
@@ -218,7 +220,7 @@ class ContigReader:
         def read_npz(file_path):
             data = np.load(file_path)
             #print(data)
-            result = list(data)
+            result = list(data['arr_0'])
             data.close()
             return result
 
