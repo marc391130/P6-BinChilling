@@ -1,4 +1,5 @@
 from io import TextIOWrapper
+
 from EnsemblerTools import BinLogger, MergeRegulator, print_result, target_bin_3_4th_count_estimator
 from ClusterDomain import Partition, Cluster, PartitionSet
 from BinReaders import ContigReader, PartitionSetReader, SCGReader, ContigFilter
@@ -7,6 +8,7 @@ import os
 import shutil
 import argparse
 import random
+from multiprocessing import cpu_count
 import Constants as const
 from scipy.sparse import lil_matrix, csr_matrix
 import scipy.sparse as sp
@@ -24,6 +26,7 @@ import Assertions as Assert
 import functools
 
 CAHCE_DIR = f'./cache_{time()}'
+IS_HUGE = True
 
 def compute_constraints(data: Dict[int, ContigData]) -> csr_matrix:
     matrix_shape = (len(data), len(data))
@@ -70,10 +73,10 @@ def compute_partition_range(features: List[List[float]], weigths: List[float], c
     min_partitions = min_partitions+1 if min_partitions is not None else 1
     print(f'Searching for best K value. (Will stop when reaching {end_k} or silhouette_score decreases)')
     for k in range(k0+1, end_k+1, stepsize):
-        kmeans = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=7, max_iter=300)
+        kmeans = KMeans(n_clusters=k, init="k-means++", n_init=(1 if IS_HUGE else 10), random_state=7, max_iter=300)
         labels = kmeans.fit_predict(features, sample_weight=weigths)
-        # score = silhouette_score(features, labels)
         score = silhouette(data, kmeans.cluster_centers_, labels, weigths)
+
         print(f"k1 value of '{k}'/{end_k} got score: {score} / {best_sil_val_1}")
         if score > best_sil_val_1:
             best_sil_val_1 = score
