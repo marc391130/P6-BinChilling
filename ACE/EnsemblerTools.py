@@ -5,7 +5,7 @@ from tqdm import tqdm
 from multiprocessing import cpu_count, Pool
 from Domain import ContigData
 from io import TextIOWrapper
-from Cluster_matrices import ClustserSimularityMatrix, cluster_simularity
+from Cluster_matrices import ClustserSimularityMatrix, cluster_simularity, cluster_simularity_vector
 
 
 class BinLogger:
@@ -118,11 +118,10 @@ def sort_merged_cluster_multithread(cluster_matrix: ClustserSimularityMatrix, me
     max_simularity = -1
     for c in merged_lst: cluster_matrix.add_cluster(c)
     index_lst = list(cluster_matrix.__all_clusters__)
-    parameters = [(cluster, cluster_matrix.total_item_count, cluster_matrix.min_value) for cluster in merged_lst]
-    global merged_cluster_presort_cache
+    parameters = ((cluster, cluster_matrix.total_item_count, cluster_matrix.min_value) for cluster in merged_lst)
     
     try:
-        merged_cluster_presort_cache = index_lst
+        shared_cluster_lst_memory = index_lst
         
         with Pool(threads) as p:
             for index, res, max_sim in tqdm(p.imap_unordered(partial_sort_merge_cache, parameters, chunksize=chunksize), total=len(parameters)):
@@ -130,10 +129,41 @@ def sort_merged_cluster_multithread(cluster_matrix: ClustserSimularityMatrix, me
                 for index2, sim in res:
                     cluster_matrix.set_value(index_lst[index], index_lst[index2], sim)
     finally:
-        merged_cluster_presort_cache = None
+        shared_cluster_lst_memory = None
         
-    
     return max_simularity
+
+
+def sort_merged_cluster_tasks(cluster_matrix: ClustserSimularityMatrix, merged_lst: List[Cluster],\
+    threads: int = cpu_count(), chunksize:int = 1) -> float:
+    max_simularity = -1
+    index_lst = list(cluster_matrix.__all_clusters__)
+    vector_lst = [cc.to_hash_vector() for cc in index_lst]
+    start_index = len(index_lst)
+    a1min, total_elements_count = cluster_matrix.min_value, cluster_matrix.total_item_count
+    
+    for c in merged_lst: 
+        cluster_matrix.add_cluster(c)
+        index_lst.append(c)
+        vector_lst.append(c.to_hash_vector())
+    
+    parameters = ((i, total_elements_count, a1min) for i in tqdm(range(start_index, len(index_lst))))
+    
+    try:
+        global shared_cluster_lst_memory
+        with Pool(processes=threads, initializer=init_similarity_matrix_process, initargs=(vector_lst,)) as p:
+            for lst, max_sim in p.imap_unordered(partial_sort_merge_cache_lst, parameters, chunksize=chunksize):
+                max_simularity = max(max_simularity, max_sim)
+                for i1, i2, sim in lst:
+                    cluster_matrix.set_value(index_lst[i1], index_lst[i2], sim)
+    finally:
+        shared_cluster_lst_memory = None
+        
+    return max_simularity
+
+def init_similarity_matrix_process(q):
+    global shared_cluster_lst_memory
+    shared_cluster_lst_memory = q
 
 def partial_sort_merge(tup: Tuple[Cluster, List[Cluster], int, float]) -> Tuple[int, List[Tuple[int, float]], float]:
     merged_cluster, all_clusters, total_item_count, min_value = tup
@@ -145,16 +175,16 @@ def partial_sort_merge(tup: Tuple[Cluster, List[Cluster], int, float]) -> Tuple[
             continue
         similarity = cluster_simularity(merged_cluster, cluster, total_item_count)
         max_similarity = max(similarity, max_similarity)
-        if similarity > min_value:
+        if similarity >= min_value:
             result.append( (cluster_idx, similarity) )
     return own_index, result, max_similarity
 
 
-merged_cluster_presort_cache: List[Cluster] = None
+shared_cluster_lst_memory: List[Cluster] = None
 def partial_sort_merge_cache(tup: Tuple[Cluster, int, float]) -> Tuple[int, List[Tuple[int, float]], float]:
     merged_cluster, total_item_count, min_value = tup
-    global merged_cluster_presort_cache
-    all_clusters = merged_cluster_presort_cache
+    global shared_cluster_lst_memory
+    all_clusters = shared_cluster_lst_memory
     own_index, max_similarity, result = -1, -1, []
     for cluster_idx in range(len(all_clusters)):
         cluster = all_clusters[cluster_idx]
@@ -163,9 +193,29 @@ def partial_sort_merge_cache(tup: Tuple[Cluster, int, float]) -> Tuple[int, List
             continue
         similarity = cluster_simularity(merged_cluster, cluster, total_item_count)
         max_similarity = max(similarity, max_similarity)
-        if similarity > min_value:
+        if similarity >= min_value:
             result.append( (cluster_idx, similarity) )
     return own_index, result, max_similarity
+
+shared_cluster_lst_memory: List[Cluster] = None
+def partial_sort_merge_cache_lst(tup: Tuple[int, int, float]) -> Tuple[List[Tuple[int, float]], float]:
+    i1, total_item_count, min_value = tup
+    global shared_cluster_lst_memory
+    vectors: List[List[int]] = shared_cluster_lst_memory
+    c1, max_similarity, result = shared_cluster_lst_memory[i1], -1, []
+    for i2 in range(i1):
+        c2 = vectors[i2]
+        similarity = cluster_simularity_vector(c1, c2, total_item_count)
+        max_similarity = max(similarity, max_similarity)
+        if similarity >= min_value:
+            result.append( (i1, i2, similarity) )
+    return result, max_similarity
+
+def partial_sort_merge_cache2(tup: Tuple[int, int, int]) -> Tuple[int, List[Tuple[int, float]], float]:
+    i1, i2, total_count = tup
+    c1, c2 = shared_cluster_lst_memory[i1], shared_cluster_lst_memory[i2]
+    sim = cluster_simularity_vector(c1, c2, total_count)
+    return (i1, i2, sim)
 
 
 def MergeClusters(alpha1: float, clusters: List[Cluster], total_elements)\

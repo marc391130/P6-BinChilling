@@ -9,7 +9,7 @@ from tqdm import tqdm
 import Assertions as Assert
 from time import time
 from Cluster_matrices import MemberMatrix, MemberSimularityMatrix, CoAssosiationMatrix, ClustserSimularityMatrix
-from EnsemblerTools import AbstractEnsembler, BinLogger, MergeRegulator, sort_merged_cluster_multithread, sort_merged_cluster_singlethread, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
+from EnsemblerTools import AbstractEnsembler, BinLogger, MergeRegulator, sort_merged_cluster_multithread, sort_merged_cluster_tasks, sort_merged_cluster_singlethread, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
 from BinEvaluator import BinEvaluator, BinRefiner
 from Domain import ContigData
 from math import sqrt, ceil
@@ -125,7 +125,7 @@ class Chiller:
                 return -1.0
             elif len(merged_lst) < 10:
                 return sort_merged_cluster_singlethread(cluster_matrix, merged_lst)
-            return sort_merged_cluster_multithread(cluster_matrix, merged_lst, processors, chunksize)
+            return sort_merged_cluster_tasks(cluster_matrix, merged_lst, processors, chunksize)
         
         try:
             while True:

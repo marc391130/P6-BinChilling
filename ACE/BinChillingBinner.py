@@ -117,13 +117,13 @@ def transform_contigs_to_features(items: List[ContigData], include_constraint_ma
         item = items[i]
         index_map[i] = item
         comp_matrix.append( item.AsNormalizedCompositionVector() )
-        cov_matrix.append( item.AsNormalizedAbundanceVector() )
+        # cov_matrix.append( item.AsNormalizedAbundanceVector() )
         # weights.append( item.avg_abundance + 0.001 )
         len_weights.append( item.contig_length )
         
     comp_matrix = np.array(comp_matrix)
     cov_matrix = np.array(cov_matrix)
-    combo_matrix = np.hstack((comp_matrix, cov_matrix))
+    combo_matrix = [] #np.hstack((comp_matrix, cov_matrix))
     constraint_matrix = compute_constraints(index_map) if include_constraint_matrix else None
     return (combo_matrix, comp_matrix, cov_matrix, FeaturesDto(index_map, len_weights, constraint_matrix))
 
@@ -290,6 +290,8 @@ def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: in
     gamma = PartitionSet(contigs)
     feature_data = transform_contigs_to_features(contigs, include_constraint_matrix= (method == 'Hierarchical'))
     combo_matrix, comp_matrix, cov_matrix, data_dto = feature_data
+    del combo_matrix
+    del cov_matrix
     
     scg_count = compute_scgs_count(contigs)
     try:
@@ -329,7 +331,7 @@ def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: in
         #end_loop
     finally:
         shutil.rmtree(os.path.abspath(CAHCE_DIR), ignore_errors=True)
-        
+    del comp_matrix
     
     bin_evaluator = BinEvaluator(scg_reader.read_MS_scgs())
     bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), logger)
