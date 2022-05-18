@@ -85,7 +85,7 @@ def compute_partition_range(features: List[List[float]], weigths: List[float], c
             break
     
     for k in range(best_K1+2*stepsize, end_k+1, stepsize):
-        kmeans = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=7, max_iter=300)
+        kmeans = KMeans(n_clusters=k, init="k-means++", n_init=(1 if IS_HUGE else 10), random_state=7, max_iter=300)
         labels = kmeans.fit_predict(features, sample_weight=weigths)
         # score = silhouette_score(features, labels)
         score = silhouette(data, kmeans.cluster_centers_, labels, weigths)
