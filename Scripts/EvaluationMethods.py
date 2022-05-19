@@ -15,10 +15,19 @@ from Domain import ContigData, bin_size
 class Evaluator:
     @staticmethod
     def __binomial_coefficient__(n) -> float:
-        counter = factorial(n)
-        divisor = 2 * factorial(n - 2) # Formula is 2! * (n - 2)!, Note 2! is 2.
-        result = counter / divisor
-        return result
+        return Evaluator.__factorial__(n)
+        # counter = factorial(n)
+        # divisor = 2 * factorial(n - 2) # Formula is 2! * (n - 2)!, Note 2! is 2.
+        # result = counter / divisor
+        # return result
+
+    @staticmethod
+    def __factorial__(n: int) -> float:
+        
+        counter = n * (n-1)
+        divisor = 2
+
+        return counter / divisor
 
     @staticmethod
     def __MRI_calc__(n: int, all_n: int, multiplier: int = None) -> float:

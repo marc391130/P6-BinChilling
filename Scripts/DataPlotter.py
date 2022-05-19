@@ -58,12 +58,15 @@ def get_data(args) -> Dict[str, List[float]]:
     return result
 
 def plot(data: Dict[str, List[float]]) -> None:
-
+    result = []
+    titles = []
     for title, data_lst in data.items():
         x_data = [i for i in range(len(data_lst))]
         y_data = data_lst
+        result.append(y_data)
+        titles.append(title)
 
-        plt.plot(x_data, y_data, label=title)
+    plt.boxplot(result, labels=titles)
     plt.legend()
     plt.show()
 
