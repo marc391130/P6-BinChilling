@@ -16,6 +16,7 @@ from math import sqrt, ceil, floor
 
 THREAD_COUNT = cpu_count()
 
+CERTAIN, SCG, UNCERTAIN, LOST = 0,0,0,0
         
 class BinChillingEnsembler(AbstractEnsembler):
     def __init__(self, 
@@ -170,6 +171,7 @@ class Binner:
         recalc_lst = all_items
         old_len = len(all_items)
         loop_min_assign = floor(sqrt(len(all_items)))
+        global CERTAIN, SCG, UNCERTAIN, LOST
         
         while True:
             self.log('\n')
@@ -198,7 +200,7 @@ class Binner:
                 sorted_recalc = sorted(recalc_lst, key=lambda x: x.contig_length, reverse=True)
                 isolate_lst, recalc_lst = sorted_recalc[:isolate_count], sorted_recalc[isolate_count:]
                 cluster_lst = self.isolate_items(isolate_lst, cluster_lst)
-
+            print(CERTAIN, SCG, UNCERTAIN, LOST)
             if len(recalc_lst) == 0:
                 break
             else:
@@ -210,6 +212,7 @@ class Binner:
             
         #loop break
         
+        print(CERTAIN, SCG, UNCERTAIN, LOST)
         cluster_lst = self.remove_empty_clusters(cluster_lst, similarity_matrix)
         cluster_lst = self.bin_refiner.Refine(cluster_lst, co_matrix)
         
@@ -250,6 +253,8 @@ class Binner:
             self.remove_from_all(item, candidate_clusters)
             #add it back into best cluster
             cluster.add(item)
+            global CERTAIN
+            CERTAIN += 1
         return candidate_clusters
     
     #force indicates whether items should be forcefully placed within a bin or to add it to bad_items return value.
@@ -288,8 +293,8 @@ class Binner:
                 score1 = self.bin_evaluator.score(cluster, include_item=item)
                 score2 = self.bin_evaluator.score(cluster, skip_item=item)
 
-                # score = similarity * (score1 - score2)
-                score = similarity * (score1 if score1 >= score2 else score1 - score2 )
+                score = similarity * (score1 - score2)
+                # score = similarity * (score1 if score1 >= score2 else score1 - score2 )
 
                 if score > best_score:
                     best_score = score
@@ -316,6 +321,9 @@ class Binner:
                 else:
                     best_cluster.remove(item)
                     bad_items.append(item)
+            else:
+                global SCG
+                SCG += 1
             similarity_matrix.assign_item_to(best_cluster, item)
             
         if force: self.log(f'Forcefully placed {count} items in bins')
@@ -349,7 +357,8 @@ class Binner:
                         
             
             if max_sim > 0.5 or force:
-                
+                global UNCERTAIN
+                UNCERTAIN += 1
                 self.remove_from_all(item, cluster_lst)
                 best_cluster.add(item)
                 similarity_matrix.assign_item_to(best_cluster, item)
@@ -434,6 +443,8 @@ class Binner:
             cluster = Cluster()
             cluster.add(item)
             cluster_lst.append(cluster)
+            global LOST
+            LOST += 1
         return cluster_lst
 
     def remove_empty_clusters(self, cluster_lst: List[Cluster], similarity_matrix: MemberSimularityMatrix, should_log:bool = False) -> List[Cluster]:

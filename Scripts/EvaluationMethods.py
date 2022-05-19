@@ -7,7 +7,7 @@ from tqdm import tqdm
 import sys
 
 sys.path.insert(1, '../ACE')
-from BinReaders import ContigReader, PartitionSetReader
+from BinReaders import ContigReader, PartitionSetReader, SCGReader
 from ClusterDomain import Cluster, Partition
 from Domain import ContigData, bin_size
 
@@ -90,7 +90,7 @@ class NMIEvaluator:
 def get_all_compare_lst(partitions: List[str]) -> List[Tuple[str, str]]:
     return [(partitions[i], partitions[j]) for i in range(len(partitions)) for j in range(i+1, len(partitions))  ]
 
-def get_double_compare_lst(lst1, lst2) -> List[str]:
+def get_double_compare_lst(lst1, lst2) -> List[Tuple[str, str]]:
     return [ (lst1[i], lst2[j]) for i in range(len(lst1)) for j in range(len(lst2)) if i != j]
 
 def calc_bin_size(cluster: Cluster[ContigData]) -> int:
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         dest='path', help='The partitions to compare' )
     # p_args.add_argument('-e', metavar='', required=True, \
     #     dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
-    p_args.add_argument('-C', help='Combinations settings', choices=('All', 'Half'), required=False, type=str,\
+    p_args.add_argument('-C', help="Combinations settings choices: ('All', 'Half')", choices=('All', 'Half'), required=False, type=str,\
         default='All', metavar='', dest='comp')
     p_args.add_argument('-M', help='Minimum bin size to include', type=int, required=False,\
         default=0, metavar='', dest='minsize')
@@ -161,7 +161,8 @@ if __name__ == '__main__':
     if len(partition_paths1) + len(partition_paths2) <= 1:
         raise argparse.ArgumentError(args.path, 'must have at least 2 partitions')
 
-    contig_dct = ContigReader(args.fastafile, numpy_file=args.cachefile, depth_file=args.abundancefile).read_file_fast(args.cachefile)
+    scg_reader = SCGReader(['../Dataset/marker_gene_stats.tsv']) 
+    contig_dct = ContigReader(args.fastafile, scg_reader=scg_reader, numpy_file=args.cachefile, depth_file=args.abundancefile).read_file_fast(args.cachefile)
     number_of_elements = len(contig_dct)
     path_lst = partition_paths1 + partition_paths2
     partitionDct = {path: filter_bins(PartitionSetReader.__read_single_partition__(path), args.minsize, contig_dct) for path in path_lst}
@@ -169,18 +170,24 @@ if __name__ == '__main__':
     ARI_results, NMI_results = [], []
 
 
-
-    for p1, p2 in tuple_lst:
-        part1, path1 = partitionDct[p1], p1
-        part2, path2 = partitionDct[p2], p2
-        print('Evaluationg: ', path1, path2)
-        if args.method == 'ARI' or args.method == 'BOTH': 
-            ari_result = ARIEvaluator.evaluate(part1, part2, number_of_elements)
-            ARI_results.append(ari_result), print('>ARI: ', ari_result)
-            
-        if args.method == 'NMI' or args.method == 'BOTH': 
-            nmi_result = NMIEvaluator.evaluate(part1, part2, number_of_elements)
-            NMI_results.append(nmi_result), print('>NMI: ' ,nmi_result)
+    with open('../Dataset/rel_eval2.tsv', 'w') as f:
+        f.write('arg1\targ2\tARI\tNMI\n')
+        for p1, p2 in tuple_lst:
+            ar1_r, nmi_r = 0, 0
+            part1, path1 = partitionDct[p1], p1
+            part2, path2 = partitionDct[p2], p2
+            print('Evaluationg: ', path1, path2)
+            if args.method == 'ARI' or args.method == 'BOTH': 
+                ari_result = ARIEvaluator.evaluate(part1, part2, number_of_elements)
+                ar1_r = ari_result
+                ARI_results.append(ari_result), print('>ARI: ', ari_result)
+                
+            if args.method == 'NMI' or args.method == 'BOTH': 
+                nmi_result = NMIEvaluator.evaluate(part1, part2, number_of_elements)
+                NMI_results.append(nmi_result), print('>NMI: ' ,nmi_result)
+                nmi_r = nmi_result
+            f.write(f'{path1}\t{path2}\t{ar1_r}\t{nmi_r}\n')
+        
             
             
     print('\n____________________\n')

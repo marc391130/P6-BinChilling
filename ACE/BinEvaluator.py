@@ -49,7 +49,7 @@ class BinEvaluator:
         return self.__score_scg_count__(scg_count)
     
     def calc_score(self, completeness: float, contamination: float, megabin_pen: float) -> float:
-        return completeness - (0.5*contamination)**2 - sqrt(megabin_pen)
+        return completeness - (contamination)**2 - sqrt(megabin_pen)
         # return completeness - 0.5*contamination - 0.5*megabin_pen
     
     def score_items(self, cluster: Cluster, extra_item: ContigData = None) -> Dict[ContigData, float]:

@@ -215,10 +215,10 @@ def main():
     MS_path = []
     if args.MS is not None:
         MS_path = [args.MS] if isinstance(args.MS, str) else args.MS
-        MS_path = os.path.abspath(args.MS)
-        if os.path.isfile(MS_path) is False:
-            raise FileNotFoundError(MS_path)
-        MS_path = [MS_path]
+        for i in range(len(MS_path)):
+            MS_path[i] = os.path.abspath(MS_path[i])
+            if os.path.isfile(MS_path[i]) is False:
+                raise FileNotFoundError(MS_path[i])
     
     #jgi exist
     abundance_path = None
