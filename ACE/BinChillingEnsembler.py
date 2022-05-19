@@ -12,7 +12,7 @@ from Cluster_matrices import MemberMatrix, MemberSimularityMatrix, CoAssosiation
 from EnsemblerTools import AbstractEnsembler, BinLogger, MergeRegulator, sort_merged_cluster_multithread, sort_merged_cluster_tasks, sort_merged_cluster_singlethread, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
 from BinEvaluator import BinEvaluator, BinRefiner
 from Domain import ContigData
-from math import sqrt, ceil
+from math import sqrt, ceil, floor
 
 THREAD_COUNT = cpu_count()
 
@@ -169,7 +169,7 @@ class Binner:
 
         recalc_lst = all_items
         old_len = len(all_items)
-        
+        loop_min_assign = floor(sqrt(len(all_items)))
         
         while True:
             self.log('\n')
@@ -192,8 +192,7 @@ class Binner:
             
             #Estimate how many to isolate
             assignment_count = old_len - len(recalc_lst)
-            max_isolate_count = max(ceil(sqrt(len(recalc_lst))), 1)
-            isolate_count = max_isolate_count - assignment_count
+            isolate_count = loop_min_assign - assignment_count
 
             if isolate_count > 0 and len(recalc_lst) != 0:
                 sorted_recalc = sorted(recalc_lst, key=lambda x: x.contig_length, reverse=True)
@@ -414,7 +413,7 @@ class Binner:
                     simularity_matrix[item, cluster] = 0.0
                     continue
                 value = min(co_matrix.cluster_mean(item, cluster), 1.0)
-                simularity_matrix[item, cluster] = value if 0.0 < value <= 1.0 else 0
+                simularity_matrix[item, cluster] = value
         return cluster_lst
     
     def recalculate_simularity(self, item_lst: List[object], simularity_matrix: MemberSimularityMatrix,\

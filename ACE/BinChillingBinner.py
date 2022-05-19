@@ -142,7 +142,8 @@ def partial_seed_init(features: np.ndarray, n_clusters: int, random_state: int, 
     matrix = np.array([features[x] for x in indexes][0:n_clusters], dtype=np.float16)
     # np.savetxt('test.txt', list_result, fmt='%.2e', newline='\n\n')
     return matrix
-    
+
+#This is stolen from metabinner
 def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed_idx: List[int], n_local_trials=None):
     random_state = check_random_state(random_state)
     x_squared_norms = row_norms(features, squared=True)
@@ -176,7 +177,7 @@ def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed
         if sp.issparse(features):
             centers[c] = features[center_id].toarray()
         else:
-            centers[c] = features[center_id]
+            centers[min(c, len(centers)-1)] = features[center_id]
             # print(c, center_id)
         closest_dist_sq = np.minimum(closest_dist_sq,
                                      euclidean_distances(
@@ -308,13 +309,13 @@ def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: in
         generate_partition_with_matrix(gamma, comp_matrix, k_range, scg_count,\
             data_dto, method, max_iter, logger, partition_outdir)
         
-        logger.log(f'Generating partitions using composition_matrix...')
-        generate_partition_with_matrix(gamma, comp_matrix, k_range, scg_count,\
-            data_dto, method, max_iter, logger, partition_outdir)
+        # logger.log(f'Generating partitions using composition_matrix...')
+        # generate_partition_with_matrix(gamma, comp_matrix, k_range, scg_count,\
+        #     data_dto, method, max_iter, logger, partition_outdir)
         
-        logger.log(f'Generating partitions using composition_matrix...')
-        generate_partition_with_matrix(gamma, comp_matrix, k_range, scg_count,\
-            data_dto, method, max_iter, logger, partition_outdir)
+        # logger.log(f'Generating partitions using composition_matrix...')
+        # generate_partition_with_matrix(gamma, comp_matrix, k_range, scg_count,\
+        #     data_dto, method, max_iter, logger, partition_outdir)
         
         # logger.log(f'Generating partitions using abundance matrix...')
         # generate_partition_with_matrix(gamma, cov_matrix, k_range, scg_count,\
