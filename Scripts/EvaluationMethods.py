@@ -6,7 +6,7 @@ from os.path import join
 from tqdm import tqdm
 import sys
 
-sys.path.insert(1, '../ACE')
+sys.path.insert(1, '../BinChilling')
 from BinReaders import ContigReader, PartitionSetReader, SCGReader
 from ClusterDomain import Cluster, Partition
 from Domain import ContigData, bin_size

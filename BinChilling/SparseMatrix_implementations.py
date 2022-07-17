@@ -1,7 +1,7 @@
 from __future__ import annotations
 import itertools
 from tqdm import tqdm
-from typing import Iterable, Iterator, MutableMapping, Tuple, Dict, Callable, TypeVar, Generic
+from typing import Iterable, Iterator, MutableMapping, Set, Tuple, Dict, Callable, TypeVar, Generic, List
 import Assertions as Assert 
 from math import sqrt
 
@@ -98,6 +98,21 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK2], TV]):
         for key, inner_dct in self.__internal__:
             inner_dct.pop(key, None)
         self.__internal__.pop(key, None)
+        
+    def pop_set(self, remove_keys: Set[TK or TK2]) -> None:
+        
+        if len(remove_keys) == 0: return
+        pk_remove_set = []
+        for pk, column in self.__internal__.items():
+            if pk in remove_keys: pk_remove_set.append(pk)
+            else:
+                intersection = remove_keys.intersection(column.keys())
+                for sk in intersection:
+                    column.pop(sk)
+        
+        for pk_to_remove in pk_remove_set:
+            self.__internal__.pop(pk_to_remove)
+        
     
     #UTILITY FUNCTIONS
     def has_row_key(self, key: TK) -> bool:

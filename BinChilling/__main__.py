@@ -57,7 +57,7 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
     # print('>SCG coutn ', len(bin_evaluator.all_SCGs))
     regulator = MergeRegulator(a1_min) if True else\
                 MergeSCGEvaluator(a1_min, bin_evaluator, debug=True)
-    bin_refiner = BinRefiner(bin_evaluator, 1 / len(gamma), logger)
+    bin_refiner = BinRefiner(bin_evaluator, 1 / len(gamma), chunksize, logger)
     chiller = Chiller(a1_min, a1, regulator, 0.02, logger)
     binner = Binner(bin_refiner, bin_evaluator, 0.75, logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)

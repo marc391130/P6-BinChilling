@@ -335,7 +335,7 @@ def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: in
     del comp_matrix
     
     bin_evaluator = BinEvaluator(scg_reader.read_MS_scgs())
-    bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), logger)
+    bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), chunksize, logger)
     chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
     binner = Binner(bin_refiner, bin_evaluator, logger=logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)

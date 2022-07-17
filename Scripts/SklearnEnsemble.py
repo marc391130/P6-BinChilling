@@ -7,7 +7,7 @@ from tqdm import tqdm
 from typing import Dict, List, Tuple
 import sys
 
-sys.path.insert(1, '../ACE')
+sys.path.insert(1, '../BinChilling')
 from Domain import ContigData
 from ClusterDomain import Cluster, Partition
 from BinReaders import ContigReader, PartitionSetReader, SCGReader, ContigFilter

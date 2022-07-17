@@ -5,7 +5,7 @@ from CheckMFilter import BinDto, CheckMFilter
 import argparse
 import os
 
-sys.path.insert(1, '../ACE')
+sys.path.insert(1, '../BinChilling')
 from BinReaders import ContigReader, PartitionSetReader, SCGReader, ClusterReader
 from ClusterDomain import Cluster
 from Domain import ContigData

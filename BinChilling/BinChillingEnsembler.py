@@ -207,7 +207,8 @@ class Binner:
             
         #loop break
         cluster_lst = self.remove_empty_clusters(cluster_lst, similarity_matrix)
-        cluster_lst = self.bin_refiner.Refine(cluster_lst, co_matrix)
+        # cluster_lst = self.bin_refiner.Refine(cluster_lst, co_matrix)
+        cluster_lst = self.bin_refiner.refine_multiprocess(cluster_lst, co_matrix)
         
         return cluster_lst
         
