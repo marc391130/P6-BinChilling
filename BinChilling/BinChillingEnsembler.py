@@ -13,6 +13,7 @@ from EnsemblerTools import AbstractEnsembler, BinLogger, MergeRegulator, sort_me
 from BinEvaluator import BinEvaluator, BinRefiner
 from Domain import ContigData
 from math import sqrt, ceil, floor
+import CoAssosiationFunctions
 
 THREAD_COUNT = cpu_count()
 
@@ -146,11 +147,13 @@ class Binner:
     def __init__(self,
             bin_refiner: BinRefiner,
             bin_evaluator: BinEvaluator,
+            chunksize: int,
             alpha2: float = 0.75,
             logger: BinLogger = None) -> None:
         self.bin_refiner = bin_refiner
         self.alpha2 = alpha2
         self.bin_evaluator = bin_evaluator
+        self.chunksize = chunksize
         self.log = logger if logger is not None else BinLogger()
     
     def sort_by_sim(self, items: List[Tuple[ContigData, float]]) -> List[ContigData]:
@@ -165,6 +168,7 @@ class Binner:
         
         self.log("\nBuilding co-assosiation matrix...")
         co_matrix = CoAssosiationMatrix.build(gamma)
+        CoAssosiationFunctions.build_shared_memory_co_matrix(co_matrix)
 
         recalc_lst = all_items
         old_len = len(all_items)
@@ -200,7 +204,9 @@ class Binner:
                 break
             else:
                 self.remove_empty_clusters(cluster_lst, similarity_matrix)
-                self.recalculate_simularity_fast(recalc_lst, similarity_matrix, cluster_lst, co_matrix, partition_count)
+                # self.recalculate_simularity_fast(recalc_lst, similarity_matrix, cluster_lst, co_matrix, partition_count)
+                similarity_matrix = CoAssosiationFunctions.recalculate_simularity_multiprocess(\
+                    recalc_lst, similarity_matrix, cluster_lst, self.chunksize)
                 self.log(f"Managed to assign {old_len - len(recalc_lst)} items, {len(recalc_lst)} items remain...")
                 old_len = len(recalc_lst)
                 
@@ -209,6 +215,7 @@ class Binner:
         cluster_lst = self.remove_empty_clusters(cluster_lst, similarity_matrix)
         # cluster_lst = self.bin_refiner.Refine(cluster_lst, co_matrix)
         cluster_lst = self.bin_refiner.refine_multiprocess(cluster_lst, co_matrix)
+        CoAssosiationFunctions.clear_shared_co_matrix()
         
         return cluster_lst
         
@@ -398,7 +405,6 @@ class Binner:
         #end loop
         return cluster_lst, item_lst
     
-    
     def recalculate_simularity_fast(self, item_lst: List[object], simularity_matrix: MemberSimularityMatrix,\
         cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix, partition_count: int):
         member_matrix = MemberMatrix.build(cluster_lst, item_lst)
@@ -444,3 +450,5 @@ class Binner:
         for r_cls in remove_lst:
             cluster_lst.remove(r_cls)
         return cluster_lst
+    
+    

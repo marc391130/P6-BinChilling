@@ -11,6 +11,7 @@ from EnsemblerTools import BinLogger
 from Cluster_matrices import CoAssosiationMatrix
 from scipy.sparse import csr_matrix, lil_matrix
 from multiprocessing import Pool, cpu_count
+import CoAssosiationFunctions
 
 
 
@@ -173,51 +174,15 @@ class BinRefiner:
                 dictionary[index] = value
             
     
-    def __build_common_co_multiprocess__(self, cluster_lst: List[Cluster], new_clusters: List[Cluster], \
-        matrix: SparseDictHashMatrix[Cluster, Cluster, float]) ->  SparseDictHashMatrix[Cluster, Cluster, float]:
-
-        new_hash_lst = [[hash(item) for item in cluster] for cluster in new_clusters]
-        
-        if len(cluster_lst) > 0:
-            old_hash_lst = [[hash(item) for item in cluster] for cluster in cluster_lst]
-            parameters = ( ((i, j), new_hash_lst[i], old_hash_lst[j]) \
-                for i in tqdm(range(len(new_clusters)), 'adding clusters to CCO P1') \
-                    for j in range(len(cluster_lst)))
-            
-            #go through all new clusters and see if they are related to existing clusters
-            with Pool(cpu_count()) as p:
-                for id, value in p.imap_unordered(__partial_common_co_entry__, iterable=parameters, chunksize=self.chunksize):
-                    id1, id2 = id
-                    cluster1, cluster2 = new_clusters[id1], cluster_lst[id2]
-                    matrix[cluster1, cluster2] = value
-            del old_hash_lst, parameters
-        #end if
-        
-        #new go through all the new clusters to see if they are related
-        parameters2 = ( ((i, j), new_hash_lst[i], new_hash_lst[j]) \
-            for i in tqdm(range(len(new_clusters)), 'adding clusters to CCO P2') \
-                for j in range(i+1, len(new_clusters)))
-        
-        with Pool(cpu_count()) as p:
-            for id, value in p.imap_unordered(__partial_common_co_entry__, iterable=parameters2, chunksize=self.chunksize):
-                id1, id2 = id
-                cluster1, cluster2 = new_clusters[id1], new_clusters[id2]
-                matrix[cluster1, cluster2] = value      
-        
-        return matrix
-                
     
     def refine_multiprocess(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix) -> List[Cluster]:
         
         self.log(f'\n\nStarting bin refinement of {len(cluster_lst)} bins...')
-        self.log(f'Building shared memory co_matrix...')
-        global shared_co_dct
-        self.__build_shared_memory_co_matrix__(shared_co_dct, co_matrix)
         
         self.log('Calculating cluster co-assosiation matrix using CO matrix...')
-        value_matrix = self.__build_common_co_multiprocess__(\
-            [], cluster_lst, SparseDictHashMatrix(SortKeysByHash, default_value= 0.0))
-        
+        value_matrix = CoAssosiationFunctions.build_common_co_multiprocess(\
+            [], cluster_lst, SparseDictHashMatrix(SortKeysByHash, default_value= 0.0), self.chunksize)
+
         try:
             while True:
                     remove_set = set()
@@ -232,7 +197,8 @@ class BinRefiner:
                     for cls in remove_set:
                         cluster_lst.remove(cls)
                     
-                    value_matrix = self.__build_common_co_multiprocess__(cluster_lst, new_clusters, value_matrix)
+                    value_matrix = CoAssosiationFunctions.build_common_co_multiprocess(\
+                        cluster_lst, new_clusters, value_matrix, self.chunksize)
                     
                     #add the new clusters to the cluster list
                     for cls in new_clusters:
@@ -328,16 +294,3 @@ class BinRefiner:
         return new_clusters
     
     
-def __partial_common_co_entry__(tuple: Tuple[object, List[int], List[int]]) -> float:
-    id, cluster1, cluster2 = tuple
-    global shared_co_dct
-    value = 0.0
-    
-    for item1 in cluster1:
-        for item2 in cluster2:
-            index = hash((item1, item2))
-            if index in shared_co_dct:
-                value += shared_co_dct[index]
-    
-    value = value / (len(cluster1) + len(cluster2))
-    return (id, value)

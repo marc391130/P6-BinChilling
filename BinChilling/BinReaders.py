@@ -166,7 +166,7 @@ class ContigReader:
                 else abundance_length_dict[str(temp_result_index_map[name])]
         
         def clean_line_name(line: str) -> str:
-            return line.split('>')[1].replace('\n', '')
+            return line.split('>')[1].split(' ')[0].replace('\n', '')
         
         self.log("Reading fasta file...")        
         with open(file_path, 'r') as file:
@@ -203,7 +203,7 @@ class ContigReader:
     
     def read_contig_names(self, file_path: str) -> List[str]:
         with open(file_path, 'r') as file:
-            return [line.split('>')[1].strip('\n') for line in file.readlines() if line.startswith('>')]
+            return [line.split('>')[1].strip('\n').split(' ')[0] for line in file.readlines() if line.startswith('>')]
 
 
     def __assert_contig_length_equal__(self, depth_len:int, contig:str, name:str) -> None:

@@ -86,7 +86,7 @@ class ContigData:
         print(f"{self.name} {self.contig_length} {self.abundance} {self.composition}")
     
     def __hash__(self) -> int:
-        return self.name.__hash__()
+        return hash(self.name)
 
 def bin_size(contig_lst: Iterable[ContigData]) -> int:
     return sum( (x.contig_length for x in contig_lst) )
