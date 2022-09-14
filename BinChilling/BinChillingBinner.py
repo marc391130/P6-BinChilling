@@ -62,7 +62,7 @@ def silhouette(X, W, label, len_weight):
     return np.average(tmp, weights=len_weight)
 
 def compute_partition_range(features: List[List[float]], weigths: List[float], contigs: List[ContigData], stepsize: int, min_partitions: int or None = None, max_partitions: int or None = None) -> Tuple[int, int]:
-    k0 = max(compute_3_4_scg_count(contigs), 2) #Must have at least 2 clusters
+    k0 = max(compute_3_4_scg_count(contigs)+1, 2) #Must have at least 2 clusters
     end_k = min(len(features), (k0 + max_partitions if max_partitions is not None else k0*5 + 2*stepsize+1))
     
     data = np.array(features)
@@ -113,8 +113,7 @@ def transform_contigs_to_features(items: List[ContigData], include_constraint_ma
     -> Tuple[np.ndarray, np.ndarray, np.ndarray, FeaturesDto]:
         #returns: contig index map, features, weights, constraint matrix
     index_map, comp_matrix, cov_matrix, len_weights = {}, [], [], []
-    for i in range(len(items)):
-        item = items[i]
+    for i, item in enumerate(items):
         index_map[i] = item
         comp_matrix.append( item.AsNormalizedCompositionVector() )
         # cov_matrix.append( item.AsNormalizedAbundanceVector() )
@@ -149,8 +148,12 @@ def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed
     x_squared_norms = row_norms(features, squared=True)
 
     n_samples, n_features = features.shape
-
+    
     centers = np.empty((n_clusters, n_features), dtype=features.dtype)
+    
+
+    print(f"features: {n_features}, seeds: {len(seed_idx)}, centers: {n_clusters}, shape: {centers.shape}")
+
 
     # Set the number of local seeding trials if none is given
     if n_local_trials is None:
@@ -177,11 +180,11 @@ def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed
         if sp.issparse(features):
             centers[c] = features[center_id].toarray()
         else:
-            centers[min(c, len(centers)-1)] = features[center_id]
+            centers[c] = features[center_id]
             # print(c, center_id)
         closest_dist_sq = np.minimum(closest_dist_sq,
                                      euclidean_distances(
-                                         centers[min(c, len(centers)-1), np.newaxis], features, Y_norm_squared=x_squared_norms,
+                                         centers[c, np.newaxis], features, Y_norm_squared=x_squared_norms,
                                          squared=True))
     current_pot = closest_dist_sq.sum()
 
@@ -338,7 +341,7 @@ def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: in
     bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), chunksize, logger)
     chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
     binner = Binner(bin_refiner, bin_evaluator, chunksize, logger=logger)
-    ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
+    ensembler = BinChillingEnsembler(chiller, binner, bin_refiner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
 
     final_partition = ensembler.ensemble(gamma)
     print_result(output_file, final_partition)

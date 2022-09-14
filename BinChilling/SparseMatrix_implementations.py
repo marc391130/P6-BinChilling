@@ -1,12 +1,16 @@
 from __future__ import annotations
+from email.policy import default
 import itertools
+from sqlite3 import NotSupportedError
 from tqdm import tqdm
 from typing import Iterable, Iterator, MutableMapping, Set, Tuple, Dict, Callable, TypeVar, Generic, List
 import Assertions as Assert 
 from math import sqrt
 
+from SharedDatastructures_implementations import SharedHashTable
+
 TK = TypeVar("TK")
-TK2 = TypeVar('TK2')
+TK2 = TypeVar("TK2")
 TV = TypeVar("TV")
 
 
@@ -131,6 +135,9 @@ class SparseDictHashMatrix(MutableMapping[Tuple[TK, TK2], TV]):
             return self.has_entry(__o)
         return False
     
+    def count_entries(self) -> int:
+        return sum( (len(row_dct) for _, row_dct in self.__internal__.items()) )
+    
     def __len__(self) -> int:
         return len(self.__internal__)
     
@@ -228,8 +235,9 @@ class DoubleSparseDictHashMatrix(MutableMapping[Tuple[TK, TK2], TV]):
     
     
 class SparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
-    def __init__(self, keysort : Callable[[TK, TK], Tuple[TK, TK]] = None) -> None:
+    def __init__(self, keysort : Callable[[TK, TK], Tuple[TK, TK]] = None, default_value = 0.0) -> None:
         self.__internal__ : Dict[Tuple[TK, TK], TV] = dict()
+        self.default_value = default_value
         self.keysort = keysort if keysort is not None else lambda x, y: (x, y) 
     
     def sortTuple(self, tup: Tuple[TK, TK]) -> Tuple[TK, TK]:
@@ -249,7 +257,7 @@ class SparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         return self.__internal__.items()
     
     def get(self, __k: Tuple[TK, TK]) -> TV:
-        return self.__internal__[self.sortTuple(__k)]
+        return self.__internal__.get(self.sortTuple(__k), self.default_value)
     
     def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
         return self.get(__k)
@@ -304,6 +312,240 @@ class SparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
     
     def __len__(self) -> int:
         return len(self.__internal__)
+    
+    def __iter__(self) -> Iterator[Tuple[TK, TK], TV]:
+        return self.__internal__.__iter__()
+    
+class SuperSparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
+    def __init__(self, keysort : Callable[[TK, TK], Tuple[TK, TK]] = None, default_value = 0.0) -> None:
+        self.__internal__ : Dict[int, TV] = dict()
+        self.default_value = default_value
+        self.keysort = keysort if keysort is not None else lambda x, y: (x, y) 
+    
+    def sortTuple(self, tup: Tuple[TK, TK]) -> Tuple[TK, TK]:
+        return self.keysort(tup[0], tup[1])
+    
+    #READ FUNCTIONS
+    def getEntry(self, key1: TK, key2: TK) -> TV:
+        return self.get( self.keysort(key1, key2) )
+    
+    def keys(self) -> Iterable[Tuple[TK, TK]]:
+        raise NotSupportedError(".keys not supported on SuperSparseTupleHashMatrix")
+    
+    def values(self) -> Iterable[TV]:
+        return self.__internal__.values()
+    
+    
+    def get(self, __k: Tuple[TK, TK]) -> TV:
+        index = hash(self.sortTuple(__k))
+        return self.__internal__.get(index, self.default_value)
+    
+    def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
+        return self.get(__k)
+    
+    #SET FUNCTIONS
+    def __setitem__(self, __k: Tuple[TK, TK], __v: TV) -> None:
+        self.set(__k, __v)
+    
+    def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
+        index = hash(self.sortTuple(__k))
+        self.__internal__[index] = __v
+    
+    def set_dict(self, key: TK, dct: Dict[TK, TV] ):
+        for other_key, value in dct.items():
+            self.set( (key, other_key), value )
+    
+    #DELETE FuNCTIONS
+    def __delitem__(self, __v: Tuple[TK, TK]) -> None:
+        return self.pop(__v)
+    
+    def pop(self, __k: Tuple[TK, TK]) -> None:
+        self.__internal__.pop(__k)
+    
+    def pop_entry(self, key1: TK, key2: TK) -> None:
+        tup = self.keysort(key1, key2)
+        Assert.assert_key_exists(tup, self.__internal__)
+        self.__internal__.pop(tup)
+
+    def pop_contain(self, key: TK) -> None:
+        to_remove = set()
+        for tup in self.__internal__.keys():
+            if tup[0] is key or tup[1] is key: to_remove.add(tup)
+        for el in to_remove:
+            self.__internal__.pop(el)
+    
+    def pop_set(self, keys: set[TK]) -> None:
+        to_remove = set()
+        for tup in self.__internal__.keys():
+            if tup[0] in keys or tup[1] in keys: to_remove.add(tup)
+        for el in to_remove:
+            self.__internal__.pop(el)
+    
+    #UTILITY FUNCTIONS
+    def has_entry(self, key: Tuple[TK, TK]) -> bool:
+        index = hash(self.sortTuple(key))
+        return index in self.__internal__
+    
+    def __contains__(self, __o: object) -> bool:
+        if type(__o) is Tuple:
+            return self.has_entry(__o)
+        if type(__o) is int:
+            return __o in self.__internal__
+        return False
+    
+    def __len__(self) -> int:
+        return len(self.__internal__)
+    
+    def __iter__(self) -> Iterator[Tuple[TK, TK], TV]:
+        return self.__internal__.__iter__()
+
+
+class SparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
+    def __init__(self, keysort : Callable[[TK, TK], Tuple[TK, TK]] = None, default_value = 0.0) -> None:
+        self.__internal__ : Dict[Tuple[TK, TK], TV] = dict()
+        self.default_value = default_value
+        self.keysort = keysort if keysort is not None else lambda x, y: (x, y) 
+    
+    def sortTuple(self, tup: Tuple[TK, TK]) -> Tuple[TK, TK]:
+        return self.keysort(tup[0], tup[1])
+    
+    #READ FUNCTIONS
+    def getEntry(self, key1: TK, key2: TK) -> TV:
+        return self.get( self.keysort(key1, key2) )
+    
+    def keys(self) -> Iterable[Tuple[TK, TK]]:
+        return self.__internal__.keys()
+    
+    def values(self) -> Iterable[TV]:
+        return self.__internal__.values()
+    
+    def items(self) -> Iterable[Tuple[TK, TK], TV]:
+        return self.__internal__.items()
+    
+    def get(self, __k: Tuple[TK, TK]) -> TV:
+        return self.__internal__.get(self.sortTuple(__k), self.default_value)
+    
+    def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
+        return self.get(__k)
+    
+    #SET FUNCTIONS
+    def __setitem__(self, __k: Tuple[TK, TK], __v: TV) -> None:
+        self.set(__k, __v)
+    
+    def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
+        tup = self.sortTuple(__k)
+        self.__internal__[tup] = __v
+    
+    def set_dict(self, key: TK, dct: Dict[TK, TV] ):
+        for other_key, value in dct.items():
+            self.set( (key, other_key), value )
+    
+    #DELETE FuNCTIONS
+    def __delitem__(self, __v: Tuple[TK, TK]) -> None:
+        return self.pop(__v)
+    
+    def pop(self, __k: Tuple[TK, TK]) -> None:
+        self.__internal__.pop(__k)
+    
+    def pop_entry(self, key1: TK, key2: TK) -> None:
+        tup = self.keysort(key1, key2)
+        Assert.assert_key_exists(tup, self.__internal__)
+        self.__internal__.pop(tup)
+
+    def pop_contain(self, key: TK) -> None:
+        to_remove = set()
+        for tup in self.__internal__.keys():
+            if tup[0] is key or tup[1] is key: to_remove.add(tup)
+        for el in to_remove:
+            self.__internal__.pop(el)
+    
+    def pop_set(self, keys: set[TK]) -> None:
+        to_remove = set()
+        for tup in self.__internal__.keys():
+            if tup[0] in keys or tup[1] in keys: to_remove.add(tup)
+        for el in to_remove:
+            self.__internal__.pop(el)
+    
+    #UTILITY FUNCTIONS
+    def has_entry(self, key: Tuple[TK, TK]) -> bool:
+        tup = self.sortTuple(key)
+        return tup in self.__internal__
+    
+    def __contains__(self, __o: object) -> bool:
+        if type(__o) is Tuple:
+            return self.has_entry(__o)
+        return False
+    
+    def __len__(self) -> int:
+        return len(self.__internal__)
+    
+    def __iter__(self) -> Iterator[Tuple[TK, TK], TV]:
+        return self.__internal__.__iter__()
+    
+class HashedMatrix(MutableMapping[Tuple[TK, TK], TV]):
+    def __init__(self, key_hash: Callable[[object], int], base: SharedHashTable) -> None:
+        self.base = base
+        self.key_hash = key_hash 
+    
+    #READ FUNCTIONS
+    def getEntry(self, key1: TK, key2: TK) -> TV:
+        return self.get( (key1, key2) )
+    
+    def keys(self) -> Iterable[Tuple[TK, TK]]:
+        raise NotSupportedError(".keys not supported on HashedMatrix")
+    
+    def values(self) -> Iterable[TV]:
+        raise NotSupportedError(".values not supported on HashedMatrix")
+    
+    
+    def get(self, __k: Tuple[TK, TK], default_value: TV = None) -> TV:
+        hash_value = self.key_hash( __k )
+        return self.base.get(hash_value, default_value)
+    
+    def __getitem__(self, __k: Tuple[TK, TK]) -> TV:
+        return self.get(__k)
+    
+    #SET FUNCTIONS
+    def __setitem__(self, __k: Tuple[TK, TK], __v: TV) -> None:
+        self.set(__k, __v)
+    
+    def set(self, __k: Tuple[TK, TK], __v: TV) -> None:
+        index = self.key_hash(__k)
+        self.base.insert(index, __v)
+    
+    def set_dict(self, key: TK, dct: Dict[TK, TV] ):
+        for other_key, value in dct.items():
+            self.set( (key, other_key), value )
+    
+    #DELETE FuNCTIONS
+    def __delitem__(self, __v: Tuple[TK, TK]) -> None:
+        return self.pop(__v)
+    
+    def pop(self, __k: Tuple[TK, TK]) -> None:
+        index = self.key_hash(__k)
+        self.base.remove(index)
+    
+    def pop_entry(self, key1: TK, key2: TK) -> None:
+        self.pop( (key1, key2) )
+
+    #UTILITY FUNCTIONS
+    def has_entry(self, key: Tuple[TK, TK]) -> bool:
+        result = self.get(key, default_value=None)
+        return result is not None
+        
+    
+    def __contains__(self, __o: object) -> bool:
+        if type(__o) is Tuple:
+            return self.has_entry(__o)
+        if type(__o) is int:
+            return self.base.get(__o, default_value=None) is not None
+        return False
+    
+    def count_entries(self) -> int:
+        return sum((1 if x != 0 else 0 for x in self.base.keys))
+    
+    def __len__(self) -> int:
+        return self.base.size
     
     def __iter__(self) -> Iterator[Tuple[TK, TK], TV]:
         return self.__internal__.__iter__()

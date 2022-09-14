@@ -3,6 +3,7 @@ import itertools
 from typing import Dict, List, Generic, TypeVar, Tuple, Iterable, Iterator
 import Assertions as Assert
 import sys
+import numpy as np
 
 sys.setrecursionlimit(10**6)
 
@@ -82,7 +83,7 @@ class Cluster(Generic[T]):
         return self.__partition_id__ == other.__partition_id__
 
     def to_hash_vector(self) -> List[int]:
-        return [id(x) for x in self]
+        return np.array([id(x) for x in self])
 
     def calc_all_membersimularity(self, max_member_value: int) -> Dict[T, float]:
         return { item: membersip / max_member_value for item, membersip in self.__membership__.items()}

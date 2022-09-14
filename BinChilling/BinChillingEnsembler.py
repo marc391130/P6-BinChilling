@@ -1,5 +1,4 @@
 from __future__ import annotations
-from functools import partialmethod
 from multiprocessing import cpu_count
 from typing import Callable, Dict, List, Tuple, Generic, TypeVar
 
@@ -13,7 +12,7 @@ from EnsemblerTools import AbstractEnsembler, BinLogger, MergeRegulator, sort_me
 from BinEvaluator import BinEvaluator, BinRefiner
 from Domain import ContigData
 from math import sqrt, ceil, floor
-import CoAssosiationFunctions
+import CoAssosiationFunctions14 as CoFunctions
 
 THREAD_COUNT = cpu_count()
 
@@ -21,6 +20,7 @@ class BinChillingEnsembler(AbstractEnsembler):
     def __init__(self, 
                 chiller: Chiller,
                 binner: Binner,
+                bin_refiner: BinRefiner,
                 bin_eval: BinEvaluator,
                 target_clusters_est: int or Callable[[PartitionSet], int] = None,
                 chunksize: int = 1,
@@ -33,6 +33,7 @@ class BinChillingEnsembler(AbstractEnsembler):
         Assert.assert_in_range(processors, 1, cpu_count())
         self.chiller = chiller
         self.binner = binner
+        self.bin_refiner = bin_refiner
         self.bin_eval = bin_eval
         self.chunksize = max(chunksize, 1)
         self.processors = processors 
@@ -63,6 +64,12 @@ class BinChillingEnsembler(AbstractEnsembler):
 
         final_clusters = self.binner.assign_item_to_one_cluster(gamma,\
             candidate_clusters, simularity_matrix, non_cand_membermatrix)        
+        del all_clusters, all_items, target_clusters
+        del available_clusters, candidate_clusters, non_cand_clusters
+        del non_cand_membermatrix, simularity_matrix
+        
+        final_clusters = self.bin_refiner.refine_multiprocess(final_clusters)
+        CoFunctions.clear_shared_co_matrix()
         
         self.log("Building final partition from candidate clusters...")
         partition = self.build_final_partition(gamma, final_clusters)
@@ -168,11 +175,13 @@ class Binner:
         
         self.log("\nBuilding co-assosiation matrix...")
         co_matrix = CoAssosiationMatrix.build(gamma)
-        CoAssosiationFunctions.build_shared_memory_co_matrix(co_matrix)
+        CoFunctions.build_shared_memory_co_matrix(co_matrix)
+        del co_matrix #! remove this if moving back to single process stage 3
 
         recalc_lst = all_items
         old_len = len(all_items)
-        loop_min_assign = ceil(sqrt(len(all_items)))
+        init_loop_assing = ceil(sqrt(len(all_items)))
+        loop_min_assign = init_loop_assing
         while True:
             self.log('\n')
             bad_scgs, bad_items = [], []
@@ -200,12 +209,13 @@ class Binner:
                 sorted_recalc = sorted(recalc_lst, key=lambda x: x.contig_length, reverse=True)
                 isolate_lst, recalc_lst = sorted_recalc[:isolate_count], sorted_recalc[isolate_count:]
                 cluster_lst = self.isolate_items(isolate_lst, cluster_lst)
+                loop_min_assign += max(init_loop_assing - assignment_count, 0)
             if len(recalc_lst) == 0:
                 break
             else:
                 self.remove_empty_clusters(cluster_lst, similarity_matrix)
                 # self.recalculate_simularity_fast(recalc_lst, similarity_matrix, cluster_lst, co_matrix, partition_count)
-                similarity_matrix = CoAssosiationFunctions.recalculate_simularity_multiprocess(\
+                similarity_matrix = CoFunctions.recalculate_simularity_multiprocess(\
                     recalc_lst, similarity_matrix, cluster_lst, self.chunksize)
                 self.log(f"Managed to assign {old_len - len(recalc_lst)} items, {len(recalc_lst)} items remain...")
                 old_len = len(recalc_lst)
@@ -213,9 +223,10 @@ class Binner:
             
         #loop break
         cluster_lst = self.remove_empty_clusters(cluster_lst, similarity_matrix)
+        
+        #! this is moved to ensemble method
         # cluster_lst = self.bin_refiner.Refine(cluster_lst, co_matrix)
-        cluster_lst = self.bin_refiner.refine_multiprocess(cluster_lst, co_matrix)
-        CoAssosiationFunctions.clear_shared_co_matrix()
+        
         
         return cluster_lst
         

@@ -3,15 +3,12 @@ import sys
 from math import log, sqrt
 from typing import Iterable, Iterator, List, Dict, Tuple, TypeVar, Generic, Set
 from tqdm import tqdm
-
 from ClusterDomain import Cluster
 from Domain import ContigData, bin_size
-from SparseMatrix_implementations import SparseDictHashMatrix, SortKeysByHash
+from SparseMatrix_implementations import SparseDictHashMatrix, SparseTupleHashMatrix, SortKeysByHash, HashedMatrix
 from EnsemblerTools import BinLogger
 from Cluster_matrices import CoAssosiationMatrix
-from scipy.sparse import csr_matrix, lil_matrix
-from multiprocessing import Pool, cpu_count
-import CoAssosiationFunctions
+import CoAssosiationFunctions14 as CoFunctions
 
 
 
@@ -137,9 +134,10 @@ class BinEvaluator:
             else itertools.chain(cluster.__iter__(), [include_item])
     
 
-
-score_dct: Dict[Cluster, float] = {}
-shared_co_dct: Dict[int, float] = {}
+def cluster_hasher(tup) -> int:
+    cluster1, cluster2 = tup
+    tup = SortKeysByHash(cluster1, cluster2)
+    return hash(tup)
 
 class BinRefiner:
     def __init__(self, bin_evaluator: BinEvaluator, min_threshold: float,
@@ -163,52 +161,40 @@ class BinRefiner:
                 avg_co_matrix.set_entry(c1, c2, value if value > self.min_threshold else 0.0)
         return avg_co_matrix
         
-    def __build_shared_memory_co_matrix__(self, dictionary: Dict[int, float], co_matrix: CoAssosiationMatrix) \
-        -> Tuple[Dict[int, Cluster], csr_matrix]:
-        
-        for item, index2_map  in tqdm(co_matrix.items()):
-            # item, index2_map: Tuple[object, Dict[object, float]]
-            for item2, value in index2_map.items():
-                index = hash((hash(item), hash(item2)))
-                if index in dictionary: raise Exception("non unique hash value optained from two items")
-                dictionary[index] = value
-            
     
-    
-    def refine_multiprocess(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix) -> List[Cluster]:
+    def refine_multiprocess(self, cluster_lst: List[Cluster]) -> List[Cluster]:
         
         self.log(f'\n\nStarting bin refinement of {len(cluster_lst)} bins...')
         
         self.log('Calculating cluster co-assosiation matrix using CO matrix...')
-        value_matrix = CoAssosiationFunctions.build_common_co_multiprocess(\
-            [], cluster_lst, SparseDictHashMatrix(SortKeysByHash, default_value= 0.0), self.chunksize)
+        co_cache = SparseTupleHashMatrix(SortKeysByHash, default_value=0)
 
         try:
             while True:
-                    remove_set = set()
-                    new_clusters = self.__refine_clusters__(cluster_lst, value_matrix, remove_set)
-                    if len(new_clusters) < 2:
-                        break 
-                    else:
-                        self.log(f'Refined {len(remove_set)} clusters into {len(new_clusters)} new clusters.\n')
-                        # self.log('Adjusting cluster co-assosiation matrix...')
-                    
-                    #remove skip set items
-                    for cls in remove_set:
-                        cluster_lst.remove(cls)
-                    
-                    value_matrix = CoAssosiationFunctions.build_common_co_multiprocess(\
-                        cluster_lst, new_clusters, value_matrix, self.chunksize)
-                    
-                    #add the new clusters to the cluster list
-                    for cls in new_clusters:
-                        cluster_lst.append(cls)
+                remove_set = set()
+                new_clusters = self.__refine_clusters_cacheless__(cluster_lst, co_cache, remove_set)
+                if len(new_clusters) < 2:
+                    break 
+                else:
+                    self.log(f'Refined {len(remove_set)} clusters into {len(new_clusters)} new clusters.\n')
+                    # self.log('Adjusting cluster co-assosiation matrix...')
+                
+                #remove skip set items
+                self.log('Releasing unkept memory')
+                for cls in remove_set:
+                    cluster_lst.remove(cls)
+                    self.score_dct.pop(cls, 'default') #default such that an error is not thrown
+                
+                co_cache.pop_set(remove_set)
+                
+                #add the new clusters to the cluster list
+                for cls in new_clusters:
+                    cluster_lst.append(cls)
             #end while
             self.log('\n')
             return cluster_lst            
         finally:
-            #reset shared memory
-            shared_co_dct.clear()
+            pass
         
         
     def Refine(self, cluster_lst: List[Cluster], co_matrix: CoAssosiationMatrix) -> List[Cluster]:
@@ -241,8 +227,7 @@ class BinRefiner:
             return cluster_lst
                 
         finally:
-            global score_dct
-            score_dct.clear()
+            self.score_dct.clear()
             
     def __split_bin__(self, cluster: Cluster) -> List[Cluster]:
         result = []
@@ -252,13 +237,63 @@ class BinRefiner:
             result.append(cluster2)
         return result
     
+    
+    
+    def __refine_clusters_cacheless__(self, source_lst: List[Cluster],\
+        co_cache: SparseTupleHashMatrix[Cluster, float],\
+        skip_set: set) -> List[Cluster]:
+        
+        def get_score(cls: Cluster) -> float:
+            if cls not in self.score_dct: 
+                self.score_dct[cls] = self.bin_evaluator.score(cls) 
+            return self.score_dct[cls]
+
+        # match_lst = match_lst if match_lst is not None else lambda _: source_lst
+        
+        new_clusters = []
+        for i in tqdm(range(len(source_lst)), desc='Refining bins'):
+            c1 = source_lst[i]
+            if c1 in skip_set or len(c1) == 0: continue
+            score1 = get_score(c1)
+            co_values = CoFunctions.Get_common_co_multiprocess(c1, 
+                                                   source_lst[i+1:len(source_lst)], 
+                                                   co_cache,
+                                                   skip_set)
+            
+            for c2, sim in co_values.items():
+                # if c2 in skip_set or len(c2) == 0: continue #This should be handled by the CoFunctions function...
+                if sim <= self.min_threshold: continue
+                score2 = get_score(c2)
+                #Reminder that (c1 intersection c2) = Ø here,
+                #Scoring the item-chain will not result in polluted score.
+                combo = self.bin_evaluator.score_item_lst(itertools.chain(c1, c2))
+                if combo >= max(score1, score2):
+                    skip_set.add(c1)
+                    skip_set.add(c2)
+                    mc = Cluster.merge(c1, c2)
+                    new_clusters.append( mc )
+                    break
+            #end loop
+            
+            if c1 in skip_set: continue
+            if score1 < 0.0:
+                skip_set.add(c1)
+                new_clusters += self.__split_bin__(c1)
+                continue
+            
+            #save simularity
+            co_cache.set_dict(c1, co_values)
+            
+        #end loop
+        return new_clusters
+    
     def __refine_clusters__(self, source_lst: List[Cluster], value_matrix: SparseDictHashMatrix[Cluster, Cluster, float],\
         skip_set: set) -> List[Cluster]:
         
         def get_score(cls: Cluster) -> float:
-            global score_dct
-            if cls not in score_dct: score_dct[cls] = self.bin_evaluator.score(cls) 
-            return score_dct[cls]
+            if cls not in self.score_dct: 
+                self.score_dct[cls] = self.bin_evaluator.score(cls) 
+            return self.score_dct[cls]
         
         # match_lst = match_lst if match_lst is not None else lambda _: source_lst
         

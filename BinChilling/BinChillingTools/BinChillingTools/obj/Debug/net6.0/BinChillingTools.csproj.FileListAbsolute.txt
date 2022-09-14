@@ -1,0 +1,12 @@
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Debug\net6.0\BinChillingTools.deps.json
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Debug\net6.0\BinChillingTools.dll
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Debug\net6.0\ref\BinChillingTools.dll
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Debug\net6.0\BinChillingTools.pdb
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Debug\net6.0\BinChillingTools.csproj.AssemblyReference.cache
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Debug\net6.0\BinChillingTools.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Debug\net6.0\BinChillingTools.AssemblyInfoInputs.cache
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Debug\net6.0\BinChillingTools.AssemblyInfo.cs
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Debug\net6.0\BinChillingTools.csproj.CoreCompileInputs.cache
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Debug\net6.0\BinChillingTools.dll
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Debug\net6.0\ref\BinChillingTools.dll
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Debug\net6.0\BinChillingTools.pdb

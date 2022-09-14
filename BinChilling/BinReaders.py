@@ -36,6 +36,7 @@ class SCGReader:
             _temp = {}
             if file.endswith('.tsv'): _temp = self.__read_marker_gene_stat_file__(file)
             elif file.endswith('.scg'): _temp = self.__read_bacteria_scg_file__(file)
+            else: raise ValueError("scg file doesnt end in .tsv or .scg")
 
             for key, value in _temp.items():
                 result[key] = result.get(key, set()).union(value)
@@ -162,8 +163,8 @@ class ContigReader:
         def get_abundance(name: str) -> List[float]:
             nonlocal abundance_length_dict
             if abundance_length_dict is None: return [0.0]
-            return abundance_length_dict[name][0] if not self.depth_file.endswith('.npz')\
-                else abundance_length_dict[str(temp_result_index_map[name])]
+            return abundance_length_dict[str(temp_result_index_map[name])] if self.depth_file.endswith('.npz') \
+                else abundance_length_dict[name][0]
         
         def clean_line_name(line: str) -> str:
             return line.split('>')[1].split(' ')[0].replace('\n', '')
@@ -203,7 +204,7 @@ class ContigReader:
     
     def read_contig_names(self, file_path: str) -> List[str]:
         with open(file_path, 'r') as file:
-            return [line.split('>')[1].strip('\n').split(' ')[0] for line in file.readlines() if line.startswith('>')]
+            return [line.split('>')[1].strip('\n') for line in file.readlines() if line.startswith('>')]
 
 
     def __assert_contig_length_equal__(self, depth_len:int, contig:str, name:str) -> None:

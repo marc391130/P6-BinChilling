@@ -9,8 +9,6 @@ from SparseMatrix_implementations import DoubleSparseDictHashMatrix, SortKeysByH
 from math import sqrt
 from multiprocessing import Pool, cpu_count, Queue, process
 
-import ray
-
 def cluster_simularity(c1: Cluster, c2: Cluster, total_elements: int) -> float:    
     if c1.SamePartitionAs(c2): return np.NINF
     intersection_len, len1, len2 =  len(c1.__membership__.keys() & c2.__membership__.keys() ), len(c1), len(c2)
@@ -178,7 +176,6 @@ class MemberMatrix(SparseDictHashMatrix[object, Cluster, int]):
         for item in item_lst:
             result.update(self.get_row(item).keys())
         return result
-       
     
     def total_common_simularity(self, item_lst: set[object], gamma: PartitionSet)\
         -> SparseDictHashMatrix[object, object, float]:
@@ -200,7 +197,7 @@ class MemberMatrix(SparseDictHashMatrix[object, Cluster, int]):
         return result
         
 
-class CoAssosiationMatrix(SparseDictHashMatrix[object, object, float]):
+class CoAssosiationMatrix(SparseTupleHashMatrix[object, float]):
     def __init__(self) -> None:
         super().__init__(SortKeysByHash, default_value=0.0)
         # self.matrix = matrix
@@ -272,6 +269,9 @@ class CoAssosiationMatrix(SparseDictHashMatrix[object, object, float]):
         result = sum([self.getEntry(item, x) * sim \
             for x, sim in simularity_matrix.get_column(item) if item is not x])
         return result / len(cluster)
+    
+    def __len__(self) -> int:
+        return super().__len__()
 
 
 class ClustserSimularityMatrix:
@@ -464,12 +464,3 @@ def partial_build_similarity_vector_multi(tup: Tuple[int, int, float]) -> List[T
             lst.append( (i1, i2, similarity) )
     return lst
 
-@ray.remote
-def partial_build_similarity_ray(cluster_lst: List[Cluster], i1: int, total_count: int, a1_min: float) -> List[Tuple[int, int, float]]:
-    lst, c1 = [], cluster_lst[i1]
-    for i2 in range(i1+1, len(cluster_lst)):
-        c2 = cluster_lst[i2]
-        similarity = cluster_simularity(c1, c2, total_count)
-        if similarity >= a1_min:
-            lst.append( (i1, i2, similarity) )
-    return lst

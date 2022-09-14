@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v6.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v6.0": {
+      "BinChillingTools/1.0.0": {
+        "dependencies": {
+          "UnmanagedExports": "1.2.7"
+        },
+        "runtime": {
+          "BinChillingTools.dll": {}
+        }
+      },
+      "UnmanagedExports/1.2.7": {
+        "runtime": {
+          "lib/net/RGiesecke.DllExport.Metadata.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "BinChillingTools/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnmanagedExports/1.2.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-bPIbzFaAj4AFxjHGFGPrYnUSCyIWJMkT/LFuiphWdpUbO2L9fP68W/1SP9cHCAxgiekV+kFNbybA2VvRo8PYIQ==",
+      "path": "unmanagedexports/1.2.7",
+      "hashPath": "unmanagedexports.1.2.7.nupkg.sha512"
+    }
+  }
+}
