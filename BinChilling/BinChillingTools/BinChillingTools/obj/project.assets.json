@@ -1,47 +1,13 @@
 {
   "version": 3,
   "targets": {
-    "net6.0": {
-      "UnmanagedExports/1.2.7": {
-        "type": "package",
-        "compile": {
-          "lib/net/RGiesecke.DllExport.Metadata.dll": {}
-        },
-        "runtime": {
-          "lib/net/RGiesecke.DllExport.Metadata.dll": {}
-        }
-      }
-    }
+    "net6.0": {},
+    "net6.0/ubuntu.20.04-x64": {},
+    "net6.0/win10-x64": {}
   },
-  "libraries": {
-    "UnmanagedExports/1.2.7": {
-      "sha512": "bPIbzFaAj4AFxjHGFGPrYnUSCyIWJMkT/LFuiphWdpUbO2L9fP68W/1SP9cHCAxgiekV+kFNbybA2VvRo8PYIQ==",
-      "type": "package",
-      "path": "unmanagedexports/1.2.7",
-      "hasTools": true,
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/net/RGiesecke.DllExport.Metadata.dll",
-        "tools/DllExportCmdLets.psm1",
-        "tools/Mono.Cecil.dll",
-        "tools/RGiesecke.DllExport.MSBuild.dll",
-        "tools/RGiesecke.DllExport.MSBuild.pdb",
-        "tools/RGiesecke.DllExport.dll",
-        "tools/RGiesecke.DllExport.pdb",
-        "tools/RGiesecke.DllExport.targets",
-        "tools/init.ps1",
-        "tools/install.ps1",
-        "tools/uninstall.ps1",
-        "unmanagedexports.1.2.7.nupkg.sha512",
-        "unmanagedexports.nuspec"
-      ]
-    }
-  },
+  "libraries": {},
   "projectFileDependencyGroups": {
-    "net6.0": [
-      "UnmanagedExports >= 1.2.7"
-    ]
+    "net6.0": []
   },
   "packageFolders": {
     "C:\\Users\\olive\\.nuget\\packages\\": {}
@@ -81,12 +47,6 @@
     "frameworks": {
       "net6.0": {
         "targetAlias": "net6.0",
-        "dependencies": {
-          "UnmanagedExports": {
-            "target": "Package",
-            "version": "[1.2.7, )"
-          }
-        },
         "imports": [
           "net461",
           "net462",
@@ -97,6 +57,32 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Runtime.linux-x64",
+            "version": "[6.0.0, 6.0.0]"
+          },
+          {
+            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+            "version": "[6.0.0, 6.0.0]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.linux-x64",
+            "version": "[6.0.0, 6.0.0]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Runtime.linux-x64",
+            "version": "[6.0.0, 6.0.0]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Runtime.win-x64",
+            "version": "[6.0.0, 6.0.0]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+            "version": "[6.0.0, 6.0.0]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
@@ -104,18 +90,14 @@
         },
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
       }
+    },
+    "runtimes": {
+      "ubuntu.20.04-x64": {
+        "#import": []
+      },
+      "win10-x64": {
+        "#import": []
+      }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'UnmanagedExports 1.2.7' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8' instead of the project target framework 'net6.0'. This package may not be fully compatible with your project.",
-      "libraryId": "UnmanagedExports",
-      "targetGraphs": [
-        "net6.0"
-      ]
-    }
-  ]
+  }
 }

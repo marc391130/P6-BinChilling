@@ -1,0 +1,99 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v6.0/ubuntu.20.04-x64",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v6.0": {},
+    ".NETCoreApp,Version=v6.0/ubuntu.20.04-x64": {
+      "BinChillingTools/1.0.0": {
+        "dependencies": {
+          "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64": "6.0.0"
+        },
+        "runtime": {
+          "BinChillingTools.dll": {}
+        }
+      },
+      "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64/6.0.0": {
+        "runtime": {
+          "Microsoft.Win32.Primitives.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Collections.Concurrent.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Collections.Immutable.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Collections.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Console.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Diagnostics.StackTrace.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.IO.Compression.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.IO.MemoryMappedFiles.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Linq.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Private.CoreLib.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Reflection.Metadata.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          },
+          "System.Runtime.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "BinChillingTools/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64/6.0.0": {
+      "type": "runtimepack",
+      "serviceable": false,
+      "sha512": ""
+    }
+  },
+  "runtimes": {
+    "ubuntu.20.04-x64": [
+      "ubuntu.20.04",
+      "ubuntu-x64",
+      "ubuntu",
+      "debian-x64",
+      "debian",
+      "linux-x64",
+      "linux",
+      "unix-x64",
+      "unix",
+      "any",
+      "base"
+    ]
+  }
+}

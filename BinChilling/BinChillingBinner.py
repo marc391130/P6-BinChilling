@@ -19,7 +19,8 @@ from Domain import ContigData, compute_3_4_scg_count, compute_scgs_count, comput
 from typing import List, Dict, TypeVar, Tuple
 from tqdm import tqdm
 from BinChillingEnsembler import BinChillingEnsembler, Chiller, Binner
-from BinEvaluator import BinEvaluator, BinRefiner
+from BinEvaluator import BinEvaluator
+from BinRefiner import *
 from time import time
 import sys
 import Assertions as Assert
@@ -166,28 +167,32 @@ def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed
 
     center_id = seed_idx[0]
 
-    if sp.issparse(features):
-        centers[0] = features[center_id].toarray()
-    else:
-        centers[0] = features[center_id]
-
-    # Initialize list of closest distances and calculate current potential
-    closest_dist_sq = euclidean_distances(
-        centers[0, np.newaxis], features, Y_norm_squared=x_squared_norms,
-        squared=True)
-
-    for c, center_id in enumerate(seed_idx[1:], 1):
+    try:
+        
         if sp.issparse(features):
-            centers[c] = features[center_id].toarray()
+            centers[0] = features[center_id].toarray()
         else:
-            centers[c] = features[center_id]
-            # print(c, center_id)
-        closest_dist_sq = np.minimum(closest_dist_sq,
-                                     euclidean_distances(
-                                         centers[c, np.newaxis], features, Y_norm_squared=x_squared_norms,
-                                         squared=True))
-    current_pot = closest_dist_sq.sum()
+            centers[0] = features[center_id]
 
+        # Initialize list of closest distances and calculate current potential
+        closest_dist_sq = euclidean_distances(
+            centers[0, np.newaxis], features, Y_norm_squared=x_squared_norms,
+            squared=True)
+
+        for c, center_id in enumerate(seed_idx[1:], 1):
+            if sp.issparse(features):
+                centers[c] = features[center_id].toarray()
+            else:
+                centers[c] = features[center_id]
+                # print(c, center_id)
+            closest_dist_sq = np.minimum(closest_dist_sq,
+                                        euclidean_distances(
+                                            centers[c, np.newaxis], features, Y_norm_squared=x_squared_norms,
+                                            squared=True))
+        current_pot = closest_dist_sq.sum()
+    except IndexError as iex:
+        print(c, center_id, iex)
+        raise iex
     # Pick the remaining n_clusters-1 points
     for c in range(len(seed_idx), n_clusters):
         # Choose center candidates by sampling with probability proportional

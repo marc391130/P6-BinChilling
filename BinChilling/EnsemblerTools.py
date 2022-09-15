@@ -34,6 +34,9 @@ class AbstractEnsembler:
         pass
     
     def build_final_partition(self, gamma: PartitionSet, candidate_clusters: List[Cluster]):
+        return build_partition(gamma, candidate_clusters, self.log)
+
+def build_partition(gamma: PartitionSet, candidate_clusters: List[Cluster], log: BinLogger ):
         partition = Partition(list(gamma.get_all_elements().keys()))
         found_items, dups = set(), 0
         
@@ -41,15 +44,21 @@ class AbstractEnsembler:
             cluster: Cluster[ContigData] = candidate_clusters[cluster_index]
             for item in cluster:
                 if item in found_items:
-                    self.log(f'Item {item.name} is a duplicate, having {len(item.SCG_genes)} and len {item.contig_length}')
+                    log(f'Item {item.name} is a duplicate, having {len(item.SCG_genes)} and len {item.contig_length}')
                     dups += 1
                     continue
                 partition.add(str(cluster), item)
                 found_items.add(item)
         
-        if dups > 0: self.log(f'{dups} duplicate_items')
-        self.log(f'{len(found_items)} total items')
+        if dups > 0: log(f'{dups} duplicate_items')
+        log(f'{len(found_items)} total items')
         return partition
+
+def build_partition_fast(candidate_clusters: List[Cluster] ):
+    partition = Partition()
+    partition.update(( (str(c), c) for c in candidate_clusters ))
+    return partition
+
 
 def print_result(file_path: str, parititon: Partition[ContigData]):
     with open(file_path, 'w') as file:

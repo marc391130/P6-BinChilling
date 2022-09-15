@@ -3,7 +3,7 @@ from fileinput import filename
 import multiprocessing as mp
 from multiprocessing import shared_memory
 from multiprocessing.shared_memory import SharedMemory
-from typing import List, Tuple
+from typing import Iterator, List, Tuple
 import ctypes as c
 from ClusterDomain import Cluster
 import sys
@@ -14,6 +14,26 @@ def mod(a: int, b: int) -> int:
     if b <= 0: raise Exception('Cannot mod with base less then or equal to 0')
     r = a % b
     return r + b if r < 0 else r
+
+class HashTableIterator(Iterator):
+    def __init__(self, hastable: SharedHashTable) -> None:
+        self._table = hastable
+        self._index = 0
+        
+    def __iter__(self) -> Iterator[Tuple[int, float]]:
+        return HashTableIterator(self._table)
+    
+    def __next__(self) -> Tuple[int, float]:
+        value = None
+        while self._index < self._table.size:
+            value = self._table.read_at_index(self._index)
+            self._index += 1
+            if value is not None:
+                return value
+
+        raise StopIteration()
+                
+
 
 class SharedHashTable:
     def __init__(self, size: int) -> None:
@@ -37,6 +57,12 @@ class SharedHashTable:
             if self.__try_place__(c_index, key, value): return
         
         raise Exception('Hashtable is full')
+    
+    def read_at_index(self, index: int) -> Tuple[int, float] or None:
+        key, value = self.keys[index], self.values[index]
+        if key == 0:
+            return None
+        return (key, value)
     
     def __try_place__(self, index: int, key: int, value: float) -> bool:
         key_v = self.keys[index]

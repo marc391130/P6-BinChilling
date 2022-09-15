@@ -11,7 +11,8 @@ from multiprocessing import cpu_count
 from AdaptiveEnsembler import AdaptiveClusterEnsembler
 from BinChillingBinner import run_binner
 from EnsemblerTools import BinLogger, MergeRegulator, target_bin_3_4th_count_estimator, print_result
-from BinEvaluator import BinEvaluator, BinRefiner
+from BinEvaluator import BinEvaluator
+from BinRefiner import *
 from ClusterDomain import PartitionSet
 from typing import Callable
 from tqdm import tqdm
@@ -57,21 +58,21 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
     # print('>SCG coutn ', len(bin_evaluator.all_SCGs))
     regulator = MergeRegulator(a1_min) if True else\
                 MergeSCGEvaluator(a1_min, bin_evaluator, debug=True)
-    bin_refiner = BinRefiner(bin_evaluator, 1 / len(gamma), chunksize, logger)
     chiller = Chiller(a1_min, a1, regulator, 0.02, logger)
-    binner = Binner(bin_refiner, bin_evaluator, chunksize, 0.75, logger)
-    ensembler = BinChillingEnsembler(chiller, binner, bin_refiner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)
+    binner = Binner(bin_evaluator, chunksize, 0.75, logger)
+    ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)
 
     output = ensembler.ensemble(gamma)
-    # #TODO MOVE THIS TO A BETTER PLACE LATER!
-   
-    # # regulator = MergeRegulator(ensembler.aplha1_min, ensembler.taget_clusters_est)
-    # ensembler.merge_regulator = regulator
 
-    # output = ensembler.ensemble(partition_set)
-        
-    #Display output
     print_result(output_path, output)
+    
+    logger.log("Starting refinement process")
+    
+    # bin_refiner = BinRefiner(bin_evaluator, 1 / len(gamma), chunksize, logger)
+    external_binrefiner = ExternalBinRefiner(len(gamma), output_path + '.ref.tsv', output_path, path.join(os.getcwd(), "comatrix.tmp") , logger)
+    external_binrefiner.refine(output)
+    
+    #Display output
     logger.log(f"Finished bin ensemblement in time {(time() - start_time):0.02f}s")
     
     logger.log("Completed successfully")

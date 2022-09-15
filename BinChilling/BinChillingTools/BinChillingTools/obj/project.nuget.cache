@@ -1,21 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "fdhr631+c2y4Yx/asxscFxpOs/sJhSI/YuNQoN1vsotW9rAZzre7x+Qstj1ag4U99SXpBuB4FRjFDuv/5UKuog==",
+  "dgSpecHash": "rtPqA6vYvgoDeURweubj8FldlK0C2wBV+dRrTWBtX23e52elcaQn2tBLDJOpcXW7HF03YT7vV19U1S9pevZ8wA==",
   "success": true,
   "projectFilePath": "C:\\Users\\olive\\Documents\\GitHub\\P6\\BinChilling\\BinChillingTools\\BinChillingTools\\BinChillingTools.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\olive\\.nuget\\packages\\unmanagedexports\\1.2.7\\unmanagedexports.1.2.7.nupkg.sha512"
+    "C:\\Users\\olive\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\6.0.0\\microsoft.netcore.app.runtime.win-x64.6.0.0.nupkg.sha512",
+    "C:\\Users\\olive\\.nuget\\packages\\microsoft.netcore.app.runtime.linux-x64\\6.0.0\\microsoft.netcore.app.runtime.linux-x64.6.0.0.nupkg.sha512",
+    "C:\\Users\\olive\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\6.0.0\\microsoft.windowsdesktop.app.runtime.win-x64.6.0.0.nupkg.sha512",
+    "C:\\Users\\olive\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\6.0.0\\microsoft.aspnetcore.app.runtime.win-x64.6.0.0.nupkg.sha512",
+    "C:\\Users\\olive\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.linux-x64\\6.0.0\\microsoft.aspnetcore.app.runtime.linux-x64.6.0.0.nupkg.sha512",
+    "C:\\Users\\olive\\.nuget\\packages\\microsoft.netcore.app.host.linux-x64\\6.0.0\\microsoft.netcore.app.host.linux-x64.6.0.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'UnmanagedExports 1.2.7' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8' instead of the project target framework 'net6.0'. This package may not be fully compatible with your project.",
-      "libraryId": "UnmanagedExports",
-      "targetGraphs": [
-        "net6.0"
-      ]
-    }
-  ]
+  "logs": []
 }

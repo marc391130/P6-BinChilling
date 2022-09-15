@@ -9,10 +9,11 @@ import Assertions as Assert
 from time import time
 from Cluster_matrices import MemberMatrix, MemberSimularityMatrix, CoAssosiationMatrix, ClustserSimularityMatrix
 from EnsemblerTools import AbstractEnsembler, BinLogger, MergeRegulator, sort_merged_cluster_multithread, sort_merged_cluster_tasks, sort_merged_cluster_singlethread, __partial_cluster_certainty_degree__, handle_estimate_target_clusters
-from BinEvaluator import BinEvaluator, BinRefiner
+from BinEvaluator import BinEvaluator
+from BinRefiner import BinRefiner
 from Domain import ContigData
 from math import sqrt, ceil, floor
-import CoAssosiationFunctions14 as CoFunctions
+import CoAssosiationFunctions as CoFunctions
 
 THREAD_COUNT = cpu_count()
 
@@ -20,7 +21,6 @@ class BinChillingEnsembler(AbstractEnsembler):
     def __init__(self, 
                 chiller: Chiller,
                 binner: Binner,
-                bin_refiner: BinRefiner,
                 bin_eval: BinEvaluator,
                 target_clusters_est: int or Callable[[PartitionSet], int] = None,
                 chunksize: int = 1,
@@ -33,7 +33,6 @@ class BinChillingEnsembler(AbstractEnsembler):
         Assert.assert_in_range(processors, 1, cpu_count())
         self.chiller = chiller
         self.binner = binner
-        self.bin_refiner = bin_refiner
         self.bin_eval = bin_eval
         self.chunksize = max(chunksize, 1)
         self.processors = processors 
@@ -67,9 +66,6 @@ class BinChillingEnsembler(AbstractEnsembler):
         del all_clusters, all_items, target_clusters
         del available_clusters, candidate_clusters, non_cand_clusters
         del non_cand_membermatrix, simularity_matrix
-        
-        final_clusters = self.bin_refiner.refine_multiprocess(final_clusters)
-        CoFunctions.clear_shared_co_matrix()
         
         self.log("Building final partition from candidate clusters...")
         partition = self.build_final_partition(gamma, final_clusters)
@@ -152,12 +148,10 @@ class Chiller:
     
 class Binner:
     def __init__(self,
-            bin_refiner: BinRefiner,
             bin_evaluator: BinEvaluator,
             chunksize: int,
             alpha2: float = 0.75,
             logger: BinLogger = None) -> None:
-        self.bin_refiner = bin_refiner
         self.alpha2 = alpha2
         self.bin_evaluator = bin_evaluator
         self.chunksize = chunksize
