@@ -38,4 +38,14 @@ public readonly struct CoTuple<T> where T : notnull
 
         return false;
     }
+
+    public static bool operator ==(CoTuple<T> left, CoTuple<T> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(CoTuple<T> left, CoTuple<T> right)
+    {
+        return !(left == right);
+    }
 }

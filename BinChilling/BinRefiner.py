@@ -6,7 +6,7 @@ from ClusterDomain import Cluster, Partition
 from SparseMatrix_implementations import SparseDictHashMatrix, SparseTupleHashMatrix, SortKeysByHash, HashedMatrix
 from EnsemblerTools import BinLogger, print_result, build_partition
 from Cluster_matrices import CoAssosiationMatrix
-import CoAssosiationFunctions as CoFunctions
+import CoAssosiationFunctions2 as CoFunctions
 from BinEvaluator import BinEvaluator
 import os.path as path
 from SharedDatastructures_implementations import HashTableIterator, SharedHashTable
@@ -38,6 +38,8 @@ class BinRefiner(RefinerBase):
         self.log('Calculating cluster co-assosiation matrix using CO matrix...')
         co_cache = SparseTupleHashMatrix(SortKeysByHash, default_value=0)
 
+        print(f"totalLen: {sum( (len(item.SCG_genes) for cluster in partition.values() for item in cluster ) )}")
+
         try:
             while True:
                 remove_set = set()
@@ -61,7 +63,7 @@ class BinRefiner(RefinerBase):
                     cluster_lst.append(cls)
             #end while
             self.log('\n')
-            return build_partition(cluster_lst)            
+            return cluster_lst
         finally:
             pass
         
@@ -102,7 +104,7 @@ class BinRefiner(RefinerBase):
                 #Reminder that (c1 intersection c2) = Ø here,
                 #Scoring the item-chain will not result in polluted score.
                 combo = self.bin_evaluator.score_item_lst(itertools.chain(c1, c2))
-                if combo >= max(score1, score2):
+                if combo > max(score1, score2):
                     skip_set.add(c1)
                     skip_set.add(c2)
                     mc = Cluster.merge(c1, c2)
@@ -137,25 +139,21 @@ class ExternalBinRefiner(RefinerBase):
         self.log = logger
     
     
-    def refine(self, partition: Partition) -> None:
-        
-        if CoFunctions.shared_co_dct is None:
-            raise Exception("Kill yourself")
-        
-        lst = list( (item for cluster in partition.values() for item in cluster) )
-        co_filename = self._co_cache_path
-        with open(co_filename, 'w') as f:
-            for index, item1 in tqdm(enumerate(lst), total=len(lst)):
-                for index2 in range(index+1, len(lst)):
-                    item2 = lst[index2]
-                    value = CoFunctions.shared_co_dct.get( CoFunctions.hash_items(hash(item1), hash(item2)), None )
-                    if value is not None:
-                        f.write( f"{item1.name}\t{item2.name}\t{value}\n" )
-            f.flush()
+    def refine(self, partition: Partition) -> None:        
+        co_filename = CoFunctions.tmp_co_filename
+        # lst = list( (item for cluster in partition.values() for item in cluster) )
+        # with open(co_filename, 'w') as f:
+        #     for index, item1 in tqdm(enumerate(lst), total=len(lst)):
+        #         for index2 in range(index+1, len(lst)):
+        #             item2 = lst[index2]
+        #             value = CoFunctions.shared_co_dct.get( CoFunctions.hash_items(hash(item1), hash(item2)), None )
+        #             if value is not None:
+        #                 f.write( f"{item1.name}\t{item2.name}\t{value}\n" )
+        #     f.flush()
         
         scg_filename = co_filename + '.scg'
         with open(scg_filename, 'w') as f:
-            for item in lst:
+            for item in (item for cluster in partition.values() for item in cluster):
                 for scg in item.SCG_genes:
                     f.write( f"{item.name}\t{scg}\n")
             f.flush()

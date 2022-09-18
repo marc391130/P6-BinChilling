@@ -2,6 +2,7 @@
 # Created: 23-02-2022
 # Intended purpose: To get data from fasta files
 
+import gc
 from io import TextIOWrapper
 from random import seed
 from typing import List, Dict, Tuple
@@ -63,14 +64,23 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)
 
     output = ensembler.ensemble(gamma)
+    gammaSize = len(gamma)
 
     print_result(output_path, output)
     
     logger.log("Starting refinement process")
     
-    # bin_refiner = BinRefiner(bin_evaluator, 1 / len(gamma), chunksize, logger)
-    external_binrefiner = ExternalBinRefiner(len(gamma), output_path + '.ref.tsv', output_path, path.join(os.getcwd(), "comatrix.tmp") , logger)
+    del scg_reader, contigFilter, contigReader, \
+        partitionSetReader, gamma, bin_evaluator, \
+            regulator, chiller, binner, ensembler
+    gc.collect()
+    external_binrefiner = ExternalBinRefiner(gammaSize, output_path + '.ref.tsv', output_path,\
+        path.join(os.getcwd(), "comatrix.tmp") , logger)
     external_binrefiner.refine(output)
+
+    # refiner = BinRefiner(bin_evaluator, 1 / len(gamma), chunksize, logger)
+    # refined_partition = refiner.refine(output)
+    # print_result(output_path + ".ref.tsv", build_partition(gamma, refined_partition, logger))
     
     #Display output
     logger.log(f"Finished bin ensemblement in time {(time() - start_time):0.02f}s")

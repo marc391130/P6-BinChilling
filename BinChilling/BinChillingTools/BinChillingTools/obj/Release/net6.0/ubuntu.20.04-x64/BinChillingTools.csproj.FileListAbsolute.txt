@@ -193,3 +193,4 @@ C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools
 C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Release\net6.0\ubuntu.20.04-x64\libmscordbi.so
 C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Release\net6.0\ubuntu.20.04-x64\BinChillingTools.csproj.CopyComplete
 C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\obj\Release\net6.0\ubuntu.20.04-x64\BinChillingTools.genruntimeconfig.cache
+C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Release\net6.0\ubuntu.20.04-x64\ShellProgressBar.dll

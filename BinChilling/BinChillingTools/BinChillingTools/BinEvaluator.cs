@@ -12,24 +12,28 @@ public sealed class BinEvaluator
             .SelectMany(static x => x)
             .Distinct()
             .Count();
+        Console.WriteLine($"totalScgs: {_totalScgs}");
     }
 
 
     public double ScoreCluster(IEnumerable<string> cluster)
     {
         var map   = CalculateScgMap(cluster);
-        var completeness    = 100 * Completeness(map);
-        var contamination   = 100 * Contamination(map);
-        var megabinPenality = 100 * MegabinPenality(map);
+        var completeness    = 100.0d * Completeness(map);
+        var contamination   = 100.0d * Contamination(map);
+        var megabinPenality = 100.0d * MegabinPenality(map);
 
-        return completeness - Math.Pow(contamination, 2) - Math.Sqrt(megabinPenality);
+        var score = completeness - Math.Pow(contamination, 2) - Math.Sqrt(megabinPenality);
+        return score;
     }
 
 
     private Dictionary<string, int> CalculateScgMap(IEnumerable<string> cluster)
     {
         var dic = new Dictionary<string, int>();
-        foreach (var scg in cluster.SelectMany(x => _scgDict.TryGetValue(x, out var lst) ? lst : Array.Empty<string>()))
+        foreach (var scg in cluster.SelectMany(x => _scgDict.TryGetValue(x, out var lst) 
+                     ? lst 
+                     : Array.Empty<string>()))
         {
             if (dic.TryGetValue(scg, out var value))
             {
@@ -37,7 +41,8 @@ public sealed class BinEvaluator
             }
             else
             {
-                dic[scg] = 1;
+                dic.Add(scg, 1);
+                // dic[scg] = 1;
             }
         }
         return dic;
@@ -45,24 +50,24 @@ public sealed class BinEvaluator
 
     private double Completeness(Dictionary<string, int> scgMap)
     {
-        var counter = scgMap.Count; //nr. of unique scgs in cluster
-        var divisor = _totalScgs; //nr. of scgs total
+        float counter = scgMap.Count; //nr. of unique scgs in cluster
+        float divisor = _totalScgs; //nr. of scgs total
 
         return divisor != 0 ? counter / divisor : 0;
     }
     
     private double Contamination(Dictionary<string, int> scgMap)
     {
-        var counter = scgMap.Count(x => x.Value > 1);
-        var divisor = scgMap.Count;
+        float counter = scgMap.Count(x => x.Value > 1);
+        float divisor = scgMap.Count;
 
         return divisor != 0 ? counter / divisor : 0;
     }
     
     private double MegabinPenality(Dictionary<string, int> scgMap)
     {
-        var counter = scgMap.Values.Sum() - scgMap.Count;
-        var divisor = _totalScgs;
+        float counter = scgMap.Values.Sum() - scgMap.Count;
+        float divisor = _totalScgs;
 
         return divisor != 0 ? counter / divisor : 0;
     }
