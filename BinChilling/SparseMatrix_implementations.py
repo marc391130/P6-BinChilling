@@ -1,7 +1,5 @@
 from __future__ import annotations
-from email.policy import default
 import itertools
-from sqlite3 import NotSupportedError
 from tqdm import tqdm
 from typing import Iterable, Iterator, MutableMapping, Set, Tuple, Dict, Callable, TypeVar, Generic, List
 import Assertions as Assert 
@@ -330,7 +328,7 @@ class SuperSparseTupleHashMatrix(MutableMapping[Tuple[TK, TK], TV]):
         return self.get( self.keysort(key1, key2) )
     
     def keys(self) -> Iterable[Tuple[TK, TK]]:
-        raise NotSupportedError(".keys not supported on SuperSparseTupleHashMatrix")
+        raise Exception(".keys not supported on SuperSparseTupleHashMatrix")
     
     def values(self) -> Iterable[TV]:
         return self.__internal__.values()
@@ -492,10 +490,10 @@ class HashedMatrix(MutableMapping[Tuple[TK, TK], TV]):
         return self.get( (key1, key2) )
     
     def keys(self) -> Iterable[Tuple[TK, TK]]:
-        raise NotSupportedError(".keys not supported on HashedMatrix")
+        raise Exception(".keys not supported on HashedMatrix")
     
     def values(self) -> Iterable[TV]:
-        raise NotSupportedError(".values not supported on HashedMatrix")
+        raise Exception(".values not supported on HashedMatrix")
     
     
     def get(self, __k: Tuple[TK, TK], default_value: TV = None) -> TV:

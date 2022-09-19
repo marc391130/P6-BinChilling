@@ -1,3 +1,5 @@
+import os
+import os.path as path
 from typing import Callable, List, Dict, Tuple
 from Cluster_matrices import MemberSimularityMatrix
 from ClusterDomain import Cluster
@@ -107,6 +109,7 @@ def Get_common_co_multiprocess(cluster1: Cluster, other_clusters: List[Cluster],
         shared_pivot_cls = None
     
 
+tmp_co_filename = path.join(os.getcwd(), "comatrix.tmp")
 def build_shared_memory_co_matrix(co_matrix: CoAssosiationMatrix) -> None:
     global shared_co_dct
     if shared_co_dct is not None:
@@ -115,13 +118,15 @@ def build_shared_memory_co_matrix(co_matrix: CoAssosiationMatrix) -> None:
     shared_co_dct = {}
     # keys = np.zeros(shape=size, dtype=np.int_)
     # values = np.memmap(filename=memfile, shape=size, dtype=np.double)
-    print("ARRHHH: " + str(len(co_matrix)))
-    
+    print(f"Co matrix size: {len(co_matrix)}")
     shared_co_dct = SharedHashTable(size)
-    for item_tup, value  in tqdm(co_matrix.items()):
-        item1, item2 = item_tup
-        index = hash_items(hash(item1), hash(item2))
-        shared_co_dct.insert(index, value)
+    with open(tmp_co_filename, 'w') as f:
+        for item_tup, value  in tqdm(co_matrix.items()):
+            item1, item2 = item_tup
+            f.write(f"{item1.name}\t{item2.name}\t{value}\n")
+            index = hash_items(hash(item1), hash(item2))
+            shared_co_dct.insert(index, value)
+        f.flush()
         
     
     # for key, value in tqdm(tmp.items()):
@@ -131,6 +136,7 @@ def clear_shared_co_matrix() -> None:
     global shared_co_dct, shared_hash_lst
     shared_co_dct = None
     shared_hash_lst = None
+    os.remove(tmp_co_filename)
 
 
 def __partial_shared_simularity_recalc_entry__(tuple: Tuple[object, int, List[int]]) \

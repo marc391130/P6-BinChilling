@@ -1,4 +1,0 @@
-C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Release\net6.0\ubuntu.20.04-x64\publish\BinChillingTools.dll
-C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Release\net6.0\ubuntu.20.04-x64\publish\BinChillingTools.deps.json
-C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Release\net6.0\ubuntu.20.04-x64\publish\BinChillingTools.pdb
-C:\Users\olive\Documents\GitHub\P6\BinChilling\BinChillingTools\BinChillingTools\bin\Release\net6.0\ubuntu.20.04-x64\publish\RGiesecke.DllExport.Metadata.dll

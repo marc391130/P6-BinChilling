@@ -1,15 +1,9 @@
 import itertools
-import sys
 from math import log, sqrt
 from typing import Iterable, Iterator, List, Dict, Tuple, TypeVar, Generic, Set
-from tqdm import tqdm
 from ClusterDomain import Cluster
-from Domain import ContigData, bin_size
-from SparseMatrix_implementations import SparseDictHashMatrix, SparseTupleHashMatrix, SortKeysByHash, HashedMatrix
-from EnsemblerTools import BinLogger
-from Cluster_matrices import CoAssosiationMatrix
-import CoAssosiationFunctions as CoFunctions
-
+from Domain import ContigData
+from SparseMatrix_implementations import SortKeysByHash
 
 
 class BinEvaluator:

@@ -13,7 +13,7 @@ from BinEvaluator import BinEvaluator
 from BinRefiner import BinRefiner
 from Domain import ContigData
 from math import sqrt, ceil, floor
-import CoAssosiationFunctions2 as CoFunctions
+import CoAssosiationFunctions as CoFunctions
 
 THREAD_COUNT = cpu_count()
 

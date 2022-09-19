@@ -1,12 +1,14 @@
 FROM ubuntu
 
-RUN apt update && apt upgrade && apt install python3 python3-pip -y 
+RUN apt update -y && apt upgrade -y
+RUN apt install python3 python3-pip -y 
+RUN apt-get install -y dotnet6
+RUN apt-get install -y dotnet-runtime-6.0
 
 WORKDIR /P6
 
-COPY ./ACE ./ACE
-COPY ./requirements.txt ./requirements.txt
+COPY ./ ./
 
-RUN pip install -r requirements.txt
+RUN python3 setup.py
 
 

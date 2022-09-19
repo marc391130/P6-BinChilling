@@ -1,4 +1,3 @@
-from ast import Delete
 import itertools
 from typing import List, Dict, Tuple, TypeVar, Generic, Set
 from tqdm import tqdm
@@ -6,7 +5,7 @@ from ClusterDomain import Cluster, Partition
 from SparseMatrix_implementations import SparseDictHashMatrix, SparseTupleHashMatrix, SortKeysByHash, HashedMatrix
 from EnsemblerTools import BinLogger, print_result, build_partition
 from Cluster_matrices import CoAssosiationMatrix
-import CoAssosiationFunctions2 as CoFunctions
+import CoAssosiationFunctions as CoFunctions
 from BinEvaluator import BinEvaluator
 import os.path as path
 from SharedDatastructures_implementations import HashTableIterator, SharedHashTable
@@ -125,7 +124,7 @@ class BinRefiner(RefinerBase):
         return new_clusters
     
     
-    
+EXECUTABLE = path.join(os.getcwd(), 'BinChillingTools.exe') 
 class ExternalBinRefiner(RefinerBase):
     def __init__(self, partition_count: str,
                  output_filepath: str, 
@@ -157,16 +156,17 @@ class ExternalBinRefiner(RefinerBase):
                 for scg in item.SCG_genes:
                     f.write( f"{item.name}\t{scg}\n")
             f.flush()
-            
-        subprocess.run([f"{os.getcwd()}/BinChillingTools/BinChillingTools.exe",
+        subprocess.run([EXECUTABLE,
                         self._partition_path,
                         co_filename,
                         scg_filename,
                         str(float(self._k)),
                         self._output_filepath])
-        
-        # os.remove(co_filename)
-        # os.remove(scg_filename)
+        try:
+            os.remove(co_filename)
+            os.remove(scg_filename)
+        except:
+            print("An error occured while trying to remove cache files.")
         
         
                     

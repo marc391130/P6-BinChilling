@@ -1,3 +1,4 @@
+import gc
 from io import TextIOWrapper
 
 from EnsemblerTools import BinLogger, MergeRegulator, print_result, target_bin_3_4th_count_estimator
@@ -25,6 +26,7 @@ from time import time
 import sys
 import Assertions as Assert
 import functools
+import CoAssosiationFunctions as CoFunctions
 
 CAHCE_DIR = f'./cache_{time()}'
 IS_HUGE = True
@@ -151,9 +153,6 @@ def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed
     n_samples, n_features = features.shape
     
     centers = np.empty((n_clusters, n_features), dtype=features.dtype)
-    
-
-    print(f"features: {n_features}, seeds: {len(seed_idx)}, centers: {n_clusters}, shape: {centers.shape}")
 
 
     # Set the number of local seeding trials if none is given
@@ -191,7 +190,7 @@ def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed
                                             squared=True))
         current_pot = closest_dist_sq.sum()
     except IndexError as iex:
-        print(c, center_id, iex)
+        print(f"VARIABLES c:{c}, center_id: {center_id}, n_samples: {n_samples}, n_features: {n_features}" )
         raise iex
     # Pick the remaining n_clusters-1 points
     for c in range(len(seed_idx), n_clusters):
@@ -284,11 +283,11 @@ def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: in
     
     start_time = time()
     scg_reader = SCGReader(scg_file, ms_file, logger=logger)
-    filter = ContigFilter(min_contig_len)
+    contig_filter = ContigFilter(min_contig_len)
     contig_reader = ContigReader(fasta_file, scg_reader, depth_file=abundance_file,\
         numpy_file=numpy_cache, enable_analyse_contig_comp=True, logger=logger)
     
-    contigs = [x for x in list(contig_reader.read_file_fast(load_SCGs=True).values()) if filter.predicate(x)] 
+    contigs = [x for x in list(contig_reader.read_file_fast(load_SCGs=True).values()) if contig_filter.predicate(x)] 
     if any( (len(x.SCG_genes) > 0 for x in contigs) ) is False:
         raise Exception('The set of contigs contains no SCGs')
     if any( (x.__has_analysis__() for x in contigs) ) is False:
@@ -343,12 +342,23 @@ def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: in
     del comp_matrix
     
     bin_evaluator = BinEvaluator(scg_reader.read_MS_scgs())
-    bin_refiner = BinRefiner(bin_evaluator, (1.0 / len(gamma)), chunksize, logger)
     chiller = Chiller(a1min, 1.0, MergeRegulator(a1min), 0.02, logger)
-    binner = Binner(bin_refiner, bin_evaluator, chunksize, logger=logger)
-    ensembler = BinChillingEnsembler(chiller, binner, bin_refiner, bin_evaluator, chunksize=chunksize, target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
+    binner = Binner(bin_evaluator, chunksize, logger=logger)
+    ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, chunksize=chunksize,
+                        target_clusters_est=target_bin_3_4th_count_estimator, logger=logger)
+
+    gamma_size = len(gamma)
 
     final_partition = ensembler.ensemble(gamma)
     print_result(output_file, final_partition)
+    
+    del scg_reader, contig_filter, contig_reader,\
+        data_dto, feature_data, gamma, contigs,\
+        k_min, k_max, k_range
+    gc.collect()
+    
+    external_refiner = ExternalBinRefiner(gamma_size, output_file + '.ref.tsv',
+                                          output_file, CoFunctions.tmp_co_filename, logger)
+    external_refiner.refine(final_partition)
     
     logger.log(f"Completed binning in time: {(time() - start_time):0.02f}s")
