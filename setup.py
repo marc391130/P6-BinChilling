@@ -9,7 +9,7 @@ BC_FOLDER = path.join(os.getcwd(), 'BinChilling')
 BUILD_FOLDER = path.join(SRC_FOLDER, 'Build')
 EXECUTABLE_PATH = path.join(BC_FOLDER, 'BinChillingTools.exe')
 PDB_PATH = path.join(BC_FOLDER, 'BinChillingTools.pdb')
-REQ_PATH = path.join(os.getcwd(), 'BinChillingTools.pdb')
+REQ_PATH = path.join(os.getcwd(), 'requirements.txt')
 
 def update_req():
     subprocess.run(['pip', 'install', '-r', REQ_PATH])
