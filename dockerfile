@@ -13,5 +13,3 @@ WORKDIR /P6
 RUN git clone https://github.com/marc391130/P6-BinChilling.git .
 
 RUN python3 setup.py
-
-
