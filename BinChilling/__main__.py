@@ -53,6 +53,9 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
         contig_filter=contigFilter, logger=logger)
     gamma = partitionSetReader.read_file()
     
+    #set up refiner
+    external_binrefiner = ExternalBinRefiner(len(gamma), output_path + '.ref.tsv', output_path,\
+        path.join(os.getcwd(), "comatrix.tmp") , logger)
     
     #set up ensembler
     bin_evaluator = BinEvaluator(scg_reader.read_MS_scgs())
@@ -62,9 +65,10 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
     chiller = Chiller(a1_min, a1, regulator, 0.02, logger)
     binner = Binner(bin_evaluator, chunksize, 0.75, logger)
     ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)
-
+    
+    external_binrefiner.connect_module(throw_on_err=True)
+    
     output = ensembler.ensemble(gamma)
-    gammaSize = len(gamma)
 
     print_result(output_path, output)
     
@@ -74,8 +78,7 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
         partitionSetReader, gamma, bin_evaluator, \
             regulator, chiller, binner, ensembler
     gc.collect()
-    external_binrefiner = ExternalBinRefiner(gammaSize, output_path + '.ref.tsv', output_path,\
-        path.join(os.getcwd(), "comatrix.tmp") , logger)
+    
     external_binrefiner.refine(output)
 
     # refiner = BinRefiner(bin_evaluator, 1 / len(gamma), chunksize, logger)

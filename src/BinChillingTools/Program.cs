@@ -5,7 +5,14 @@ public static class Program
     private const int NArgs = 5;
     public static int Main(string[] args)
     {
-        Console.WriteLine($"Args: {string.Join("; ", args)}");
+        if (args.Length >= 1 && args[0] == "__test__")
+        {
+            Console.WriteLine("REFINER MODULE LOADED CORRECTLY");
+            Console.WriteLine("__REFINER_MODULE_CONNECTED__");
+            return 0;
+        }
+        
+        Console.WriteLine($"Args:\n{string.Join("\n - ", args)}");
         
         if (args.Length < NArgs) throw new ArgumentException(
             "No arguments supplied. Require partition path, co path and scg path, partition counts and output filepath + name, (in this order)");

@@ -136,19 +136,24 @@ class ExternalBinRefiner(RefinerBase):
         self._co_cache_path = co_cache_path
         self._partition_path = partition_path
         self.log = logger
+        self._connected = False
     
+    def connect_module(self, throw_on_err: bool = True) -> None:
+        out = subprocess.run([EXECUTABLE, '__test__'], check=True, text=True, capture_output=True)
+        msg = out.stdout.split('\n')
+        self.log(msg[0] if len(msg) > 0 else "Cannot connect to refiner module")
+        success = '__REFINER_MODULE_CONNECTED__' in out.stdout
+        
+        self._connected = success
+        if self._connected is False and throw_on_err:
+            raise Exception('CANNOT CONENCT TO REFINER')
     
-    def refine(self, partition: Partition) -> None:        
+    def refine(self, partition: Partition) -> None:
         co_filename = CoFunctions.tmp_co_filename
-        # lst = list( (item for cluster in partition.values() for item in cluster) )
-        # with open(co_filename, 'w') as f:
-        #     for index, item1 in tqdm(enumerate(lst), total=len(lst)):
-        #         for index2 in range(index+1, len(lst)):
-        #             item2 = lst[index2]
-        #             value = CoFunctions.shared_co_dct.get( CoFunctions.hash_items(hash(item1), hash(item2)), None )
-        #             if value is not None:
-        #                 f.write( f"{item1.name}\t{item2.name}\t{value}\n" )
-        #     f.flush()
+        
+        if self._connected is False:
+            self.log("Refiner is not connected. Refinement step is skipped")
+            return
         
         scg_filename = co_filename + '.scg'
         with open(scg_filename, 'w') as f:

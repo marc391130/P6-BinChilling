@@ -59,13 +59,13 @@ public sealed class BinChillingFileReader
     }
 
 
-    public IReadOnlyDictionary<long, double> ReadCoMatrix()
+    public IReadOnlyDictionary<CoTuple, double> ReadCoMatrix()
     {
         var co = File.ReadLines(_coPath)
             .Select(x => x.TrimEnd('\n').Split('\t'))
             .Where(x => x.Length == 3)
             .ToDictionary(
-                k => CoMatrix.CoHash(k[0], k[1]),
+                k => new CoTuple(k[0], k[1]),
                 v => double.TryParse(v[2], out var val)
                     ? val
                     : throw new FileLoadException("I cannot read value: " + v[2]));

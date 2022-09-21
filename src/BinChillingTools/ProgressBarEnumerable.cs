@@ -79,6 +79,7 @@ public sealed class ProgressBarEnumerator<T> : IEnumerator<T>
 
     public void Reset()
     {
+        _enumerator?.Dispose();
         _enumerator = null;
         _bar.Dispose();
         _bar = BuildProgressBar(_size, _message, _options);

@@ -9,11 +9,11 @@ public readonly record struct CoResult(double Score, string[] Cluster);
 public sealed class BinRefiner
 {
     private readonly double _minCoValue;
-    private readonly IReadOnlyDictionary<long, double> _coMatrix;
+    private readonly IReadOnlyDictionary<CoTuple, double> _coMatrix;
     private readonly BinEvaluator _evaluator;
     private readonly ConcurrentDictionary<int, double> _scoreDict = new();
 
-    public BinRefiner(double minCoValue, IReadOnlyDictionary<long, double> coMatrix, BinEvaluator evaluator)
+    public BinRefiner(double minCoValue, IReadOnlyDictionary<CoTuple, double> coMatrix, BinEvaluator evaluator)
     {
         _minCoValue = minCoValue;
         _coMatrix = coMatrix;
@@ -173,20 +173,31 @@ public sealed class BinRefiner
         DenseProgressBar = true,
         DisplayTimeInRealTime = true,
         DisableBottomPercentage = true,
-        EnableTaskBarProgress = true,
+        EnableTaskBarProgress = false,
         ForegroundColor = ConsoleColor.Green,
         ForegroundColorDone = ConsoleColor.White,
         ForegroundColorError = ConsoleColor.Red
     });
+
+    private static TimeSpan CalculateRemainder(DateTime startTime, int index, int size)
+    {
+        index = Math.Max(index, 1);
+        size = Math.Max(size, 1);
+        if(index == size) return TimeSpan.Zero;
+        startTime = startTime < DateTime.Now ? startTime : DateTime.Now;
+        return TimeSpan.FromTicks((long) (DateTime.Now.Subtract(startTime).Ticks / (index)) * size);
+    }
+
     private IReadOnlyList<string[]> RefineClustersMultiThreaded_NoBreak(
         IReadOnlyList<string[]> clusters, ISet<int> skipSet)
     {
         using var progressBar = CreateProgressBar(clusters.Count);
+        var startTime = DateTime.Now;
         var newClusters = new List<string[]>();
 
         for (var i = 0; i < clusters.Count; i++)
         {
-            progressBar.Tick($"{progressBar.Percentage}% | {progressBar.EstimatedDuration}");
+            progressBar.Tick();
             var cluster1 = clusters[i];
             if(skipSet.Contains(cluster1.GetHashCode()) || cluster1.Length == 0) continue;
             var score1 = GetClusterScoreDynamic(cluster1);
@@ -235,7 +246,8 @@ public sealed class BinRefiner
             
             // newClusters.Add(cluster1);
         }
-
+        
+        progressBar.Tick(newTickCount: progressBar.MaxTicks, $"{progressBar.Percentage:0.00}% | { CalculateRemainder(startTime, clusters.Count, clusters.Count) }");
         return newClusters;
     }
 
@@ -253,7 +265,7 @@ public sealed class BinRefiner
         {
             foreach (var item2 in cluster2)
             {
-                sum += _coMatrix.TryGetValue(CoMatrix.CoHash(item1, item2), out var value) ? value : 0.0d;
+                sum += _coMatrix.TryGetValue(new CoTuple(item1, item2), out var value) ? value : 0.0d;
             }
         }
 
