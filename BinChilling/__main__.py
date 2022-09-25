@@ -10,7 +10,7 @@ from functools import partialmethod
 from multiprocessing import cpu_count
 
 from AdaptiveEnsembler import AdaptiveClusterEnsembler
-from BinChillingBinner import run_binner
+from BinChillingBinner import run_binner, run_partition_generator
 from EnsemblerTools import BinLogger, MergeRegulator, target_bin_3_4th_count_estimator, print_result
 from BinEvaluator import BinEvaluator
 from BinRefiner import *
@@ -23,74 +23,126 @@ import sys
 import os
 from BinChillingEnsembler import BinChillingEnsembler, Chiller, Binner
 from time import time
-import numpy as np
-
-# import numpy
-# arr = numpy.zeros((3,3))
-# app = numpy.ones(shape=(3,1))
-# print("> arr\n", arr)
-# print("> app\n", app)
-# print(numpy.append(arr , app, axis=1 ))
-# raise Exception()
+import numpy as np 
 
 __global_disable_tqdm = False
 tqdm.__init__ = partialmethod(tqdm.__init__, disable=__global_disable_tqdm)
 
+external_binrefiner : ExternalBinRefiner = None
+all_scgs: set = None
 
-def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est: int or Callable[[PartitionSet], int],\
-        fasta_filepath: str, depth_filepath: str, scg_filepath: List[str], db_path: List[str],\
-    numpy_cachepath: str, partition_folder: str, output_path: str,\
-        max_processors: int or None, chunksize: int, min_contig_len: int):
+def run_bin_chilling(logger: BinLogger, a1:float, a1_min: float, all_scgs: set,\
+        output_path: str, chunksize: int, gamma: PartitionSet, start_time = time(), max_processors: int or None = None) \
+        -> Partition:
     
-    start_time = time()
+    global external_binrefiner
+    if external_binrefiner is None:
+        external_binrefiner = ExternalBinRefiner(len(gamma), output_path + '.ref.tsv', output_path,\
+        path.join(os.getcwd(), "comatrix.tmp") , logger)
+        external_binrefiner.connect_module(throw_on_err=True)
+        
     
-    #Load data
+    #set up ensembler
+    bin_evaluator = BinEvaluator(all_scgs)
+    chiller = Chiller(a1_min, a1, MergeRegulator(a1_min), 0.02, logger)
+    binner = Binner(bin_evaluator, chunksize, 0.75, logger)
+    ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, None, chunksize, max_processors, logger)
+    
+    
+    output = ensembler.ensemble(gamma)
+
+    print_result(output_path, output)
+    logger.log(f"Finished bin ensemblement in time {(time() - start_time):0.02f}s")
+    
+    
+    del gamma, bin_evaluator, chiller, binner, ensembler
+    gc.collect()
+    
+    return output    
+
+
+def run_refiner(logger: BinLogger, partition: Partition, start_time = time() ):
+    global external_binrefiner
+    if external_binrefiner is None:
+        raise Exception("No external bin refiner detected. Something is wrong")
+    
+    logger.log("Starting refinement process")
+    
+    external_binrefiner.refine(partition)
+    
+    logger.log(f"Finished bin refinement in time {(time() - start_time):0.02f}s")
+    return
+    
+    
+def load_data(logger: BinLogger, fasta_filepath: str, depth_filepath: str,
+            scg_filepath: List[str], db_path: List[str], numpy_cachepath: str,
+            partition_folder: str, max_processors: int or None, min_contig_len: int) -> Tuple[PartitionSet,set]:
+    
     scg_reader = SCGReader(scg_filepath, db_path, logger=logger)
     contigFilter = ContigFilter(min_contig_len)
     contigReader = ContigReader(fasta_filepath, scg_reader,\
         depth_file=depth_filepath, numpy_file=numpy_cachepath, max_threads=max_processors, logger=logger)
     partitionSetReader = PartitionSetReader(partition_folder, contigReader, lambda x: x.endswith(".tsv"),\
         contig_filter=contigFilter, logger=logger)
+    
+    all_scgs = scg_reader.read_MS_scgs()
     gamma = partitionSetReader.read_file()
     
-    #set up refiner
-    external_binrefiner = ExternalBinRefiner(len(gamma), output_path + '.ref.tsv', output_path,\
-        path.join(os.getcwd(), "comatrix.tmp") , logger)
+    return gamma, all_scgs
     
-    #set up ensembler
-    bin_evaluator = BinEvaluator(scg_reader.read_MS_scgs())
-    # print('>SCG coutn ', len(bin_evaluator.all_SCGs))
-    regulator = MergeRegulator(a1_min) if True else\
-                MergeSCGEvaluator(a1_min, bin_evaluator, debug=True)
-    chiller = Chiller(a1_min, a1, regulator, 0.02, logger)
-    binner = Binner(bin_evaluator, chunksize, 0.75, logger)
-    ensembler = BinChillingEnsembler(chiller, binner, bin_evaluator, target_cluster_est, chunksize, max_processors, logger)
-    
-    external_binrefiner.connect_module(throw_on_err=True)
-    
-    output = ensembler.ensemble(gamma)
 
-    print_result(output_path, output)
+def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est: int or Callable[[PartitionSet], int],\
+        fasta_filepath: str, depth_filepath: str, scg_filepath: List[str], db_path: List[str],\
+        numpy_cachepath: str, partition_folder: str, output_path: str,\
+        max_processors: int or None, chunksize: int, min_contig_len: int):
     
-    logger.log("Starting refinement process")
+    start_time = time()
+    gamma, all_scgs = load_data(logger, fasta_filepath, depth_filepath, 
+                    scg_filepath, db_path, numpy_cachepath, 
+                    partition_folder, max_processors, min_contig_len)
     
-    del scg_reader, contigFilter, contigReader, \
-        partitionSetReader, gamma, bin_evaluator, \
-            regulator, chiller, binner, ensembler
-    gc.collect()
+    logger.log(f"Loaded data in {(time() - start_time):0.02f}s.")
     
-    external_binrefiner.refine(output)
-
-    # refiner = BinRefiner(bin_evaluator, 1 / len(gamma), chunksize, logger)
-    # refined_partition = refiner.refine(output)
-    # print_result(output_path + ".ref.tsv", build_partition(gamma, refined_partition, logger))
+    output = run_bin_chilling(logger, a1, a1_min, all_scgs, output_path, chunksize, gamma, \
+        max_processors=max_processors)
     
-    #Display output
-    logger.log(f"Finished bin ensemblement in time {(time() - start_time):0.02f}s")
+    logger.log(f"total runtime so far: {(time() - start_time):0.02f}s.")
     
-    logger.log("Completed successfully")
+    #yeet no more needed data
+    CoFunctions.clear_shared_co_matrix()
+    del gamma, all_scgs
+        
+    run_refiner(logger, output)
+    
+    logger.log(f"Total runtime: {(time() - start_time):0.02f}s.")
+    
     sys.exit(0)
+
+def run_binner_ensembler(logger: BinLogger, a1:float, a1min: float, min_partitions_gamma: int, max_partitions_gamma: int,\
+        min_contig_len:int, stepsize:int, method: str, fasta_file: str, abundance_file: str, scg_file: List[str],\
+        ms_file: List[str], output_file: str, numpy_cache: str, chunksize: int, max_iter: int = 300,\
+            partition_outdir: str or None = None):
     
+    start_time = time()
+    gamma, all_scgs = run_partition_generator(logger, min_partitions_gamma, max_partitions_gamma, min_contig_len,\
+        stepsize, method, fasta_file, abundance_file, scg_file, ms_file, numpy_cache, max_iter, partition_outdir)
+    
+    logger.log(f"Loaded data in {(time() - start_time):0.02f}s.")
+    
+    output = run_bin_chilling(logger, a1, a1min, all_scgs, output_file, chunksize,  gamma)
+    
+    logger.log(f"total runtime so far: {(time() - start_time):0.02f}s.")
+    
+    #yeet no more needed data
+    CoFunctions.clear_shared_co_matrix()
+    del gamma, all_scgs
+        
+    run_refiner(logger, output)
+    
+    logger.log(f"Total runtime: {(time() - start_time):0.02f}s.")
+    
+    sys.exit(0)
+
 def run_ACE(a1_min, fasta_filepath: str, depth_filepath: str, scg_filepath: List[str], db_file: List[str], numpy_cachepath: str, partition_folder: str,\
     output_path: str, threads, chunksize, logfile: TextIOWrapper or None, min_contig_len: int = 0):
 
@@ -341,10 +393,10 @@ def main():
 
 
         if run_binner_mod:
-            run_binner(a1min, args.min_p, args.max_p, minlen, args.stepsize, args.algorithm, fasta_path, abundance_path,\
-                SCG_path, MS_path, outfile, numpy_cache, chunksize,  logger, 300, partition_outdir)
+            run_binner_ensembler(logger, a1, a1min, args.min_p, args.max_p, minlen, args.stepsize, args.algorithm, fasta_path, abundance_path,\
+                SCG_path, MS_path, outfile, numpy_cache, chunksize, 300, partition_outdir)
         elif run_ensemble_mod:
-            run_ensemble(logger, args.a1, args.a1_min, target_clusters, fasta_path, abundance_path, scg, MS_path,\
+            run_ensemble(logger, a1, args.a1_min, target_clusters, fasta_path, abundance_path, scg, MS_path,\
                 numpy_cache, partition_folder, outfile, args.threads, args.chunksize, minlen)
         elif run_ACE_mod:
             run_ACE(args.a1_min, fasta_path, abundance_path, SCG_path, MS_path, numpy_cache, partition_folder, 

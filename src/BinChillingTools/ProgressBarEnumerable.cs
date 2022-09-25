@@ -3,12 +3,15 @@ using ShellProgressBar;
 
 namespace BinChillingTools;
 
-public static class EnumerableProgressBarExtensions
+
+public static class ProgressBarExtensions
 {
-    public static IEnumerable<T> UseProgressBar<T>(this IEnumerable<T> enumerable, 
-        int size, string message = "", ProgressBarOptions? options = null)
+    public static TimeSpan CalculateTimeRemainder(this ProgressBarBase progressBar, DateTime startTime)
     {
-        return new ProgressBarEnumerable<T>(enumerable, size, message, options);
+        var tick = progressBar.CurrentTick > 0 ? progressBar.CurrentTick : 1;
+        startTime = startTime < DateTime.Now ? startTime : DateTime.Now;
+        var timespan = DateTime.Now.Subtract(startTime).Ticks;
+        return TimeSpan.FromTicks((timespan / tick) * (progressBar.MaxTicks - tick));
     }
 }
 
@@ -85,7 +88,7 @@ public sealed class ProgressBarEnumerator<T> : IEnumerator<T>
         _bar = BuildProgressBar(_size, _message, _options);
     }
 
-    public T Current => _enumerator is null ? default : _enumerator.Current!;
+    public T Current => _enumerator is null ? default! : _enumerator.Current!;
 
     object IEnumerator.Current => Current ?? new object();
 

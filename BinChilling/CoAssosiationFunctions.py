@@ -136,7 +136,6 @@ def clear_shared_co_matrix() -> None:
     global shared_co_dct, shared_hash_lst
     shared_co_dct = None
     shared_hash_lst = None
-    os.remove(tmp_co_filename)
 
 
 def __partial_shared_simularity_recalc_entry__(tuple: Tuple[object, int, List[int]]) \

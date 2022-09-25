@@ -1,3 +1,4 @@
+import gc
 import itertools
 from typing import List, Dict, Tuple, TypeVar, Generic, Set
 from tqdm import tqdm
@@ -161,6 +162,8 @@ class ExternalBinRefiner(RefinerBase):
                 for scg in item.SCG_genes:
                     f.write( f"{item.name}\t{scg}\n")
             f.flush()
+            
+        gc.collect()
         subprocess.run([EXECUTABLE,
                         self._partition_path,
                         co_filename,
@@ -168,6 +171,7 @@ class ExternalBinRefiner(RefinerBase):
                         str(float(self._k)),
                         self._output_filepath])
         try:
+            pass
             os.remove(co_filename)
             os.remove(scg_filename)
         except:

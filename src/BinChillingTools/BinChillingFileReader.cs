@@ -47,7 +47,6 @@ public sealed class BinChillingFileReader
     private readonly string _scgPath;
 
     
-    
     public BinChillingFileReader(
         string coPath, 
         string partitionPath, 
@@ -61,7 +60,8 @@ public sealed class BinChillingFileReader
 
     public IReadOnlyDictionary<CoTuple, double> ReadCoMatrix()
     {
-        var co = File.ReadLines(_coPath)
+        Console.WriteLine("Reading co matrix...");
+        return File.ReadLines(_coPath)
             .Select(x => x.TrimEnd('\n').Split('\t'))
             .Where(x => x.Length == 3)
             .ToDictionary(
@@ -69,14 +69,12 @@ public sealed class BinChillingFileReader
                 v => double.TryParse(v[2], out var val)
                     ? val
                     : throw new FileLoadException("I cannot read value: " + v[2]));
-        
-        Console.WriteLine("size: " + co.Count);
-        return co;
     }
 
 
     public IReadOnlyDictionary<string, string[]> ReadPartition()
     {
+        Console.WriteLine("Reading Partitions...");
         var group = new Dictionary<string, List<string>>();
         
         foreach (var line in File.ReadLines(_partitionPath)
@@ -98,20 +96,18 @@ public sealed class BinChillingFileReader
     //value is list of SCGs
     public IReadOnlyDictionary<string, string[]> ReadScgs()
     {
+        Console.WriteLine("Reading Scgs...");
         var group = new Dictionary<string, List<string>>();
-        var scgCount = 0;
         foreach (var line in File.ReadLines(_scgPath)
                      .Select(x => x.TrimEnd('\n').Split('\t'))
                      .Where(x => x.Length == 2))
         {
-            scgCount++;
             if (group.ContainsKey(line[0]))
                 group[line[0]].Add(line[1]);
             else
                 group.Add(line[0], new List<string>(){ line[1] });
         }
 
-        Console.WriteLine("TotalLen: " + group.Sum(x => x.Value.Count) + " | " + scgCount);
         return group.ToDictionary(
             k => k.Key, 
             v => v.Value.ToArray());

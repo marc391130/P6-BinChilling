@@ -277,6 +277,45 @@ def generate_partition_with_matrix(gamma: PartitionSet, matrix: np.ndarray, k_ra
             print_result(os.path.join(partition_outdir, 'Partition_'+str(k) +'.tsv'), partition)
     pass
 
+
+def run_partition_generator(logger: BinLogger, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
+    fasta_file: str, abundance_file: str, scg_file: List[str], ms_file: List[str], numpy_cache: str,\
+    max_iter: int = 300, partition_outdir: str or None = None) -> Tuple[PartitionSet,set]:
+    
+    scg_reader = SCGReader(scg_file, ms_file, logger=logger)
+    contig_filter = ContigFilter(min_contig_len)
+    contig_reader = ContigReader(fasta_file, scg_reader, depth_file=abundance_file,\
+        numpy_file=numpy_cache, enable_analyse_contig_comp=True, logger=logger)
+    
+    contigs = [x for x in list(contig_reader.read_file_fast(load_SCGs=True).values()) if contig_filter.predicate(x)] 
+    if any( (len(x.SCG_genes) > 0 for x in contigs) ) is False:
+        raise Exception('The set of contigs contains no SCGs')
+    if any( (x.__has_analysis__() for x in contigs) ) is False:
+        raise Exception('The contigs did not contain an analysis of composition. '+\
+            'This might be because the cache file is generated using fast analysis. '+\
+            'Try deleting cache file, or provide a different cache file path')
+    
+    gamma = PartitionSet(contigs)
+    feature_data = transform_contigs_to_features(contigs, include_constraint_matrix= (method == 'Hierarchical'))
+    combo_matrix, comp_matrix, cov_matrix, data_dto = feature_data
+    del combo_matrix, cov_matrix
+    
+    scg_count = compute_scgs_count(contigs)
+    try:
+        k_min, k_max = compute_partition_range(comp_matrix, data_dto.len_weights, contigs, stepsize, min_partitions_gamma, max_partitions_gamma)
+        k_max = max(k_min + min_partitions_gamma, k_max)
+        k_range = (k_min, k_max)
+        
+        logger.log(f'Generating partitions with {k_min} to {k_max} bins using features matricies...')
+       
+        logger.log(f'Generating partitions using composition_matrix...')
+        generate_partition_with_matrix(gamma, comp_matrix, k_range, scg_count,\
+            data_dto, method, max_iter, logger, partition_outdir)
+    finally:
+        shutil.rmtree(os.path.abspath(CAHCE_DIR), ignore_errors=True)
+    del comp_matrix
+    return gamma, scg_reader.read_MS_scgs()
+
 def run_binner(a1min: float, min_partitions_gamma: int, max_partitions_gamma: int, min_contig_len:int, stepsize:int, method: str,\
     fasta_file: str, abundance_file: str, scg_file: List[str], ms_file: List[str], output_file: str, numpy_cache: str, chunksize: int,\
         logger: BinLogger, max_iter: int = 300, partition_outdir: str or None = None):

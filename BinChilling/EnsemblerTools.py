@@ -8,6 +8,7 @@ from io import TextIOWrapper
 from Cluster_matrices import ClustserSimularityMatrix, cluster_simularity, cluster_simularity_vector
 
 
+
 class BinLogger:
     def __init__(self, console_log: bool = True, logfile: TextIOWrapper = None) -> None:
         self.__should_log__, self.logfile = console_log, logfile 

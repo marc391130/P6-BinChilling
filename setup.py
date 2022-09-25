@@ -1,10 +1,11 @@
 import subprocess
 import os.path as path
 import os
+import sys
 from time import sleep
 
 SRC_FOLDER = path.join(os.getcwd(), 'src')
-SLN_PATH = path.join(SRC_FOLDER, 'BinChillingTools.sln')
+CSPROJ_PATH = path.join(SRC_FOLDER, 'BinChillingTools/BinChillingTools.csproj')
 BC_FOLDER = path.join(os.getcwd(), 'BinChilling')
 BUILD_FOLDER = path.join(SRC_FOLDER, 'Build')
 EXECUTABLE_PATH = path.join(BC_FOLDER, 'BinChillingTools.exe')
@@ -14,8 +15,8 @@ REQ_PATH = path.join(os.getcwd(), 'requirements.txt')
 def update_req():
     subprocess.run(['pip', 'install', '-r', REQ_PATH])
 
-def main():
-    update_req()
+def main(compile_only: bool):
+    if compile_only is False: update_req()
 
     if path.exists(EXECUTABLE_PATH):
         print("Removing old EXE file: " + EXECUTABLE_PATH)
@@ -25,9 +26,10 @@ def main():
         os.remove(PDB_PATH)
     if path.exists(BUILD_FOLDER) is False:
         print("Making build folder at: " + BUILD_FOLDER)
+        os.mkdir(BUILD_FOLDER)
         subprocess.run(['mkdir', BUILD_FOLDER], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
-    args = ['dotnet', 'publish', SLN_PATH,
+    args = ['dotnet', 'publish', CSPROJ_PATH,
                     '-c', 'release', 
                     '-r', 'ubuntu.20.04-x64',
                     '-o', BUILD_FOLDER,
@@ -46,4 +48,6 @@ def main():
     
     
 if __name__ == '__main__':
-    main()
+    print(sys.argv)
+    compile_only = '-compile' in sys.argv[1] if len(sys.argv) > 1 else False
+    main(compile_only)
