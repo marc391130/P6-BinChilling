@@ -3,8 +3,6 @@ import itertools
 from tqdm import tqdm
 from typing import Iterable, Iterator, MutableMapping, Set, Tuple, Dict, Callable, TypeVar, Generic, List
 import Assertions as Assert 
-from math import sqrt
-
 from SharedDatastructures_implementations import SharedHashTable
 
 TK = TypeVar("TK")

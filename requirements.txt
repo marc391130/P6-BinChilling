@@ -1,5 +1,4 @@
 numpy==1.21.2
-scikit_learn==1.1.1
+scikit_learn==1.1.2
 scipy==1.7.1
-shared_memory_dict==0.7.2
 tqdm==4.62.3
