@@ -27,7 +27,7 @@ public static class Program
         var reader = new BinChillingFileReader(coPath, partitionPath, scgPath);
 
         var evaluator = new BinEvaluator(reader.ReadScgs());
-        var refiner = new BinRefiner2(partitionCount, reader.ReadCoMatrix(), evaluator);
+        var refiner = new BinRefiner(partitionCount, reader.ReadCoMatrix(), evaluator);
 
         var partition = reader.ReadPartition();
         var refinedPartition = refiner.Refine(partition);

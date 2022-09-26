@@ -32,10 +32,11 @@ external_binrefiner : ExternalBinRefiner = None
 all_scgs: set = None
 
 def run_bin_chilling(logger: BinLogger, a1:float, a1_min: float, all_scgs: set,\
-        output_path: str, chunksize: int, gamma: PartitionSet, start_time = time(), max_processors: int or None = None) \
+        output_path: str, chunksize: int, gamma: PartitionSet, max_processors: int or None = None) \
         -> Partition:
     
     global external_binrefiner
+    start_time = time()
     if external_binrefiner is None:
         external_binrefiner = ExternalBinRefiner(len(gamma), output_path + '.ref.tsv', output_path,\
         path.join(os.getcwd(), "comatrix.tmp") , logger)
@@ -61,11 +62,12 @@ def run_bin_chilling(logger: BinLogger, a1:float, a1_min: float, all_scgs: set,\
     return output    
 
 
-def run_refiner(logger: BinLogger, partition: Partition, start_time = time() ):
+def run_refiner(logger: BinLogger, partition: Partition ):
     global external_binrefiner
     if external_binrefiner is None:
         raise Exception("No external bin refiner detected. Something is wrong")
     
+    start_time = time()
     logger.log("Starting refinement process")
     
     external_binrefiner.refine(partition)
