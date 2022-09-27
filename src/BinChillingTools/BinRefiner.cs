@@ -102,12 +102,8 @@ public sealed class BinRefiner
             if(skipSet.Contains(cluster1.GetHashCode()) || cluster1.Length == 0) continue;
             var score1 = GetClusterScoreDynamic(cluster1);
 
-            var nestedBar = progressBar.Spawn(
-                clusterList2.Count,
-                ProgressBarExtensions.DefaultStartMsg,
-                ProgressBarExtensions.DefaultChildOptions());
             CoResult? scoreResult = null;
-            Parallel.ForEach(clusterList2.UseProgressBar(nestedBar)
+            Parallel.ForEach(clusterList2
                     .Where(c => !skipSet.Contains(c.GetHashCode()) && c.Length > 0), 
                 cluster2 =>
             {

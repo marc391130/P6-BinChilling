@@ -26,7 +26,7 @@ public static class ProgressBarExtensions
         return $"{span.Hours:00}:{span.Minutes:00}:{span.Seconds:00}";
     }
     
-    public static readonly string DefaultStartMsg = $"    Remainder: {FormatTimeRemaining(TimeSpan.MaxValue)}";
+    public static readonly string DefaultStartMsg =  $"    Remainder: {FormatTimeRemaining(TimeSpan.MaxValue)}";
     public static readonly string DefaultFinishMsg = $"    Remainder: {FormatTimeRemaining(TimeSpan.Zero)}";
     
     public static ProgressBar Create(int count) => 
@@ -44,7 +44,7 @@ public static class ProgressBarExtensions
             ForegroundColorError = ConsoleColor.Red
         });
     
-    public static ProgressBarOptions DefaultChildOptions() => new()
+    public static readonly ProgressBarOptions DefaultChildOptions = new()
     {
         BackgroundCharacter = '-',
         BackgroundColor = ConsoleColor.Black,
