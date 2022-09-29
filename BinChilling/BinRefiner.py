@@ -163,28 +163,19 @@ class ExternalBinRefiner(RefinerBase):
                     f.write( f"{item.name}\t{scg}\n")
             f.flush()
             
-        gc.collect()
-        subprocess.run([EXECUTABLE,
+        try:
+            gc.collect()
+            subprocess.run([EXECUTABLE,
                         self._partition_path,
                         co_filename,
                         scg_filename,
                         str(float(self._k)),
                         self._output_filepath])
-        try:
-            pass
-            os.remove(co_filename)
-            os.remove(scg_filename)
-        except:
-            print("An error occured while trying to remove cache files.")
-        
-        
-                    
-            
-        
-        
-        
-        
-        
-        
-        
-        
+        finally:
+            #The os.remove call might throw exception. Dont ruin it here.            
+            try:
+                pass
+                os.remove(co_filename)
+                os.remove(scg_filename)
+            except:
+                print("An error occured while trying to remove cache files.")

@@ -32,6 +32,7 @@ public static class Program
         var partition = reader.ReadPartition();
         var refinedPartition = refiner.Refine(partition);
         
+        Console.WriteLine($"Finished refinement with {refinedPartition.Count} total clusters.");
         reader.WritePartition(outputFile, refinedPartition);
         
         return 0;

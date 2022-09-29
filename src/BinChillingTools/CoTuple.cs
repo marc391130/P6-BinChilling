@@ -31,4 +31,14 @@ public readonly struct CoTuple
 
         return _item1 == tup._item1 && _item2 == tup._item2;
     }
+
+    public static bool operator ==(CoTuple left, CoTuple right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(CoTuple left, CoTuple right)
+    {
+        return !(left == right);
+    }
 }

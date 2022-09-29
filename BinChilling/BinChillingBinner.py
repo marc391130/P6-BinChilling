@@ -152,6 +152,9 @@ def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed
 
     n_samples, n_features = features.shape
     
+    # if len(seed_idx) != n_clusters:
+    #     raise Exception(f"seed_idx ({len(seed_idx)}) != n_clusters ({n_clusters}) ")
+    
     centers = np.empty((n_clusters, n_features), dtype=features.dtype)
 
 
@@ -190,7 +193,7 @@ def partial_seed_init3(features: np.ndarray, n_clusters: int, random_state, seed
                                             squared=True))
         current_pot = closest_dist_sq.sum()
     except IndexError as iex:
-        print(f"VARIABLES c:{c}, center_id: {center_id}, n_samples: {n_samples}, n_features: {n_features}" )
+        print(f"VARIABLES c:{c}, n_clusters: {n_clusters}, center_id: {center_id}, n_samples: {n_samples}, n_features: {n_features}" )
         raise iex
     # Pick the remaining n_clusters-1 points
     for c in range(len(seed_idx), n_clusters):
@@ -247,8 +250,14 @@ def run_clustering_method(method: str, n_clusters: int, scg_count: Dict[str, int
         #             init=functools.partial(partial_seed_init, scg=scg_seed, index_map=index_map))\
         #             .fit_predict(matrix, sample_weight=weights)
         
-        scg_seed = list(scg_count.keys())[ np.random.randint(0, len(scg_count)) ]
-        seed_idx = [i for i, contig in index_map.items() if scg_seed in contig.SCG_genes]
+        #pick the seeds to use. Might result in infinite loop with certain SCG scg sets...
+        seed_idx = []
+        while True:
+            scg_seed = list(scg_count.keys())[ np.random.randint(0, len(scg_count)) ]
+            seed_idx = [i for i, contig in index_map.items() if scg_seed in contig.SCG_genes]
+            if len(seed_idx) < n_clusters:
+                break
+
         return KMeans(n_clusters=n_clusters, random_state=7, n_init=1,
                     init=functools.partial(partial_seed_init3, seed_idx=seed_idx))\
                     .fit_predict(matrix, sample_weight=weights)
