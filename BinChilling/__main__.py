@@ -62,7 +62,7 @@ def run_bin_chilling(logger: BinLogger, a1:float, a1_min: float, all_scgs: set,\
     return output    
 
 
-def run_refiner(logger: BinLogger, partition: Partition ):
+def run_refiner(logger: BinLogger, partition: Partition, refiner_upper_bound: int ):
     global external_binrefiner
     if external_binrefiner is None:
         raise Exception("No external bin refiner detected. Something is wrong")
@@ -70,7 +70,7 @@ def run_refiner(logger: BinLogger, partition: Partition ):
     start_time = time()
     logger.log("Starting refinement process")
     
-    external_binrefiner.refine(partition)
+    external_binrefiner.refine(partition, refiner_upper_bound)
     
     logger.log(f"Finished bin refinement in time {(time() - start_time):0.02f}s")
     return
@@ -103,6 +103,7 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
                     scg_filepath, db_path, numpy_cachepath, 
                     partition_folder, max_processors, min_contig_len)
     
+    
     logger.log(f"Loaded data in {(time() - start_time):0.02f}s.")
     
     output = run_bin_chilling(logger, a1, a1_min, all_scgs, output_path, chunksize, gamma, \
@@ -110,11 +111,12 @@ def run_ensemble(logger: BinLogger, a1:float, a1_min: float, target_cluster_est:
     
     logger.log(f"total runtime so far: {(time() - start_time):0.02f}s.")
     
+    refinement_target = target_bin_3_4th_count_estimator(gamma)
     #yeet no more needed data
     CoFunctions.clear_shared_co_matrix()
     del gamma, all_scgs
         
-    run_refiner(logger, output)
+    run_refiner(logger, output, refinement_target)
     
     logger.log(f"Total runtime: {(time() - start_time):0.02f}s.")
     
@@ -135,11 +137,12 @@ def run_binner_ensembler(logger: BinLogger, a1:float, a1min: float, min_partitio
     
     logger.log(f"total runtime so far: {(time() - start_time):0.02f}s.")
     
+    refinement_target = target_bin_3_4th_count_estimator(gamma)
     #yeet no more needed data
     CoFunctions.clear_shared_co_matrix()
     del gamma, all_scgs
         
-    run_refiner(logger, output)
+    run_refiner(logger, output, refinement_target)
     
     logger.log(f"Total runtime: {(time() - start_time):0.02f}s.")
     

@@ -254,7 +254,7 @@ class PartitionSet(List[Partition[T]]):
         return list(self.__dataset__)
 
     def mean_cluster_in_partition(self) -> float:
-        return len(self.get_all_clusters()) / len(self)
+        return sum( (len(partition) for partition in self) ) / len(self)
 
     def maximal_partition_clusters(self) -> int:
         return max([len(partition) for partition in self])

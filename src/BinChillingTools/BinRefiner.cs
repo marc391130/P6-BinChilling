@@ -6,13 +6,15 @@ namespace BinChillingTools;
 
 public sealed class BinRefiner
 {
+    private readonly int _partitionSizeUpperBound;
     private readonly double _minCoValue;
     private readonly IReadOnlyDictionary<CoTuple, double> _coMatrix;
     private readonly BinEvaluator _evaluator;
     private readonly ConcurrentDictionary<int, double> _scoreDict = new();
 
-    public BinRefiner(double minCoValue, IReadOnlyDictionary<CoTuple, double> coMatrix, BinEvaluator evaluator)
+    public BinRefiner(int partitionSizeUpperBound, double minCoValue, IReadOnlyDictionary<CoTuple, double> coMatrix, BinEvaluator evaluator)
     {
+        _partitionSizeUpperBound = partitionSizeUpperBound;
         _minCoValue = minCoValue;
         _coMatrix = coMatrix;
         _evaluator = evaluator;
@@ -44,7 +46,7 @@ public sealed class BinRefiner
         {
             (oldClusters, newClusters) = RefineClustersMultiThreaded_NoBreak_NoRepeat(currentSegment, currentSize, removeSet);
             Console.WriteLine($"Refined {removeSet.Count} clusters into {newClusters.Count} new clusters.");
-            if (newClusters.Count < 2) 
+            if (newClusters.Count < 2 || (oldClusters.Count + newClusters.Count) <= _partitionSizeUpperBound ) 
                 break;
 
             foreach (var clusterHash in removeSet) 
@@ -151,21 +153,23 @@ public sealed class BinRefiner
 
                 var comboScore = _evaluator.ScoreCluster(cluster1.Concat(cluster2));
                 var delta = comboScore - Math.Max(score1, score2);
+                var totalScore = comboScore * commonCo;
                 
                 //not locked, as to have maximum throughput
-                if (delta > 0 && (scoreResult is null || comboScore * commonCo > scoreResult.Value.Score))
+                if (delta > 0 && (scoreResult is null || totalScore > scoreResult.Value.Score))
                 {
                     //lock skipset to go in here. Cant lco scoreResult, so using skipSet instead.
                     lock (skipSet)
                     {
                         //repeated as to not override good result
-                        if (scoreResult is null || comboScore * commonCo > scoreResult.Value.Score)
+                        if (scoreResult is null || totalScore > scoreResult.Value.Score)
                         {
-                            scoreResult = new CoResult(comboScore * commonCo, cluster2);
+                            scoreResult = new CoResult(totalScore, cluster2);
                         }
                     }
                 }
             });
+        
         return scoreResult;
     }
 

@@ -2,7 +2,7 @@
 
 public static class Program
 {
-    private const int NArgs = 5;
+    private const int NArgs = 6;
     public static int Main(string[] args)
     {
         if (args.Length >= 1 && args[0] == "__test__")
@@ -23,11 +23,12 @@ public static class Program
         var scgPath = args[2];
         var partitionCount = 1 / double.Parse(args[3]);
         var outputFile = args[4];
+        var partitionSizeUpperBound = int.Parse(args[5]);
 
         var reader = new BinChillingFileReader(coPath, partitionPath, scgPath);
 
         var evaluator = new BinEvaluator(reader.ReadScgs());
-        var refiner = new BinRefiner(partitionCount, reader.ReadCoMatrix(), evaluator);
+        var refiner = new BinRefiner(partitionSizeUpperBound, partitionCount, reader.ReadCoMatrix(), evaluator);
 
         var partition = reader.ReadPartition();
         var refinedPartition = refiner.Refine(partition);

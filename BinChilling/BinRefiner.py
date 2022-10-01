@@ -149,12 +149,15 @@ class ExternalBinRefiner(RefinerBase):
         if self._connected is False and throw_on_err:
             raise Exception('CANNOT CONENCT TO REFINER')
     
-    def refine(self, partition: Partition) -> None:
+    def refine(self, partition: Partition, refine_size_upperbound: int = None) -> None:
         co_filename = CoFunctions.tmp_co_filename
         
         if self._connected is False:
             self.log("Refiner is not connected. Refinement step is skipped")
             return
+        
+        if refine_size_upperbound is None or refine_size_upperbound < 1:
+            refine_size_upperbound = 1
         
         scg_filename = co_filename + '.scg'
         with open(scg_filename, 'w') as f:
@@ -165,12 +168,14 @@ class ExternalBinRefiner(RefinerBase):
             
         try:
             gc.collect()
+            print(EXECUTABLE)
             subprocess.run([EXECUTABLE,
                         self._partition_path,
                         co_filename,
                         scg_filename,
                         str(float(self._k)),
-                        self._output_filepath])
+                        self._output_filepath,
+                        str(refine_size_upperbound)])
         finally:
             #The os.remove call might throw exception. Dont ruin it here.            
             try:
