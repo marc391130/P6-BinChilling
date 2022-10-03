@@ -19,7 +19,7 @@ public static class EnumerableCoExtensions
         }
     }
     
-    public static IEnumerable<KeyValuePair<T, IReadOnlyCollection<T>>> SmartGroupSegment<T>(this IReadOnlyList<T> list,
+    public static IEnumerable<KeyValuePair<T, IReadOnlyCollection<T>>> SmartGroupSegment<T>(this List<T> list,
         IReadOnlyList<T> segment, Comparison<T>? comparison = null)
     {
         for (var i = 0; i < list.Count; i++)

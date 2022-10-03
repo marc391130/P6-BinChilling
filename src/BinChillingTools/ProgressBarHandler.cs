@@ -6,6 +6,11 @@ namespace BinChillingTools;
 
 public static class ProgressBarHandler
 {
+    public static IEnumerable<T> UseProgressBar<T>(this IEnumerable<T> enumerable, IProgressBar progressBar)
+    {
+        return new ProgressBarEnumerable<T>(enumerable, progressBar);
+    }
+
     public static string FormatMessage(this IProgressBar progressBar, DateTime startTime = default)
     {
         return $"    Remainder: {FormatTimeRemaining(progressBar.CalculateTimeRemainder(startTime))}";

@@ -20,7 +20,7 @@ public sealed class BinRefiner
         _evaluator = evaluator;
     }
 
-    private readonly record struct RefineResult(IReadOnlyList<string[]> OldClusters, IReadOnlyList<string[]> NewClusters);
+    private readonly record struct RefineResult(List<string[]> OldClusters, List<string[]> NewClusters);
     private readonly record struct CoResult(double Score, string[] Cluster);
 
 
@@ -38,20 +38,23 @@ public sealed class BinRefiner
 
         var currentSize = namedClusters.Length;
         var currentSegment = namedClusters.Segment();
-        IReadOnlyList<string[]> newClusters;
-        IReadOnlyList<string[]> oldClusters;
+        var oldClusters = new List<string[]>();
+        List<string[]> newClusters;
 
 
         while (true)
         {
-            (oldClusters, newClusters) = RefineClustersMultiThreaded_NoBreak_NoRepeat(currentSegment, currentSize, removeSet);
+            newClusters = RefineClustersMultiThreaded_NoBreak_NoRepeat(currentSegment, oldClusters, currentSize, removeSet);
             Console.WriteLine($"Refined {removeSet.Count} clusters into {newClusters.Count} new clusters.");
-            if (newClusters.Count < 2 || (oldClusters.Count + newClusters.Count) <= _partitionSizeUpperBound ) 
-                break;
 
+            
+            oldClusters.RemoveAll(x => removeSet.Contains(x.GetHashCode()));
             foreach (var clusterHash in removeSet) 
                 _scoreDict.Remove(clusterHash, out _);
 
+            if (newClusters.Count < 2 || (oldClusters.Count + newClusters.Count) <= _partitionSizeUpperBound ) 
+                break;
+            
             //update current iterator
             currentSize = newClusters.Count;
             currentSegment = newClusters.SmartGroupSegment(oldClusters);
@@ -76,32 +79,14 @@ public sealed class BinRefiner
         return score;
     }
 
-    private static ProgressBar CreateProgressBar(int count) => 
-        new(count, "Refining clusters...", new ProgressBarOptions()
-    {
-        BackgroundCharacter = '-',
-        BackgroundColor = ConsoleColor.Black,
-        CollapseWhenFinished = false,
-        DenseProgressBar = true,
-        DisplayTimeInRealTime = true,
-        DisableBottomPercentage = true,
-        EnableTaskBarProgress = false,
-        ForegroundColor = ConsoleColor.Green,
-        ForegroundColorDone = ConsoleColor.White,
-        ForegroundColorError = ConsoleColor.Red
-    });
-
-    private RefineResult RefineClustersMultiThreaded_NoBreak_NoRepeat(
-        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, int size, ISet<int> skipSet)
+    private List<string[]> RefineClustersMultiThreaded_NoBreak_NoRepeat(
+        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, ICollection<string[]> oldClusters, int size, ISet<int> skipSet)
     {
         using var progressBar = ProgressBarHandler.Create(size);
-        var startTime = DateTime.Now;
-        var oldClusters = new List<string[]>();
         var newClusters = new List<string[]>();
 
-        foreach (var (cluster1, clusterList2) in clusterList)
+        foreach (var (cluster1, clusterList2) in clusterList.UseProgressBar(progressBar))
         {
-            progressBar.FormattedTick(startTime);
             if(skipSet.Contains(cluster1.GetHashCode()) || cluster1.Length == 0) continue;
             var score1 = GetClusterScoreDynamic(cluster1);
 
@@ -117,7 +102,7 @@ public sealed class BinRefiner
             if (scoreResult.HasValue)
             {
                 skipSet.Add(cluster1.GetHashCode());
-                skipSet.Add(scoreResult.Value.GetHashCode());
+                skipSet.Add(scoreResult.Value.Cluster.GetHashCode());
                 newClusters.Add( cluster1.Concat(scoreResult.Value.Cluster).ToArray() );
                 continue;
             }
@@ -133,19 +118,18 @@ public sealed class BinRefiner
             oldClusters.Add(cluster1);
         }
         progressBar.Finalize();
-        return new RefineResult(oldClusters, newClusters);
+        return newClusters;
     }
 
     private CoResult? SearchOptimalPair(IReadOnlyList<string> cluster1, IReadOnlyCollection<string[]> clusterList2,
         double score1, ISet<int> skipSet, IProgressBar? progressBar = null)
     {
-        var startTime = DateTime.Now;
+        var enumerable = progressBar is null ? clusterList2 : clusterList2.UseProgressBar(progressBar);
         CoResult? scoreResult = null;
-        Parallel.ForEach(clusterList2
+        Parallel.ForEach(enumerable
                 .Where(c => !skipSet.Contains(c.GetHashCode()) && c.Length > 0),
             cluster2 =>
             {
-                progressBar?.FormattedTick(startTime);
                 var commonCo = CommonCoCalculation(cluster1, cluster2, _coMatrix);
                 
                 if (commonCo <= _minCoValue) return;
