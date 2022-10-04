@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using ShellProgressBar;
 
 namespace BinChillingTools;
@@ -10,7 +11,8 @@ public sealed class BinRefiner
     private readonly double _minCoValue;
     private readonly IReadOnlyDictionary<CoTuple, double> _coMatrix;
     private readonly BinEvaluator _evaluator;
-    private readonly ConcurrentDictionary<int, double> _scoreDict = new();
+    private readonly ConcurrentDictionary<object, double> _scoreDict = new();
+
 
     public BinRefiner(int partitionSizeUpperBound, double minCoValue, IReadOnlyDictionary<CoTuple, double> coMatrix, BinEvaluator evaluator)
     {
@@ -25,30 +27,40 @@ public sealed class BinRefiner
 
 
 
-    public IReadOnlyList<string[]> Refine(IReadOnlyDictionary<string, string[]> partition)
+    public IReadOnlyList<string[]> Refine(IReadOnlyList<string[]> partition)
     {
         Console.WriteLine($"Starting refinement using {partition.Count} clusters");
         
         _scoreDict.Clear();
-        var namedClusters = partition
-            .Select(x => x.Value)
-            .ToArray();
+        var initialClusters = partition as string[][] ?? partition.ToArray();
         
         var removeSet = new HashSet<int>();
+        
+        double internalCoScore;
+        using (var bar = ProgressBarHandler.Create(initialClusters.Length))
+        {
+            internalCoScore = initialClusters.InternalCoScoreParallel(_coMatrix, bar);
+        }
+        Console.WriteLine($"Average co score: {internalCoScore}");
 
-        var currentSize = namedClusters.Length;
-        var currentSegment = namedClusters.Segment();
+        var currentSize = initialClusters.Length;
+        var currentSegment = initialClusters.Segment();
+
         var oldClusters = new List<string[]>();
         List<string[]> newClusters;
-
-
+        
         while (true)
         {
-            newClusters = RefineClustersMultiThreaded_NoBreak_NoRepeat(currentSegment, oldClusters, currentSize, removeSet);
-            Console.WriteLine($"Refined {removeSet.Count} clusters into {newClusters.Count} new clusters.");
-
+            using (var progressBar = ProgressBarHandler.Create(currentSize))
+            {
+                newClusters = RefineClustersMultiThreaded_NoBreak_NoRepeat(
+                    currentSegment, oldClusters, progressBar, internalCoScore, removeSet);
+            }
+            
             
             oldClusters.RemoveAll(x => removeSet.Contains(x.GetHashCode()));
+            Console.WriteLine($"Refined {removeSet.Count} clusters into {newClusters.Count} new clusters." +
+                              $" ({oldClusters.Count + newClusters.Count})");
             foreach (var clusterHash in removeSet) 
                 _scoreDict.Remove(clusterHash, out _);
 
@@ -65,26 +77,25 @@ public sealed class BinRefiner
         }
         
         _scoreDict.Clear();
-        return newClusters.Concat(oldClusters).ToList();
+        var result = newClusters.Concat(oldClusters).ToList();
+        Console.WriteLine($"Average co score: {result.InternalCoScoreParallel(_coMatrix)}");
+        return result;
     }
 
 
     private double GetClusterScoreDynamic(IEnumerable<string> cluster)
     {
-        var hash = cluster.GetHashCode();
-        if(_scoreDict.TryGetValue(hash, out var score)) return score;
+        if(_scoreDict.TryGetValue(cluster, out var score)) return score;
         score = _evaluator.ScoreCluster(cluster);
-        // Console.WriteLine($"score: {score}");
-        _scoreDict[hash] = score;
+        _scoreDict[cluster] = score;
         return score;
     }
+    
 
     private List<string[]> RefineClustersMultiThreaded_NoBreak_NoRepeat(
-        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, ICollection<string[]> oldClusters, int size, ISet<int> skipSet)
+        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, ICollection<string[]> oldClusters, IProgressBar progressBar, double internalCoScore, ISet<int> skipSet)
     {
-        using var progressBar = ProgressBarHandler.Create(size);
         var newClusters = new List<string[]>();
-
         foreach (var (cluster1, clusterList2) in clusterList.UseProgressBar(progressBar))
         {
             if(skipSet.Contains(cluster1.GetHashCode()) || cluster1.Length == 0) continue;
@@ -94,7 +105,7 @@ public sealed class BinRefiner
             using (var childBar = progressBar.Spawn(clusterList2.Count, ProgressBarHandler.DefaultStartMsg,
                        ProgressBarHandler.DefaultChildOptions))
             {
-                scoreResult = SearchOptimalPair(cluster1, clusterList2, score1, skipSet, childBar);
+                scoreResult = SearchOptimalPair(cluster1, clusterList2, score1, internalCoScore, skipSet, childBar);
                 childBar.Finalize();
             }
 
@@ -122,25 +133,40 @@ public sealed class BinRefiner
     }
 
     private CoResult? SearchOptimalPair(IReadOnlyList<string> cluster1, IReadOnlyCollection<string[]> clusterList2,
-        double score1, ISet<int> skipSet, IProgressBar? progressBar = null)
+        double score1, double internalCoScore, ISet<int> skipSet, IProgressBar? progressBar = null)
     {
         var enumerable = progressBar is null ? clusterList2 : clusterList2.UseProgressBar(progressBar);
+
+        
         CoResult? scoreResult = null;
         Parallel.ForEach(enumerable
                 .Where(c => !skipSet.Contains(c.GetHashCode()) && c.Length > 0),
             cluster2 =>
             {
-                var commonCo = CommonCoCalculation(cluster1, cluster2, _coMatrix);
-                
-                if (commonCo <= _minCoValue) return;
-                var score2 = GetClusterScoreDynamic(cluster2);
+                double delta, totalScore;
+                if (score1 > 0)
+                {
+                    //calculate score first, as is typically faster and might fail more often
+                    var score2 = GetClusterScoreDynamic(cluster2);
+                    var comboScore = _evaluator.ScoreCluster(cluster1.Concat(cluster2));
+                    delta = comboScore - Math.Max(score1, score2);
+                    if (delta <= 0) return;
+                    
+                    var commonCo = CommonCoCalculation(cluster1, cluster2, _coMatrix);
+                    if (commonCo <= _minCoValue) return;
+                    totalScore = commonCo * comboScore;
+                }
+                else
+                {
+                    var commonCo = CommonCoCalculation(cluster1, cluster2, _coMatrix);
+                    if (commonCo <= _minCoValue) return;
+                    delta = commonCo - internalCoScore;
+                    if(delta <= 0) return;
+                    totalScore = commonCo;
+                }
 
-                var comboScore = _evaluator.ScoreCluster(cluster1.Concat(cluster2));
-                var delta = comboScore - Math.Max(score1, score2);
-                var totalScore = comboScore * commonCo;
-                
                 //not locked, as to have maximum throughput
-                if (delta > 0 && (scoreResult is null || totalScore > scoreResult.Value.Score))
+                if (scoreResult is null || totalScore > scoreResult.Value.Score)
                 {
                     //lock skipset to go in here. Cant lco scoreResult, so using skipSet instead.
                     lock (skipSet)

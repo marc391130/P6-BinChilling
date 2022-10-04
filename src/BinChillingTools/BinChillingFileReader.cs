@@ -72,7 +72,7 @@ public sealed class BinChillingFileReader
     }
 
 
-    public IReadOnlyDictionary<string, string[]> ReadPartition()
+    public IReadOnlyList<string[]> ReadPartition()
     {
         Console.WriteLine("Reading Partitions...");
         var group = new Dictionary<string, List<string>>();
@@ -86,9 +86,11 @@ public sealed class BinChillingFileReader
             else
                 group[line[0]] = new List<string>() {line[1]};
         }
-        return group.ToDictionary(
-            k => k.Key, 
-            v => v.Value.ToArray());
+
+        return group.Values.Select(x => x.ToArray()).ToArray();
+            // group.ToDictionary(
+            // k => k.Key, 
+            // v => v.Value.ToArray());
     }
 
 
