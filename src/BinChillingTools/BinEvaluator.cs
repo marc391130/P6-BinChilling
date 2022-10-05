@@ -19,6 +19,7 @@ public sealed class BinEvaluator
     public double ScoreCluster(IEnumerable<string> cluster)
     {
         var map   = CalculateScgMap(cluster);
+        if (map.Count == 0) return double.NaN;
         var completeness    = 100.0d * Completeness(map);
         var contamination   = 100.0d * Contamination(map);
         var megabinPenality = 100.0d * MegabinPenality(map);

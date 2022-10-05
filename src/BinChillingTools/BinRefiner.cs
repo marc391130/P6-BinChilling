@@ -34,7 +34,7 @@ public sealed class BinRefiner
         _scoreDict.Clear();
         var initialClusters = partition as string[][] ?? partition.ToArray();
         
-        var removeSet = new HashSet<int>();
+        var removeSet = new HashSet<object>();
         
         double internalCoScore;
         using (var bar = ProgressBarHandler.Create(initialClusters.Length))
@@ -58,7 +58,7 @@ public sealed class BinRefiner
             }
             
             
-            oldClusters.RemoveAll(x => removeSet.Contains(x.GetHashCode()));
+            oldClusters.RemoveAll(removeSet.Contains);
             Console.WriteLine($"Refined {removeSet.Count} clusters into {newClusters.Count} new clusters." +
                               $" ({oldClusters.Count + newClusters.Count})");
             foreach (var clusterHash in removeSet) 
@@ -93,34 +93,36 @@ public sealed class BinRefiner
     
 
     private List<string[]> RefineClustersMultiThreaded_NoBreak_NoRepeat(
-        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, ICollection<string[]> oldClusters, IProgressBar progressBar, double internalCoScore, ISet<int> skipSet)
+        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, ICollection<string[]> oldClusters
+        , IProgressBar progressBar, double internalCoScore, ISet<object> skipSet)
     {
         var newClusters = new List<string[]>();
         foreach (var (cluster1, clusterList2) in clusterList.UseProgressBar(progressBar))
         {
-            if(skipSet.Contains(cluster1.GetHashCode()) || cluster1.Length == 0) continue;
+            if(skipSet.Contains(cluster1) || cluster1.Length == 0) continue;
             var score1 = GetClusterScoreDynamic(cluster1);
 
             CoResult? scoreResult = null;
             using (var childBar = progressBar.Spawn(clusterList2.Count, ProgressBarHandler.DefaultStartMsg,
                        ProgressBarHandler.DefaultChildOptions))
             {
-                scoreResult = SearchOptimalPair(cluster1, clusterList2, score1, internalCoScore, skipSet, childBar);
+                
+                scoreResult = SearchOptimalPair(cluster1, clusterList2.UseProgressBar(childBar), score1, internalCoScore, skipSet);
                 childBar.Finalize();
             }
 
             //Add best cluster, if any
             if (scoreResult.HasValue)
             {
-                skipSet.Add(cluster1.GetHashCode());
-                skipSet.Add(scoreResult.Value.Cluster.GetHashCode());
+                skipSet.Add(cluster1);
+                skipSet.Add(scoreResult.Value.Cluster);
                 newClusters.Add( cluster1.Concat(scoreResult.Value.Cluster).ToArray() );
                 continue;
             }
 
             if (score1 < 0.0d)
             {
-                skipSet.Add(cluster1.GetHashCode());
+                skipSet.Add(cluster1);
                 newClusters.AddRange( SplitBin( cluster1 ) );
                 continue;
             }
@@ -132,37 +134,38 @@ public sealed class BinRefiner
         return newClusters;
     }
 
-    private CoResult? SearchOptimalPair(IReadOnlyList<string> cluster1, IReadOnlyCollection<string[]> clusterList2,
-        double score1, double internalCoScore, ISet<int> skipSet, IProgressBar? progressBar = null)
+    private CoResult? SearchOptimalPair(IReadOnlyList<string> cluster1, IEnumerable<string[]> clusterList2,
+        double score1, double internalCoScore, ISet<object> skipSet)
     {
-        var enumerable = progressBar is null ? clusterList2 : clusterList2.UseProgressBar(progressBar);
-
-        
         CoResult? scoreResult = null;
-        Parallel.ForEach(enumerable
-                .Where(c => !skipSet.Contains(c.GetHashCode()) && c.Length > 0),
+        Parallel.ForEach(clusterList2
+                .Where(c => !skipSet.Contains(c) && c.Length > 0),
             cluster2 =>
             {
+                //only calc score2 if score1 exists.
+                var score2 = double.IsNaN(score1)
+                    ? double.NaN
+                    : GetClusterScoreDynamic(cluster2);
+                
                 double delta, totalScore;
-                if (score1 > 0)
+                //use scg score if both score1 and score2 has it.
+                if (double.IsNaN(score1) || double.IsNaN(score2))
                 {
-                    //calculate score first, as is typically faster and might fail more often
-                    var score2 = GetClusterScoreDynamic(cluster2);
-                    var comboScore = _evaluator.ScoreCluster(cluster1.Concat(cluster2));
-                    delta = comboScore - Math.Max(score1, score2);
-                    if (delta <= 0) return;
-                    
                     var commonCo = CommonCoCalculation(cluster1, cluster2, _coMatrix);
-                    if (commonCo <= _minCoValue) return;
-                    totalScore = commonCo * comboScore;
+                    delta = commonCo - internalCoScore;
+                    if (delta <= 0) return;
+                    totalScore = commonCo;
                 }
                 else
                 {
+                    //calculate score first, as is typically faster and might fail more often
+                    if (double.IsNaN(score2)) return;
+                    var comboScore = _evaluator.ScoreCluster(cluster1.Concat(cluster2));
+                    delta = comboScore - Math.Max(score1, score2);
+                    if (delta <= 0) return;
+
                     var commonCo = CommonCoCalculation(cluster1, cluster2, _coMatrix);
-                    if (commonCo <= _minCoValue) return;
-                    delta = commonCo - internalCoScore;
-                    if(delta <= 0) return;
-                    totalScore = commonCo;
+                    totalScore = commonCo * (1+comboScore);
                 }
 
                 //not locked, as to have maximum throughput
