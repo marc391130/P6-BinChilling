@@ -1,19 +1,17 @@
 ﻿using System.Collections.Concurrent;
-using ShellProgressBar;
 
 namespace BinChillingTools;
 
 public static class EnumerableCoExtensions
 {
     public static double InternalCoScore(this IReadOnlyList<string[]> clusters,
-        IReadOnlyDictionary<CoTuple, double> coMatrix, IProgressBar? progressBar = null)
+        IReadOnlyDictionary<CoTuple, double> coMatrix, ConsoleProgressBar? progressBar = null)
     {
-        var startTime = DateTime.Now;
         var sum = 0.0d;
         if (clusters.Count <= 0) return sum;
         for (int k = 0; k < clusters.Count; k++)
         {
-            progressBar?.FormattedTick(startTime);
+            progressBar?.Update();
             var cluster = clusters[k];
             if (cluster.Length == 0) continue;
             var localSum = 0.0d;
@@ -50,7 +48,7 @@ public static class EnumerableCoExtensions
     }
     
     public static double InternalCoScoreParallel(this IEnumerable<string[]> clusters,
-        IReadOnlyDictionary<CoTuple, double> coMatrix, IProgressBar? progressBar = null)
+        IReadOnlyDictionary<CoTuple, double> coMatrix, ConsoleProgressBar? progressBar = null)
     {
         var bag = new ConcurrentBag<double>();
         var enumerable = progressBar is null 

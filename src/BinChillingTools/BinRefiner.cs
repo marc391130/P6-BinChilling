@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
-using ShellProgressBar;
 
 namespace BinChillingTools;
 
@@ -8,23 +6,19 @@ namespace BinChillingTools;
 public sealed class BinRefiner
 {
     private readonly int _partitionSizeUpperBound;
-    private readonly double _minCoValue;
     private readonly IReadOnlyDictionary<CoTuple, double> _coMatrix;
     private readonly BinEvaluator _evaluator;
     private readonly ConcurrentDictionary<object, double> _scoreDict = new();
 
 
-    public BinRefiner(int partitionSizeUpperBound, double minCoValue, IReadOnlyDictionary<CoTuple, double> coMatrix, BinEvaluator evaluator)
+    public BinRefiner(int partitionSizeUpperBound, IReadOnlyDictionary<CoTuple, double> coMatrix, BinEvaluator evaluator)
     {
         _partitionSizeUpperBound = partitionSizeUpperBound;
-        _minCoValue = minCoValue;
         _coMatrix = coMatrix;
         _evaluator = evaluator;
     }
 
-    private readonly record struct RefineResult(List<string[]> OldClusters, List<string[]> NewClusters);
     private readonly record struct CoResult(double Score, string[] Cluster);
-
 
 
     public IReadOnlyList<string[]> Refine(IReadOnlyList<string[]> partition)
@@ -37,9 +31,10 @@ public sealed class BinRefiner
         var removeSet = new HashSet<object>();
         
         double internalCoScore;
-        using (var bar = ProgressBarHandler.Create(initialClusters.Length))
+        using (var bar = ProgressBarHandler.CreateBar(initialClusters.Length))
         {
             internalCoScore = initialClusters.InternalCoScoreParallel(_coMatrix, bar);
+            bar.Final();
         }
         Console.WriteLine($"Average co score: {internalCoScore}");
 
@@ -51,10 +46,11 @@ public sealed class BinRefiner
         
         while (true)
         {
-            using (var progressBar = ProgressBarHandler.Create(currentSize))
+            using (var progressBar = ProgressBarHandler.CreateBar(currentSize))
             {
                 newClusters = RefineClustersMultiThreaded_NoBreak_NoRepeat(
-                    currentSegment, oldClusters, progressBar, internalCoScore, removeSet);
+                    currentSegment.UseProgressBar(progressBar), oldClusters, internalCoScore, removeSet);
+                progressBar.Final();
             }
             
             
@@ -93,23 +89,17 @@ public sealed class BinRefiner
     
 
     private List<string[]> RefineClustersMultiThreaded_NoBreak_NoRepeat(
-        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, ICollection<string[]> oldClusters
-        , IProgressBar progressBar, double internalCoScore, ISet<object> skipSet)
+        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, ICollection<string[]> oldClusters,
+        double internalCoScore, ISet<object> skipSet)
     {
         var newClusters = new List<string[]>();
-        foreach (var (cluster1, clusterList2) in clusterList.UseProgressBar(progressBar))
+        foreach (var (cluster1, clusterList2) in clusterList)
         {
             if(skipSet.Contains(cluster1) || cluster1.Length == 0) continue;
             var score1 = GetClusterScoreDynamic(cluster1);
 
             CoResult? scoreResult = null;
-            using (var childBar = progressBar.Spawn(clusterList2.Count, ProgressBarHandler.DefaultStartMsg,
-                       ProgressBarHandler.DefaultChildOptions))
-            {
-                
-                scoreResult = SearchOptimalPair(cluster1, clusterList2.UseProgressBar(childBar), score1, internalCoScore, skipSet);
-                childBar.Finalize();
-            }
+            scoreResult = SearchOptimalPair(cluster1, clusterList2, score1, internalCoScore, skipSet);
 
             //Add best cluster, if any
             if (scoreResult.HasValue)
@@ -130,7 +120,6 @@ public sealed class BinRefiner
             //only added if not merged with another cluster
             oldClusters.Add(cluster1);
         }
-        progressBar.Finalize();
         return newClusters;
     }
 
@@ -196,9 +185,9 @@ public sealed class BinRefiner
     {
         var sum = 0.0d;
         if (cluster1.Count == 0 || cluster2.Count == 0) return sum;
-        for (int i = 0; i < cluster1.Count; i++)
+        for (var i = 0; i < cluster1.Count; i++)
         {
-            for (int j = 0; j < cluster2.Count; j++)
+            for (var j = 0; j < cluster2.Count; j++)
             {
                 var val = coMatrix.TryGetValue(new CoTuple(cluster1[i], cluster2[j]), out var value ) ? value : 0.0d;
                 sum = sum + val;

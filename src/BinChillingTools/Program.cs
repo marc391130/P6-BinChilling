@@ -21,7 +21,7 @@ public static class Program
         var partitionPath = args[0];
         var coPath = args[1];
         var scgPath = args[2];
-        var partitionCount = 1 / double.Parse(args[3]);
+        // var partitionCount = 1 / double.Parse(args[3]);
         var outputFile = args[4];
         var partitionSizeUpperBound = int.Parse(args[5]);
 
@@ -30,7 +30,7 @@ public static class Program
         var evaluator = new BinEvaluator(reader.ReadScgs());
         var coMatrix = reader.ReadCoMatrix();
         
-        var refiner = new BinRefiner(partitionSizeUpperBound, partitionCount, coMatrix, evaluator);
+        var refiner = new BinRefiner(partitionSizeUpperBound, coMatrix, evaluator);
 
         var partition = reader.ReadPartition();
         var refinedPartition = refiner.Refine(partition);

@@ -2,7 +2,7 @@
 
 namespace BinChillingTools;
 
-public class ConcatCollection<T> : IReadOnlyCollection<T>
+public sealed class ConcatCollection<T> : IReadOnlyCollection<T>
 {
     private readonly IReadOnlyCollection<T> _l1;
     private readonly IReadOnlyCollection<T> _l2;

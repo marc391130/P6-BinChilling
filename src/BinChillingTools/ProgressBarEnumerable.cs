@@ -1,14 +1,13 @@
 ﻿using System.Collections;
-using ShellProgressBar;
 
 namespace BinChillingTools;
 
-public class ProgressBarEnumerable<T> : IEnumerable<T>
+public sealed class ProgressBarEnumerable<T> : IEnumerable<T>
 {
     private readonly IEnumerable<T> _enumerable;
-    private readonly IProgressBar _progressBar;
+    private readonly ConsoleProgressBar _progressBar;
 
-    public ProgressBarEnumerable(IEnumerable<T> enumerable, IProgressBar progressBar)
+    public ProgressBarEnumerable(IEnumerable<T> enumerable, ConsoleProgressBar progressBar)
     {
         _enumerable = enumerable;
         _progressBar = progressBar;
@@ -25,13 +24,12 @@ public class ProgressBarEnumerable<T> : IEnumerable<T>
     }
 }
 
-public class ProgressBarEnumerator<T> : IEnumerator<T>
+public sealed class ProgressBarEnumerator<T> : IEnumerator<T>
 {
-    private readonly IProgressBar _progressBar;
+    private readonly ConsoleProgressBar _progressBar;
     private readonly IEnumerator<T> _enumerator;
-    private DateTime _startTime;
 
-    public ProgressBarEnumerator(IEnumerator<T> enumerator, IProgressBar progressBar)
+    public ProgressBarEnumerator(IEnumerator<T> enumerator, ConsoleProgressBar progressBar)
     {
         _enumerator = enumerator;
         _progressBar = progressBar;
@@ -40,15 +38,14 @@ public class ProgressBarEnumerator<T> : IEnumerator<T>
     public bool MoveNext()
     {
         var next = _enumerator.MoveNext();
-        _progressBar.FormattedTick(_startTime);
+        _progressBar.Update();
         return next;
     }
 
     public void Reset()
     {
         _enumerator.Reset();
-        _startTime = DateTime.Now;
-        _progressBar.Tick(newTickCount:0, ProgressBarHandler.DefaultStartMsg);
+        _progressBar.Reset();
     }
 
     public T Current => _enumerator.Current;
