@@ -2,12 +2,12 @@
 
 namespace BinChillingTools;
 
-public sealed class ConcatCollection<T> : IReadOnlyCollection<T>
+public sealed class ConcatCollection<T> : IReadOnlyList<T>
 {
-    private readonly IReadOnlyCollection<T> _l1;
-    private readonly IReadOnlyCollection<T> _l2;
+    private readonly IReadOnlyList<T> _l1;
+    private readonly IReadOnlyList<T> _l2;
 
-    public ConcatCollection(IReadOnlyCollection<T> l1, IReadOnlyCollection<T> l2)
+    public ConcatCollection(IReadOnlyList<T> l1, IReadOnlyList<T> l2)
     {
         _l1 = l1;
         _l2 = l2;
@@ -29,4 +29,6 @@ public sealed class ConcatCollection<T> : IReadOnlyCollection<T>
     }
 
     public int Count => _l1.Count + _l2.Count;
+
+    public T this[int index] => index < _l1.Count ? _l1[index] : _l2[index];
 }

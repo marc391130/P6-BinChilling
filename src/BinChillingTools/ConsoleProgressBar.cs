@@ -58,7 +58,8 @@ public class ConsoleProgressBar : IDisposable
     
     private TimeSpan CalculateTimeRemainder()
     {
-        return TimeSpan.FromTicks(( (DateTime.Now.Subtract(StartTime)).Ticks / CurrentUnitsOfWork) * (TotalUnitsOfWork - CurrentUnitsOfWork));
+        var current = CurrentUnitsOfWork != 0 ? CurrentUnitsOfWork : 1;
+        return TimeSpan.FromTicks(( (DateTime.Now.Subtract(StartTime)).Ticks / current) * (TotalUnitsOfWork - CurrentUnitsOfWork));
     }
     
     /// <summary>

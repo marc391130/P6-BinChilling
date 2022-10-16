@@ -58,37 +58,29 @@ public static class EnumerableCoExtensions
         Parallel.ForEach(enumerable.Where(x => x.Length > 0),
             (cluster) => bag.Add(InternalCo(cluster, coMatrix)));
 
+        if (bag.IsEmpty) return 1.0d;
         return bag.Average();
     }
     
-    public static IEnumerable<KeyValuePair<T, IReadOnlyCollection<T>>> Segment<T>(this T[] list, Comparison<T>? comparison = null)
-    {
-        if (comparison is not null) Array.Sort(list, comparison);
-
-        for (var i = 0; i < list.Length; i++)
-        {
-            var offset = i + 1;
-            var remainder = list.Length - offset;
-            yield return new KeyValuePair<T, IReadOnlyCollection<T>>(
-                list[i], 
-                new ArraySegment<T>(list, offset, remainder)
-                );
-        }
-    }
-    
-    public static IEnumerable<KeyValuePair<T, IReadOnlyCollection<T>>> SmartGroupSegment<T>(this List<T> list,
-        IReadOnlyList<T> segment, Comparison<T>? comparison = null)
+    public static IEnumerable<KeyValuePair<T, IReadOnlyList<T>>> Segment<T>(this IReadOnlyList<T> list)
     {
         for (var i = 0; i < list.Count; i++)
         {
             var offset = i + 1;
             var remainder = list.Count - offset;
-            var selfSegment = new ListSegment<T>(list, offset, remainder);
-            
-            yield return new KeyValuePair<T, IReadOnlyCollection<T>>(
+            yield return new KeyValuePair<T, IReadOnlyList<T>>(
                 list[i], 
-                new ConcatCollection<T>(selfSegment, segment)
+                new ListSegment<T>(list, offset, remainder)
                 );
         }
+    }
+    
+    
+    public static IEnumerable<KeyValuePair<T, IReadOnlyList<T>>> ExtendSegment<T>(
+        this IEnumerable<KeyValuePair<T, IReadOnlyList<T>>> segment,
+        IReadOnlyList<T> extension)
+    {
+        return segment.Select(p => new KeyValuePair<T, IReadOnlyList<T>>(
+            p.Key, new ConcatCollection<T>(p.Value, extension)));
     }
 }

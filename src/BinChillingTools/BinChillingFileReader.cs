@@ -3,43 +3,6 @@
 namespace BinChillingTools;
 
 
-public static class CoMatrix
-{
-    public static int CoHashOld(string item1, string item2)
-    {
-        var i1 = item1.GetHashCode();
-        var i2 = item2.GetHashCode();
-        
-        return i1 < i2 
-            ? HashCode.Combine(i1, i2)
-            : HashCode.Combine(i2, i1); 
-    }
-
-
-    public static long CoHash(string item1, string item2)
-    {
-        var i1 = item1.GetHashCode();
-        var i2 = item2.GetHashCode();
-
-        var left = i1 < i2 ? i1 : i2;
-        var right = i1 < i2 ? i2 : i1;
-        
-        //implicit conversion of left to a long
-        long res = left;
-
-        //shift the bits creating an empty space on the right
-        // ex: 0x0000CFFF becomes 0xCFFF0000
-        res = (res << 32);
-
-        //combine the bits on the right with the previous value
-        // ex: 0xCFFF0000 | 0x0000ABCD becomes 0xCFFFABCD
-        res = res | (long)(uint)right; //uint first to prevent loss of signed bit
-
-        //return the combined result
-        return res;
-    }
-}
-
 public sealed class BinChillingFileReader
 {
     private readonly string _coPath;
@@ -75,24 +38,64 @@ public sealed class BinChillingFileReader
     public IReadOnlyList<string[]> ReadPartition()
     {
         Console.WriteLine("Reading Partitions...");
-        var group = new Dictionary<string, List<string>>();
+        return ReadPartitionInternal(_partitionPath).Select(x => x.ToArray()).ToArray();
+    }
+
+    private static IEnumerable<ISet<string>> ReadPartitionInternal(string path)
+    {
+        var group = new Dictionary<string, ISet<string>>();
         
-        foreach (var line in File.ReadLines(_partitionPath)
+        foreach (var line in File.ReadLines(path)
                      .Select(x => x.TrimEnd('\n').Split('\t'))
                      .Where(x => x.Length == 2))
         {
             if (group.ContainsKey(line[0]))
                 group[line[0]].Add(line[1]);
             else
-                group[line[0]] = new List<string>() {line[1]};
+                group[line[0]] = new HashSet<string>() { line[1] };
         }
 
-        return group.Values.Select(x => x.ToArray()).ToArray();
-            // group.ToDictionary(
-            // k => k.Key, 
-            // v => v.Value.ToArray());
+        return group.Values;
     }
 
+    public static IReadOnlyDictionary<CoTuple, double> ReadSourcePartitionAndBuildCoMatrix(
+        IReadOnlyList<string[]> partition, string folder)
+    {
+        Console.WriteLine("Reading source partitions to build co-matrix");
+        var dictionary = new Dictionary<CoTuple, int>();
+        var sourcePartitions = new List<IReadOnlyList<ISet<string>>>();
+        var totalBinsCount = partition.Sum(x => x.Length);
+
+
+        foreach (var source in Directory.GetFiles(folder))
+        {
+            sourcePartitions.Add(ReadPartitionInternal(source).ToList());
+        }
+        
+        using (var progressBar = new ConsoleProgressBar((uint)totalBinsCount))
+        {
+            foreach (var item1 in partition.SelectMany(static x => x).UseProgressBar(progressBar))
+            {
+                foreach (var sourcePartition in sourcePartitions)
+                {
+                    var cluster = sourcePartition
+                                      .FirstOrDefault(x => x.Contains(item1))
+                                  ?? new HashSet<string>(0);
+                    foreach (var item2 in cluster)
+                    {
+                        var tup = new CoTuple(item1, item2);
+                        dictionary[tup] = 1 + (dictionary.TryGetValue(tup, out var v) ? v : 0);
+                    }
+                }   
+            }
+        }
+        
+        var partitionCount = Directory.GetFiles(folder).Length;
+        return dictionary.ToDictionary(
+            k => k.Key,
+            v => ((double)v.Value) / ((double)partitionCount)
+        );
+    }
 
     //key is contig
     //value is list of SCGs

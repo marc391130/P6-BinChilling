@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BinChillingTools;
 
@@ -9,6 +10,7 @@ public sealed class BinRefiner
     private readonly IReadOnlyDictionary<CoTuple, double> _coMatrix;
     private readonly BinEvaluator _evaluator;
     private readonly ConcurrentDictionary<object, double> _scoreDict = new();
+    private readonly ConcurrentDictionary<object, double> _icoScoreDict = new();
 
 
     public BinRefiner(int partitionSizeUpperBound, IReadOnlyDictionary<CoTuple, double> coMatrix, BinEvaluator evaluator)
@@ -21,52 +23,44 @@ public sealed class BinRefiner
     private readonly record struct CoResult(double Score, string[] Cluster);
 
 
+    [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
     public IReadOnlyList<string[]> Refine(IReadOnlyList<string[]> partition)
     {
         Console.WriteLine($"Starting refinement using {partition.Count} clusters");
         
         _scoreDict.Clear();
-        var initialClusters = partition as string[][] ?? partition.ToArray();
-        
+        // var initialClusters = SplitAllNegativeClusters(partition);
+        var initialClusters = partition as List<string[]> ?? partition.ToList();
         var removeSet = new HashSet<object>();
         
-        double internalCoScore;
-        using (var bar = ProgressBarHandler.CreateBar(initialClusters.Length))
-        {
-            internalCoScore = initialClusters.InternalCoScoreParallel(_coMatrix, bar);
-            bar.Final();
-        }
-        Console.WriteLine($"Average co score: {internalCoScore}");
-
-        var currentSize = initialClusters.Length;
-        var currentSegment = initialClusters.Segment();
-
         var oldClusters = new List<string[]>();
-        List<string[]> newClusters;
-        
+        var newClusters = initialClusters;
+        initialClusters = null; //kill, so theres more memory
+        GC.Collect();
+
         while (true)
         {
-            using (var progressBar = ProgressBarHandler.CreateBar(currentSize))
+            using (var progressBar = ProgressBarHandler.CreateBar(newClusters.Count))
             {
-                newClusters = RefineClustersMultiThreaded_NoBreak_NoRepeat(
-                    currentSegment.UseProgressBar(progressBar), oldClusters, internalCoScore, removeSet);
+                var segment = newClusters.Segment().ExtendSegment(oldClusters).UseProgressBar(progressBar);
+                newClusters = RefineClustersMultiThreaded_NoBreak_NoRepeat(segment, oldClusters, removeSet);
                 progressBar.Final();
             }
             
             
             oldClusters.RemoveAll(removeSet.Contains);
+            // Console.WriteLine($"ICO: {internalCoScore}");
             Console.WriteLine($"Refined {removeSet.Count} clusters into {newClusters.Count} new clusters." +
-                              $" ({oldClusters.Count + newClusters.Count})");
-            foreach (var clusterHash in removeSet) 
-                _scoreDict.Remove(clusterHash, out _);
+                              $" (total: {oldClusters.Count + newClusters.Count})");
+            foreach (var bin in removeSet)
+            {
+                _scoreDict.Remove(bin, out _);
+                _icoScoreDict.Remove(bin, out _);
 
-            if (newClusters.Count < 2 || (oldClusters.Count + newClusters.Count) <= _partitionSizeUpperBound ) 
-                break;
-            
-            //update current iterator
-            currentSize = newClusters.Count;
-            currentSegment = newClusters.SmartGroupSegment(oldClusters);
-            
+            }
+
+            if (newClusters.Count == 0) break;
+
             //reset removeSet
             removeSet.Clear();
             GC.Collect();
@@ -87,33 +81,45 @@ public sealed class BinRefiner
         return score;
     }
     
+    private double GetIcoScoreDynamic(IReadOnlyList<string> cluster)
+    {
+        if(_icoScoreDict.TryGetValue(cluster, out var score)) return score;
+        score = cluster.InternalCo(_coMatrix);
+        _icoScoreDict[cluster] = score;
+        return score;
+    }
+    
 
     private List<string[]> RefineClustersMultiThreaded_NoBreak_NoRepeat(
-        IEnumerable<KeyValuePair<string[], IReadOnlyCollection<string[]>>> clusterList, ICollection<string[]> oldClusters,
-        double internalCoScore, ISet<object> skipSet)
+        IEnumerable<KeyValuePair<string[], IReadOnlyList<string[]>>> clusterList, ICollection<string[]> oldClusters, 
+        ISet<object> skipSet)
     {
         var newClusters = new List<string[]>();
         foreach (var (cluster1, clusterList2) in clusterList)
         {
             if(skipSet.Contains(cluster1) || cluster1.Length == 0) continue;
-            var score1 = GetClusterScoreDynamic(cluster1);
 
-            CoResult? scoreResult = null;
-            scoreResult = SearchOptimalPair(cluster1, clusterList2, score1, internalCoScore, skipSet);
+            var score1IcoTask = Task.Factory.StartNew(() => GetIcoScoreDynamic(cluster1));
+            var score1Task = Task.Factory.StartNew(() => GetClusterScoreDynamic(cluster1));
+
+            var score1 = score1Task.Result; 
+            var score1Ico = score1IcoTask.Result;
+            
+            var results = SearchOptimalPair(cluster1, clusterList2, score1, score1Ico, skipSet);
 
             //Add best cluster, if any
-            if (scoreResult.HasValue)
+            if (results.HasValue)
             {
                 skipSet.Add(cluster1);
-                skipSet.Add(scoreResult.Value.Cluster);
-                newClusters.Add( cluster1.Concat(scoreResult.Value.Cluster).ToArray() );
+                skipSet.Add(results.Value.Cluster);
+                newClusters.Add( cluster1.Concat(results.Value.Cluster).ToArray() );
                 continue;
             }
 
-            if (score1 < 0.0d)
+            if (!double.IsNaN(score1) && score1 < 0)
             {
                 skipSet.Add(cluster1);
-                newClusters.AddRange( SplitBin( cluster1 ) );
+                newClusters.AddRange(SplitBin(cluster1));
                 continue;
             }
             
@@ -124,37 +130,41 @@ public sealed class BinRefiner
     }
 
     private CoResult? SearchOptimalPair(IReadOnlyList<string> cluster1, IEnumerable<string[]> clusterList2,
-        double score1, double internalCoScore, ISet<object> skipSet)
+        double score1, double score1Ico, ISet<object> skipSet)
     {
+        var useScGs = false;
         CoResult? scoreResult = null;
         Parallel.ForEach(clusterList2
                 .Where(c => !skipSet.Contains(c) && c.Length > 0),
             cluster2 =>
             {
                 //only calc score2 if score1 exists.
+                var localScgUsage = false;
                 var score2 = double.IsNaN(score1)
-                    ? double.NaN
+                    ? GetIcoScoreDynamic(cluster2)
                     : GetClusterScoreDynamic(cluster2);
                 
-                double delta, totalScore;
                 //use scg score if both score1 and score2 has it.
+                double delta, totalScore;
                 if (double.IsNaN(score1) || double.IsNaN(score2))
                 {
+                    if(useScGs) return; //if a scoreResult has been set using SCGs, dont bother
+                    score2 = double.IsNaN(score2) ? GetIcoScoreDynamic(cluster2) : score2;
                     var commonCo = CommonCoCalculation(cluster1, cluster2, _coMatrix);
-                    delta = commonCo - internalCoScore;
-                    if (delta <= 0) return;
+                    delta = commonCo - Math.Max(score1Ico, score2) ;
+                    if (delta < 0) return;
                     totalScore = commonCo;
                 }
                 else
                 {
                     //calculate score first, as is typically faster and might fail more often
-                    if (double.IsNaN(score2)) return;
-                    var comboScore = _evaluator.ScoreCluster(cluster1.Concat(cluster2));
+                    var comboScore = _evaluator.ScoreCluster(cluster1.Union(cluster2));
                     delta = comboScore - Math.Max(score1, score2);
                     if (delta <= 0) return;
 
                     var commonCo = CommonCoCalculation(cluster1, cluster2, _coMatrix);
-                    totalScore = commonCo * (1+comboScore);
+                    totalScore = (1+commonCo) * (comboScore);
+                    localScgUsage = true;
                 }
 
                 //not locked, as to have maximum throughput
@@ -167,6 +177,7 @@ public sealed class BinRefiner
                         if (scoreResult is null || totalScore > scoreResult.Value.Score)
                         {
                             scoreResult = new CoResult(totalScore, cluster2);
+                            useScGs = useScGs || localScgUsage; //update whether or not to compare using onlu SCGs, used for speedup
                         }
                     }
                 }
@@ -175,26 +186,52 @@ public sealed class BinRefiner
         return scoreResult;
     }
 
+
+    private List<string[]> SplitAllNegativeClusters(IEnumerable<string[]> clusters)
+    {
+        Console.WriteLine("Splitting negative bins...");
+        return clusters
+            .AsParallel()
+            .SelectMany(x => 
+                GetClusterScoreDynamic(x) < 0.0 ? SplitBin(x) : new[] { x })
+            .ToList();
+    }
+
     private static IEnumerable<string[]> SplitBin(IEnumerable<string> cluster)
     {
         return cluster.Select(x => new []{ x });
     }
 
-    private static double CommonCoCalculation(IReadOnlyList<string> cluster1, IReadOnlyList<string> cluster2,
+    
+    private static double CommonCoSum(IReadOnlyList<string> cluster1, IReadOnlyList<string> cluster2,
         IReadOnlyDictionary<CoTuple, double> coMatrix)
     {
         var sum = 0.0d;
-        if (cluster1.Count == 0 || cluster2.Count == 0) return sum;
         for (var i = 0; i < cluster1.Count; i++)
         {
             for (var j = 0; j < cluster2.Count; j++)
             {
-                var val = coMatrix.TryGetValue(new CoTuple(cluster1[i], cluster2[j]), out var value ) ? value : 0.0d;
-                sum = sum + val;
+                sum += coMatrix.TryGetValue(new CoTuple(cluster1[i], cluster2[j]), out var value ) ? value : 0.0d;
             }
         }
-
-        return sum / (cluster1.Count * cluster2.Count);
+        return sum;
+    }
+    private static double CommonCoCalculation(IReadOnlyList<string> cluster1, IReadOnlyList<string> cluster2,
+        IReadOnlyDictionary<CoTuple, double> coMatrix)
+    {
+        if (cluster1.Count == 0 || cluster2.Count == 0) return 0.0d;
+        return CommonCoSum(cluster1, cluster2, coMatrix) / (cluster1.Count * cluster2.Count);
+    }
+    
+    public static double InternalCommonCoCalculation(IReadOnlyList<string> cluster1, IReadOnlyList<string> cluster2,
+        double score1, double score2, IReadOnlyDictionary<CoTuple, double> coMatrix)
+    {
+        var overlapSize = cluster1.Count * cluster2.Count;
+        if (cluster1.Count == 0 || cluster2.Count == 0) return 0.0d;
+        var co = CommonCoCalculation(cluster1, cluster2, coMatrix);
+        
+        return ( (score1 * cluster1.Count) + (co * overlapSize )  + (score2 * cluster2.Count) )
+            / (cluster1.Count + overlapSize + cluster2.Count);
     }
     
 }
