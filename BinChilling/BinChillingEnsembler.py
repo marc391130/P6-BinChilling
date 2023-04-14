@@ -52,6 +52,9 @@ class BinChillingEnsembler(AbstractEnsembler):
         
         self.chiller.merge_regulator.set_context(gamma, target_clusters)
         available_clusters = self.chiller.run(gamma, all_clusters, self.bin_eval, self.processors, self.chunksize)
+        
+        self.log(f"Merged count: {sum((1 for x in available_clusters if x.__partition_id__ is None))} of {len(available_clusters)}")
+        
         candidate_clusters, non_cand_clusters = self.pick_candidate_Clusters(available_clusters, target_clusters, partition_count)
         
         self.log(f"Finished merging process with {len(available_clusters)} clusters and lambda of {target_clusters}")

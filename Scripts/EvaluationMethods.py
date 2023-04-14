@@ -10,6 +10,7 @@ sys.path.insert(1, '../BinChilling')
 from BinReaders import ContigReader, PartitionSetReader, SCGReader
 from ClusterDomain import Cluster, Partition
 from Domain import ContigData, bin_size
+from BinEvaluator import BinEvaluator
 
 
 class Evaluator:
@@ -74,7 +75,7 @@ class NMIEvaluator:
         # print(len(eval_partition), len(true_partition), total_object_amount)
 
         first = True
-        for eval_cluster in eval_partition.values():
+        for eval_cluster in tqdm(eval_partition.values()):
             if len(eval_cluster) < 1: continue
             divisor1 += Evaluator.__MRI_calc__(len(eval_cluster), total_object_amount)
 
@@ -105,7 +106,7 @@ def get_double_compare_lst(lst1, lst2) -> List[Tuple[str, str]]:
 def calc_bin_size(cluster: Cluster[ContigData]) -> int:
     return sum([x.contig_length for x in cluster])
 
-def filter_bins(partition: Partition, minsize: int, contig_dct: Tuple[str, ContigData]) -> Partition:
+def filter_bins(partition: Partition, minsize: int, contig_dct: Tuple[str, ContigData], bin_eval: BinEvaluator, only_hq: bool) -> Partition:
     #return partition
     remove_lst = []
 
@@ -118,6 +119,10 @@ def filter_bins(partition: Partition, minsize: int, contig_dct: Tuple[str, Conti
 
     for cluster in result.values():
         if bin_size(cluster) < minsize:
+            remove_lst.append(cluster)
+            continue
+        comp, con, _ = bin_eval.evaluate(cluster)
+        if comp < 90 or con > 5:
             remove_lst.append(cluster)
 
     for cluster in remove_lst:
@@ -150,6 +155,10 @@ if __name__ == '__main__':
     #     dest='e', help='Number of Objects (Not clusters) in partition [Default = None]')
     p_args.add_argument('-C', help="Combinations settings choices: ('All', 'Half')", choices=('All', 'Half'), required=False, type=str,\
         default='All', metavar='', dest='comp')
+    p_args.add_argument('-HQ', "--HQ", help="Only compare HQ bins (1 = yes, 0 = no) (default = 0)", required=False, type=int,\
+        default=0, metavar='', dest='HQ')
+    p_args.add_argument('--SCG', '-g', metavar='', required=True, \
+        dest='SCG', help='Path to single copy genes file (required)')
     p_args.add_argument('-M', help='Minimum bin size to include', type=int, required=False,\
         default=0, metavar='', dest='minsize')
     p_args.add_argument('--fasta', help='path to fasta file', type=str, required=True,\
@@ -170,11 +179,15 @@ if __name__ == '__main__':
     if len(partition_paths1) + len(partition_paths2) <= 1:
         raise argparse.ArgumentError(args.path, 'must have at least 2 partitions')
 
-    scg_reader = SCGReader(['../Dataset/marker_gene_stats.tsv']) 
+    scg_reader = SCGReader([args.SCG]) 
     contig_dct = ContigReader(args.fastafile, scg_reader=scg_reader, numpy_file=args.cachefile, depth_file=args.abundancefile).read_file_fast(args.cachefile)
+    
+    bin_eval = BinEvaluator(scg_reader.read_contig_scg_superset())
+    
     number_of_elements = len(contig_dct)
     path_lst = partition_paths1 + partition_paths2
-    partitionDct = {path: filter_bins(PartitionSetReader.__read_single_partition__(path), args.minsize, contig_dct) for path in path_lst}
+    
+    partitionDct = {path: filter_bins(PartitionSetReader.__read_single_partition__(path), args.minsize, contig_dct, bin_eval, args.HQ > 0) for path in path_lst}
     tuple_lst = get_all_compare_lst(path_lst) if all_comb else get_double_compare_lst(partition_paths1, partition_paths2)
     ARI_results, NMI_results = [], []
 
