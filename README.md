@@ -1,4 +1,4 @@
-!Bin Chilling: A Metagenomic Ensemble Method
+# Bin Chilling: A Metagenomic Ensemble Method
 
 Docker file is also avaiable, and is the prefered way to run Bin Chilling.
 only tested on linux.
@@ -10,7 +10,7 @@ Quickstart guide:
 4. follow guide
 
 
-!Data requirements:
+## Data requirements:
 
 
 The data requirements of BinChillign are the following:
@@ -22,7 +22,7 @@ The data requirements of BinChillign are the following:
 - input partitions (unless in standalone mode)
 
 
-!Docker Example:
+## Docker Example:
 Data used in this example is the strong100 dataset, which can be found at:
 https://zenodo.org/record/6122610
 Or can be directly downloaded from:
@@ -74,7 +74,7 @@ The .ref.tsv file is the refined version, which is the optimized output.
 ```
 
 
-!Evaluation
+## Evaluation
 Evaluation is done using marker_gene_stats the formulas from DAS_TOOls paper.
 Navigate to the scripts folder.
 python3 EvaluateBins.py -f ../Data/edges.fasta -g ../Data/marker_gene_stats.tsv  -p ../Data/Bin_output.tsv.ref.tsv -d ../Data/edges_depth.txt -o ../Data/evaluation.tsv
